@@ -1,0 +1,53 @@
+import { useEffect, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { api, WS_EVENTS, type WsMessage } from "@shared/routes";
+
+export function useAppWebSocket() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const wsRef = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    const connect = () => {
+      wsRef.current = new WebSocket(wsUrl);
+      
+      wsRef.current.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data) as WsMessage<any>;
+          
+          if (data.type === WS_EVENTS.CARD_USED) {
+            const { cardName, userName } = data.payload;
+            
+            toast({
+              title: "🌟 Kartu Digunakan!",
+              description: `${userName} baru saja menggunakan kartu: ${cardName}`,
+              className: "bg-primary text-primary-foreground border-none rounded-2xl shadow-xl",
+            });
+            
+            // Invalidate active cards to refresh the list
+            queryClient.invalidateQueries({ queryKey: [api.activeCards.list.path] });
+          }
+        } catch (e) {
+          console.error("Failed to parse WS message", e);
+        }
+      };
+
+      wsRef.current.onclose = () => {
+        // Reconnect after a delay
+        setTimeout(connect, 3000);
+      };
+    };
+
+    connect();
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [queryClient, toast]);
+}
