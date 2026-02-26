@@ -1,0 +1,58 @@
+Tugas: Buatkan saya aplikasi web Fullstack (React.js + Tailwind CSS untuk Frontend, dan Firebase/Supabase atau Node.js Websocket untuk Real-time Backend) khusus untuk permainan kartu Gacha LDR (Long Distance Relationship) berdua untuk saya (Priatna) dan pasangan saya (Cia).
+
+Fitur Utama & Alur Logika:
+
+    User Selection / Login Sederhana: Saat web dibuka, ada pilihan untuk masuk sebagai "Priatna" atau "Cia".
+
+    Sistem Waktu Gacha (Zona Waktu WIB / UTC+7): >    - Setiap user mendapatkan jatah maksimal 2 kali gacha (tarik kartu) per hari.
+
+        Kuota gacha di-reset menjadi 2 setiap jam 06:00 pagi dan 18:00 sore WIB.
+
+    Inventory System: Kartu yang didapat dari gacha masuk ke tab "Inventory". Database harus menyimpan ID kartu, nama pemilik, dan status (belum dipakai).
+
+    Gunakan Kartu & Timer:
+
+        Saat tombol "Gunakan" di inventory ditekan, kartu terhapus dari inventory dan pindah ke tab "Active Cards".
+
+        Di tab "Active Cards", tampilkan nama kartu, siapa yang menggunakan, dan hitung mundur (countdown timer) berdasarkan durasi kartu. Jika waktu habis, kartu otomatis hilang dari tab.
+
+    Browser Notification (Web API): Jika "Priatna" menekan tombol gunakan kartu, maka browser milik "Cia" akan memunculkan pop-up notifikasi (misal: "Priatna baru saja menggunakan Kartu Boleh Marah 20 Menit!"), begitu juga sebaliknya. Sistem harus real-time.
+
+Daftar Kartu (Database/JSON Seed):
+Tier Common (Drop Rate 60%):
+
+    Kartu PAP Random (Durasi efek: 5 menit) - Deskripsi: Target wajib kirim foto selfie random saat itu juga!
+
+    Kartu Mode Alien (Durasi efek: 15 menit) - Deskripsi: Selama 15 menit ke depan, target kalau balas chat wajib pakai tambahan kata-kata aneh atau diketik typo disengaja.
+
+    Kartu Kirim Meme (Durasi efek: 5 menit) - Deskripsi: Target wajib nyari dan ngirim satu meme paling random atau stiker WhatsApp paling jelek.
+
+    Kartu VN Konser Fals (Durasi efek: 5 menit) - Deskripsi: Target wajib kirim VN nyanyi lagu anak-anak dengan nama pengguna kartu.
+
+Tier Rare (Drop Rate 30%):
+
+    Kartu Boleh Marah 20 Menit (Durasi efek: 20 menit) - Deskripsi: Pengguna bisa ngomel bebas, target cuma boleh dengerin sambil bilang "Iya, kamu bener".
+
+    Kartu "Aku Bosnya" (Durasi efek: 30 menit) - Deskripsi: Selama 30 menit ke depan, target wajib memanggil pengguna dengan sebutan "Paduka" atau "Bos".
+
+    Kartu Ketik Pakai Hidung (Durasi efek: 5 menit) - Deskripsi: Target wajib ngetik "Aku sayang banget sama kamu" pakai hidung, tanpa hapus typo.
+
+    Kartu Pantun Maksa (Durasi efek: 30 menit) - Deskripsi: Untuk 5 chat ke depan, target wajib membalas pesan pakai pantun dadakan.
+
+Tier SSR / Legendary (Drop Rate 10%):
+
+    Kartu "Pause" Ngambek (Durasi efek: 5 menit) - Deskripsi: Target wajib langsung kirim foto senyum paling manis dan batal ngambek detik itu juga.
+
+    Kartu Ganti Nama Kontak (Durasi efek: 1440 menit / 24 jam) - Deskripsi: Pengguna berhak menentukan nama kontak yang memalukan di HP target selama 24 jam. Wajib kirim screenshot bukti.
+
+    Kartu Jin Aladdin Virtual (Durasi efek: 60 menit) - Deskripsi: Pengguna bisa minta tolong satu hal remeh ke target dan target tidak boleh nolak.
+
+Desain UI/UX (Mobile-First):
+
+    Buat UI yang bersih, lucu, dan modern menggunakan Tailwind CSS.
+
+    Gunakan sistem 3 Tab Navigasi di bawah layar: [Gacha] | [Inventory] | [Active Cards].
+
+    Berikan animasi sederhana saat tombol gacha ditekan (seperti kartu terbalik).
+
+Tolong buatkan struktur proyeknya dan kode fungsionalnya. Mulailah dengan membuat kerangka dasar UI dan logika Gacha-nya terlebih dahulu.

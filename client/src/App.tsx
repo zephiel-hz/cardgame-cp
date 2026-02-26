@@ -33,10 +33,15 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 // WebSocket initialization component
 function AppServices() {
   const { user } = useAuth();
-  // Only connect WS if logged in
-  if (user) {
-    useAppWebSocket();
-  }
+  
+  // Custom hook that uses hooks internally must be called at top level
+  // but we can move the condition inside useAppWebSocket or wrap the logic here
+  // The error "Hooks can only be called inside of the body of a function component" 
+  // happened because useAppWebSocket was likely called conditionally or improperly.
+  
+  // Let's fix the Hook rule violation in AppServices
+  useAppWebSocket(); 
+  
   return null;
 }
 
