@@ -26,8 +26,10 @@ export async function registerRoutes(
       const input = api.auth.login.input.parse(req.body);
       let user = await storage.getUserByUsername(input.username);
       if (!user) {
-        // Automatically create if not exist (since it's a simple app for 2 users)
-        user = await storage.createUser({ username: input.username });
+        return res.status(404).json({ message: "User not found" });
+      }
+      if (user.pin !== input.pin) {
+        return res.status(401).json({ message: "Invalid PIN" });
       }
       res.status(200).json(user);
     } catch (err) {
@@ -35,6 +37,16 @@ export async function registerRoutes(
         return res.status(404).json({ message: err.errors[0].message });
       }
       res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.patch(api.auth.updateProfile.path, async (req, res) => {
+    try {
+      const { userId, ...updates } = api.auth.updateProfile.input.parse(req.body);
+      const user = await storage.updateUser(userId, updates);
+      res.status(200).json(user);
+    } catch (err) {
+      res.status(400).json({ message: "Failed to update profile" });
     }
   });
 
@@ -122,7 +134,10 @@ async function seedDatabase() {
     // Seed users
     const userCount = await db.select().from(users);
     if (userCount.length === 0) {
-      await db.insert(users).values([{ username: 'Priatna' }, { username: 'Cia' }]);
+      await db.insert(users).values([
+        { username: 'Priatna', pin: '1010' }, 
+        { username: 'Cia', pin: '0412' }
+      ]);
     }
 
     // Seed cards

@@ -13,10 +13,25 @@ export const api = {
     login: {
       method: 'POST' as const,
       path: '/api/auth/login' as const,
-      input: z.object({ username: z.string() }),
+      input: z.object({ username: z.string(), pin: z.string() }),
       responses: {
         200: z.custom<typeof users.$inferSelect>(),
+        401: z.object({ message: z.string() }),
         404: errorSchemas.notFound,
+      }
+    },
+    updateProfile: {
+      method: 'PATCH' as const,
+      path: '/api/auth/profile' as const,
+      input: z.object({ 
+        userId: z.number(),
+        username: z.string().optional(),
+        pin: z.string().optional(),
+        avatarUrl: z.string().optional(),
+      }),
+      responses: {
+        200: z.custom<typeof users.$inferSelect>(),
+        400: errorSchemas.validation,
       }
     }
   },

@@ -60,7 +60,7 @@ export default function Login() {
 
         <div className="space-y-4">
           <button
-            onClick={() => handleLogin("Priatna")}
+            onClick={() => handleLogin("Adit")}
             disabled={isLoading}
             className="w-full relative group overflow-hidden rounded-3xl p-[2px] bg-gradient-to-r from-blue-400 to-indigo-500 shadow-xl shadow-blue-500/20 transition-transform active:scale-95"
           >

@@ -5,7 +5,9 @@ import { z } from "zod";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(), 
+  username: text("username").notNull().unique(),
+  pin: text("pin").notNull().default("0000"),
+  avatarUrl: text("avatar_url"),
 });
 
 export const cards = pgTable("cards", {
