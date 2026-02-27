@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +22,13 @@ export default function Profile() {
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || "");
   const [gender, setGender] = useState((user?.gender as any) || "other");
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  // Sync avatar URL when user updates, with cache-busting
+  useEffect(() => {
+    if (user?.avatarUrl) {
+      setAvatarUrl(`${user.avatarUrl}?t=${Date.now()}`);
+    }
+  }, [user?.avatarUrl, user?.id]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -78,7 +85,9 @@ export default function Profile() {
           }
 
           const data = await res.json();
-          setAvatarUrl(data.avatarUrl);
+          // Add timestamp to URL for cache-busting
+          const urlWithTimestamp = `${data.avatarUrl}?t=${Date.now()}`;
+          setAvatarUrl(urlWithTimestamp);
           toast({ title: "Berhasil", description: "Foto berhasil diunggah!" });
         } catch (error: any) {
           toast({
