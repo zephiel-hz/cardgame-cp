@@ -6,13 +6,10 @@ import { z } from "zod";
 import { WebSocketServer, WebSocket } from "ws";
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// Always save avatars to root public/avatars for consistency
-// This folder is served by Express static middleware
-const uploadDir = path.resolve(__dirname, "../public/avatars");
+// Use process.cwd() for production compatibility (works in both dev and bundled)
+// Avatar upload directory - always relative to working directory
+const uploadDir = path.resolve(process.cwd(), "public/avatars");
 
 // Ensure upload directory exists
 if (!fs.existsSync(uploadDir)) {

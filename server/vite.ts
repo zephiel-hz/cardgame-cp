@@ -35,9 +35,10 @@ export async function setupVite(server: Server, app: Express) {
     const url = req.originalUrl;
 
     try {
+      // Use process.cwd() for compatibility with bundled production builds
+      const baseDir = process.cwd();
       const clientTemplate = path.resolve(
-        import.meta.dirname,
-        "..",
+        baseDir,
         "client",
         "index.html",
       );
