@@ -97,7 +97,9 @@ app.use((req, res, next) => {
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
   const port = parseInt(process.env.PORT || "3000", 10);
-  const hostname = process.env.HOST || "localhost";
+  // In production, listen on 0.0.0.0 to accept external connections
+  // In development, listen on localhost for security
+  const hostname = process.env.NODE_ENV === "production" ? "0.0.0.0" : (process.env.HOST || "localhost");
   
   httpServer.listen(port, hostname, () => {
     log(`serving on http://${hostname}:${port}`);
