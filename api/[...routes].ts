@@ -1,39 +1,47 @@
-// Catch-all serverless function for Vercel
-// This handles all routes that aren't matched by other API handlers
-
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import path from "path";
+import fs from "fs";
 
-let cachedApp: any = null;
+let app: any = null;
 
-async function getApp() {
-  if (cachedApp) {
-    return cachedApp;
-  }
+async function initializeApp() {
+  if (app) return app;
 
   try {
-    const imported = await import("../dist/index.cjs");
-    cachedApp = imported.default;
-    return cachedApp;
+    // Load the Express app module
+    const appModule = await import("../dist/index.cjs");
+    app = appModule.default || appModule;
+    return app;
   } catch (error) {
-    console.error("Failed to load app:", error);
+    console.error("Error loading app:", error);
     throw error;
   }
 }
 
 export default async (req: VercelRequest, res: VercelResponse) => {
+  // CORS headers - allow cross-origin requests
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS,PATCH,DELETE,POST,PUT");
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version"
+  );
+
+  if (req.method === "OPTIONS") {
+    res.status(200).end();
+    return;
+  }
+
   try {
-    const app = await getApp();
-
-    if (!app) {
-      return res.status(500).json({ error: "App not available" });
-    }
-
-    return app(req as any, res as any);
-  } catch (error) {
-    console.error("Error:", error);
-    return res.status(500).json({
+    const expressApp = await initializeApp();
+    return expressApp(req, res);
+  } catch (err) {
+    console.error("Handler error:", err);
+    res.status(500).json({
       error: "Internal Server Error",
-      details: error instanceof Error ? error.message : "Unknown error",
+      message: err instanceof Error ? err.message : String(err),
     });
   }
 };
+
