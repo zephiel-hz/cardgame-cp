@@ -9,6 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { User } from "@shared/schema";
 
+export default function Login() {
+  const [, setLocation] = useLocation();
+  const { login } = useAuth();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [pin, setPin] = useState("");
+  const [users, setUsers] = useState<User[]>([]);
+  const [usersLoading, setUsersLoading] = useState(true);
+
   const getGenderEmoji = (gender?: string): string => {
     switch (gender) {
       case "male":
