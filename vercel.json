@@ -22,8 +22,5 @@
       "src": "/(.*)",
       "dest": "/dist/index.cjs"
     }
-  ],
-  "env": [
-    "DATABASE_URL"
   ]
 }
