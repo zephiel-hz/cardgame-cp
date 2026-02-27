@@ -8,6 +8,7 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   pin: text("pin").notNull().default("0000"),
   avatarUrl: text("avatar_url"),
+  gender: text("gender").default("other"), // 'male', 'female', 'other'
 });
 
 export const cards = pgTable("cards", {

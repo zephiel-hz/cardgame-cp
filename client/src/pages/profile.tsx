@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Camera, Lock, User as UserIcon } from "lucide-react";
 
 export default function Profile() {
@@ -19,6 +20,7 @@ export default function Profile() {
   const [username, setUsername] = useState(user?.username || "");
   const [pin, setPin] = useState("");
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || "");
+  const [gender, setGender] = useState((user?.gender as any) || "other");
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const updateProfileMutation = useMutation({
@@ -108,6 +110,7 @@ export default function Profile() {
     if (username !== user?.username) updates.username = username;
     if (pin) updates.pin = pin;
     if (avatarUrl !== user?.avatarUrl) updates.avatarUrl = avatarUrl;
+    if (gender !== user?.gender) updates.gender = gender;
     
     if (Object.keys(updates).length > 0) {
       updateProfileMutation.mutate(updates);
@@ -195,6 +198,20 @@ export default function Profile() {
                 placeholder="Kosongkan jika tidak ingin diubah"
               />
               <p className="text-[10px] text-muted-foreground">PIN harus berupa 4 digit angka.</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="gender">Jenis Kelamin</Label>
+              <Select value={gender} onValueChange={setGender}>
+                <SelectTrigger className="rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">👦🏻 Laki-laki</SelectItem>
+                  <SelectItem value="female">👧🏻 Perempuan</SelectItem>
+                  <SelectItem value="other">🤷 Lainnya</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <Button

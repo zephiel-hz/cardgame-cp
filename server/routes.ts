@@ -9,7 +9,11 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const uploadDir = path.join(__dirname, "../public/avatars");
+// In development, save to client/public; in production, save to dist/public
+const uploadDir = path.join(
+  __dirname,
+  process.env.NODE_ENV === "production" ? "../public/avatars" : "../../client/public/avatars"
+);
 
 // Ensure upload directory exists
 if (!fs.existsSync(uploadDir)) {

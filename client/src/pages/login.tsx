@@ -9,15 +9,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { User } from "@shared/schema";
 
-export default function Login() {
-  const [, setLocation] = useLocation();
-  const { login } = useAuth();
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<string | null>(null);
-  const [pin, setPin] = useState("");
-  const [users, setUsers] = useState<User[]>([]);
-  const [usersLoading, setUsersLoading] = useState(true);
+  const getGenderEmoji = (gender?: string): string => {
+    switch (gender) {
+      case "male":
+        return "👦🏻";
+      case "female":
+        return "👧🏻";
+      default:
+        return "🤷";
+    }
+  };
+
+  const getGradient = (gender?: string): string => {
+    switch (gender) {
+      case "male":
+        return "from-blue-400 to-indigo-500 shadow-blue-500/20";
+      case "female":
+        return "from-pink-400 to-rose-500 shadow-pink-500/20";
+      default:
+        return "from-purple-400 to-pink-500 shadow-purple-500/20";
+    }
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -110,14 +122,9 @@ export default function Login() {
             ) : users.length === 0 ? (
               <div className="text-center text-muted-foreground">Tidak ada pengguna</div>
             ) : (
-              users.map((user, index) => {
-                const gradients = [
-                  "from-blue-400 to-indigo-500 shadow-blue-500/20",
-                  "from-pink-400 to-rose-500 shadow-pink-500/20",
-                ];
-                const gradient = gradients[index % gradients.length];
-                const emojis = ["👦🏻", "👧🏻"];
-                const emoji = emojis[index % emojis.length];
+              users.map((user) => {
+                const gradient = getGradient((user as any).gender);
+                const emoji = getGenderEmoji((user as any).gender);
 
                 return (
                   <button

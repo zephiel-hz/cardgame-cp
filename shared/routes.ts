@@ -28,6 +28,7 @@ export const api = {
         username: z.string().optional(),
         pin: z.string().optional(),
         avatarUrl: z.string().optional(),
+        gender: z.enum(['male', 'female', 'other']).optional(),
       }),
       responses: {
         200: z.custom<typeof users.$inferSelect>(),
