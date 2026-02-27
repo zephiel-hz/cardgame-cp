@@ -4,6 +4,17 @@ import { storage } from "./storage";
 import { api, WS_EVENTS } from "@shared/routes";
 import { z } from "zod";
 import { WebSocketServer, WebSocket } from "ws";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const uploadDir = path.join(__dirname, "../public/avatars");
+
+// Ensure upload directory exists
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -47,6 +58,45 @@ export async function registerRoutes(
       res.status(200).json(user);
     } catch (err) {
       res.status(400).json({ message: "Failed to update profile" });
+    }
+  });
+
+  app.get(api.auth.listUsers.path, async (req, res) => {
+    try {
+      const allUsers = await storage.getAllUsers();
+      res.status(200).json(allUsers);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.post(api.auth.uploadAvatar.path, async (req, res) => {
+    try {
+      const { userId, filename, data } = req.body;
+      
+      if (!userId || !filename || !data) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
+
+      // Generate a unique filename
+      const ext = path.extname(filename);
+      const timestamp = Date.now();
+      const uniqueFilename = `avatar_${userId}_${timestamp}${ext}`;
+      const filePath = path.join(uploadDir, uniqueFilename);
+
+      // Remove data URL prefix if present (e.g., "data:image/jpeg;base64,")
+      const base64Data = data.replace(/^data:image\/[^;]+;base64,/, "");
+      const buffer = Buffer.from(base64Data, "base64");
+
+      // Save file
+      fs.writeFileSync(filePath, buffer);
+
+      // Return the avatar URL
+      const avatarUrl = `/avatars/${uniqueFilename}`;
+      res.status(200).json({ avatarUrl });
+    } catch (err) {
+      console.error("Avatar upload error:", err);
+      res.status(400).json({ message: "Failed to upload avatar" });
     }
   });
 

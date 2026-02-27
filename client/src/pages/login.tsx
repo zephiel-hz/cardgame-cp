@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Heart, Stars, Lock, User as UserIcon } from "lucide-react";
@@ -7,6 +7,7 @@ import { api } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { User } from "@shared/schema";
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -15,6 +16,26 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [pin, setPin] = useState("");
+  const [users, setUsers] = useState<User[]>([]);
+  const [usersLoading, setUsersLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await fetch(api.auth.listUsers.path);
+        if (res.ok) {
+          const data = await res.json();
+          setUsers(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+      } finally {
+        setUsersLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,13 +48,13 @@ export default function Login() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: selectedUser, pin }),
       });
-      
+
       const data = await res.json();
 
       if (!res.ok) {
         throw new Error(data.message || "Gagal login");
       }
-      
+
       login(data);
       setLocation("/gacha");
     } catch (error: any) {
@@ -51,11 +72,20 @@ export default function Login() {
   return (
     <div className="fixed inset-0 bg-gradient-to-b from-pink-50 to-background flex flex-col items-center justify-center p-6 overflow-hidden">
       {/* Decorative background elements */}
-      <div className="absolute top-20 left-10 text-primary/20 animate-pulse"><Heart size={48} /></div>
-      <div className="absolute bottom-40 right-10 text-accent/30 animate-bounce" style={{ animationDuration: '3s' }}><Stars size={64} /></div>
-      <div className="absolute top-40 right-20 text-secondary/40 rotate-12"><Heart size={32} /></div>
+      <div className="absolute top-20 left-10 text-primary/20 animate-pulse">
+        <Heart size={48} />
+      </div>
+      <div
+        className="absolute bottom-40 right-10 text-accent/30 animate-bounce"
+        style={{ animationDuration: "3s" }}
+      >
+        <Stars size={64} />
+      </div>
+      <div className="absolute top-40 right-20 text-secondary/40 rotate-12">
+        <Heart size={32} />
+      </div>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, type: "spring" }}
@@ -65,40 +95,60 @@ export default function Login() {
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white shadow-xl shadow-primary/20 mb-2">
             <Heart className="w-10 h-10 text-primary fill-primary" />
           </div>
-          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">Gacha LDR</h1>
-          <p className="text-muted-foreground font-medium text-sm">Masuk untuk kumpulkan kartu kejutan! 💕</p>
+          <h1 className="text-3xl font-extrabold text-foreground tracking-tight">
+            Gacha LDR
+          </h1>
+          <p className="text-muted-foreground font-medium text-sm">
+            Masuk untuk kumpulkan kartu kejutan! 💕
+          </p>
         </div>
 
         {!selectedUser ? (
           <div className="space-y-4">
-            <button
-              onClick={() => setSelectedUser("Priatna")}
-              className="w-full relative group overflow-hidden rounded-3xl p-[2px] bg-gradient-to-r from-blue-400 to-indigo-500 shadow-xl shadow-blue-500/20 transition-transform active:scale-95"
-            >
-              <div className="bg-white/90 backdrop-blur-md rounded-[22px] px-6 py-4 group-hover:bg-white/80 transition-colors flex items-center justify-center gap-3">
-                <span className="text-lg font-bold text-blue-900">👦🏻 Masuk Priatna</span>
-              </div>
-            </button>
+            {usersLoading ? (
+              <div className="text-center text-muted-foreground">Memuat pengguna...</div>
+            ) : users.length === 0 ? (
+              <div className="text-center text-muted-foreground">Tidak ada pengguna</div>
+            ) : (
+              users.map((user, index) => {
+                const gradients = [
+                  "from-blue-400 to-indigo-500 shadow-blue-500/20",
+                  "from-pink-400 to-rose-500 shadow-pink-500/20",
+                ];
+                const gradient = gradients[index % gradients.length];
+                const emojis = ["👦🏻", "👧🏻"];
+                const emoji = emojis[index % emojis.length];
 
-            <button
-              onClick={() => setSelectedUser("Cia")}
-              className="w-full relative group overflow-hidden rounded-3xl p-[2px] bg-gradient-to-r from-pink-400 to-rose-500 shadow-xl shadow-pink-500/20 transition-transform active:scale-95"
-            >
-              <div className="bg-white/90 backdrop-blur-md rounded-[22px] px-6 py-4 group-hover:bg-white/80 transition-colors flex items-center justify-center gap-3">
-                <span className="text-lg font-bold text-pink-900">👧🏻 Masuk Cia</span>
-              </div>
-            </button>
+                return (
+                  <button
+                    key={user.id}
+                    onClick={() => setSelectedUser(user.username)}
+                    className={`w-full relative group overflow-hidden rounded-3xl p-[2px] bg-gradient-to-r ${gradient} transition-transform active:scale-95`}
+                  >
+                    <div className="bg-white/90 backdrop-blur-md rounded-[22px] px-6 py-4 group-hover:bg-white/80 transition-colors flex items-center justify-center gap-3">
+                      <span className="text-lg font-bold text-blue-900">
+                        {emoji} Masuk {user.username}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })
+            )}
           </div>
         ) : (
-          <motion.form 
+          <motion.form
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            onSubmit={handleLogin} 
+            onSubmit={handleLogin}
             className="bg-white/80 backdrop-blur-md p-8 rounded-[2.5rem] shadow-2xl border border-white space-y-6"
           >
             <div className="text-center space-y-1">
-              <h2 className="text-xl font-bold text-foreground">Halo, {selectedUser}!</h2>
-              <p className="text-xs text-muted-foreground">Masukkan 4 digit PIN kamu</p>
+              <h2 className="text-xl font-bold text-foreground">
+                Halo, {selectedUser}!
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Masukkan 4 digit PIN kamu
+              </p>
             </div>
 
             <div className="space-y-2">
@@ -125,7 +175,7 @@ export default function Login() {
               >
                 {isLoading ? "Memverifikasi..." : "Masuk Sekarang"}
               </button>
-              
+
               <button
                 type="button"
                 onClick={() => {

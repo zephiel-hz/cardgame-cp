@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
@@ -14,10 +14,12 @@ export default function Profile() {
   const { user, login } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [username, setUsername] = useState(user?.username || "");
   const [pin, setPin] = useState("");
   const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || "");
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -38,6 +40,49 @@ export default function Profile() {
       toast({ variant: "destructive", title: "Gagal", description: error.message });
     },
   });
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64 = event.target?.result as string;
+        
+        const res = await fetch(api.auth.uploadAvatar.path, {
+          method: api.auth.uploadAvatar.method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: String(user?.id),
+            filename: file.name,
+            data: base64,
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error("Gagal mengunggah foto");
+        }
+
+        const data = await res.json();
+        setAvatarUrl(data.avatarUrl);
+        toast({ title: "Berhasil", description: "Foto berhasil diunggah!" });
+      };
+      reader.readAsDataURL(file);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Gagal",
+        description: error.message || "Gagal mengunggah foto",
+      });
+    } finally {
+      setIsUploadingAvatar(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,17 +108,31 @@ export default function Profile() {
       <Card className="border-none shadow-xl bg-white/80 backdrop-blur-md rounded-3xl overflow-hidden">
         <CardHeader className="pb-2">
           <div className="flex flex-col items-center gap-4">
-            <div className="relative group">
+            <div 
+              className="relative group cursor-pointer"
+              onClick={() => fileInputRef.current?.click()}
+            >
               <Avatar className="w-24 h-24 border-4 border-primary/20 shadow-xl">
                 <AvatarImage src={avatarUrl} />
                 <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">
                   {user?.username.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                <Camera className="text-white w-6 h-6" />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                {isUploadingAvatar ? (
+                  <Loader2 className="text-white w-6 h-6 animate-spin" />
+                ) : (
+                  <Camera className="text-white w-6 h-6" />
+                )}
               </div>
             </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarChange}
+              className="hidden"
+            />
             <div className="text-center">
               <CardTitle className="text-xl">{user?.username}</CardTitle>
               <CardDescription>ID Pengguna: #{user?.id}</CardDescription>
@@ -96,16 +155,12 @@ export default function Profile() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="avatar" className="flex items-center gap-2">
-                <Camera size={16} className="text-primary" /> Foto Profil (URL)
+              <Label className="flex items-center gap-2">
+                <Camera size={16} className="text-primary" /> Foto Profil
               </Label>
-              <Input
-                id="avatar"
-                value={avatarUrl}
-                onChange={(e) => setAvatarUrl(e.target.value)}
-                className="rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20"
-                placeholder="https://example.com/foto.jpg"
-              />
+              <div className="text-sm text-muted-foreground bg-primary/5 rounded-lg p-3 border border-primary/10">
+                Klik foto profil di atas untuk mengubah foto dari galeri atau penyimpanan file.
+              </div>
             </div>
 
             <div className="space-y-2">

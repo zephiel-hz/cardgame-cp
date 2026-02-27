@@ -33,6 +33,21 @@ export const api = {
         200: z.custom<typeof users.$inferSelect>(),
         400: errorSchemas.validation,
       }
+    },
+    listUsers: {
+      method: 'GET' as const,
+      path: '/api/auth/users' as const,
+      responses: {
+        200: z.array(z.custom<typeof users.$inferSelect>()),
+      }
+    },
+    uploadAvatar: {
+      method: 'POST' as const,
+      path: '/api/auth/upload-avatar' as const,
+      responses: {
+        200: z.object({ avatarUrl: z.string() }),
+        400: errorSchemas.validation,
+      }
     }
   },
   gacha: {

@@ -2,7 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Clock, Sparkles, Shield, Zap, Heart } from "lucide-react";
 import type { Card } from "@shared/schema";
-import { cn } from "@/lib/utils";
+import { cn, formatDuration } from "@/lib/utils";
 
 interface CardDisplayProps {
   card: Card;
@@ -18,9 +18,19 @@ const tierIcons = {
   legendary: Sparkles,
 };
 
+const tierStyles = {
+  common: "tier-common bg-gradient-to-br from-gray-100 to-gray-200 border-gray-300",
+  rare: "tier-rare bg-gradient-to-br from-blue-100 to-purple-100 border-purple-300",
+  epic: "tier-epic bg-gradient-to-br from-yellow-100 to-orange-100 border-yellow-300",
+  legendary: "tier-legendary bg-gradient-to-br from-pink-100 to-rose-100 border-rose-300",
+  ssr: "tier-ssr bg-gradient-to-br from-purple-400 via-pink-400 to-red-400 border-purple-500 shadow-2xl shadow-purple-500/50 text-white",
+};
+
 export function CardDisplay({ card, className, onClick, children }: CardDisplayProps) {
-  const tierClass = `tier-${card.tier.toLowerCase()}`;
-  const Icon = tierIcons[card.tier.toLowerCase() as keyof typeof tierIcons] || Sparkles;
+  const tierLower = card.tier.toLowerCase();
+  const isSSR = tierLower === 'ssr';
+  const styleKey = isSSR ? 'ssr' : (tierStyles[tierLower as keyof typeof tierStyles] ? tierLower : 'common');
+  const Icon = tierIcons[tierLower as keyof typeof tierIcons] || Sparkles;
 
   return (
     <motion.div
@@ -29,21 +39,50 @@ export function CardDisplay({ card, className, onClick, children }: CardDisplayP
       onClick={onClick}
       className={cn(
         "relative flex flex-col justify-between p-5 rounded-3xl border-2 transition-all duration-300",
-        tierClass,
+        tierStyles[styleKey as keyof typeof tierStyles],
         className
       )}
     >
-      <div className="flex justify-between items-start mb-4">
+      <style>{`
+        @keyframes shimmer {
+          0%, 100% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+        }
+        
+        .tier-ssr {
+          background: linear-gradient(45deg, #ec4899, #f97316, #eab308, #22c55e, #3b82f6, #8b5cf6, #ec4899);
+          background-size: 300% 300%;
+          animation: shimmer 3s ease infinite;
+          position: relative;
+          overflow: hidden;
+        }
+        
+        .tier-ssr::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 100%);
+          pointer-events: none;
+        }
+      `}</style>
+      <div className="flex justify-between items-start mb-4 relative z-10">
         <div className="px-3 py-1 bg-white/40 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider">
           {card.tier}
         </div>
         <div className="flex items-center gap-1 text-xs font-bold px-2 py-1 bg-white/40 backdrop-blur-md rounded-full">
           <Clock className="w-3 h-3" />
-          {card.durationMinutes}m
+          {formatDuration(card.durationMinutes)}
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center text-center py-4">
+      <div className="flex-1 flex flex-col items-center justify-center text-center py-4 relative z-10">
         <div className="w-16 h-16 rounded-full bg-white/40 backdrop-blur-md flex items-center justify-center mb-4 shadow-inner">
           <Icon className="w-8 h-8 opacity-80" />
         </div>
@@ -51,7 +90,7 @@ export function CardDisplay({ card, className, onClick, children }: CardDisplayP
         <p className="text-sm opacity-90 leading-relaxed font-medium px-2">{card.description}</p>
       </div>
 
-      {children && <div className="mt-4">{children}</div>}
+      {children && <div className="mt-4 relative z-10">{children}</div>}
       
       {/* Glossy overlay effect */}
       <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0 rounded-3xl pointer-events-none" />
