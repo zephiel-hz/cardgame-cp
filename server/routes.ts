@@ -9,12 +9,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// In development, save to client/public; in production, save to dist/public
-// __dirname points to: server/ in dev, dist/ in production
-const uploadDir = path.join(
-  __dirname,
-  process.env.NODE_ENV === "production" ? "public/avatars" : "../../client/public/avatars"
-);
+
+// Always save avatars to root public/avatars for consistency
+// This folder is served by Express static middleware
+const uploadDir = path.resolve(__dirname, "../public/avatars");
 
 // Ensure upload directory exists
 if (!fs.existsSync(uploadDir)) {
@@ -95,10 +93,23 @@ export async function registerRoutes(
 
       // Save file
       try {
+        // Ensure directory exists before writing
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
         fs.writeFileSync(filePath, buffer);
+        console.log(`[Avatar Upload] File saved: ${filePath}`);
       } catch (writeErr: any) {
         console.error("File write error:", writeErr);
+        console.error("[Avatar Upload] Failed path was:", filePath);
         return res.status(400).json({ message: "Failed to save file: " + writeErr.message });
+      }
+
+      // Update user avatar in database
+      try {
+        await storage.updateUser(Number(userId), { avatarUrl: `/avatars/${uniqueFilename}` });
+      } catch (dbErr: any) {
+        console.error("Database update error:", dbErr);
       }
 
       // Return the avatar URL
