@@ -15,6 +15,7 @@ import Login from "@/pages/login";
 import Gacha from "@/pages/gacha";
 import Inventory from "@/pages/inventory";
 import ActiveCards from "@/pages/active-cards";
+import Profile from "@/pages/profile";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { user } = useAuth();
@@ -68,6 +69,9 @@ function Router() {
         </Route>
         <Route path="/active">
           {() => <ProtectedRoute component={ActiveCards} />}
+        </Route>
+        <Route path="/profile">
+          {() => <ProtectedRoute component={Profile} />}
         </Route>
         <Route component={NotFound} />
       </Switch>
