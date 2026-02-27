@@ -10,9 +10,10 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // In development, save to client/public; in production, save to dist/public
+// __dirname points to: server/ in dev, dist/ in production
 const uploadDir = path.join(
   __dirname,
-  process.env.NODE_ENV === "production" ? "../public/avatars" : "../../client/public/avatars"
+  process.env.NODE_ENV === "production" ? "public/avatars" : "../../client/public/avatars"
 );
 
 // Ensure upload directory exists

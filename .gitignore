@@ -4,6 +4,7 @@ dist
 server/public
 server/public/avatars
 public/avatars
+client/public/avatars
 vite.config.ts.*
 *.tar.gz
 .env.local
