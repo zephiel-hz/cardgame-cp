@@ -62,7 +62,8 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
+// Create and initialize the server
+async function initializeServer() {
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
@@ -94,14 +95,33 @@ app.use((req, res, next) => {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
   }
+}
 
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  const port = parseInt(process.env.PORT || "3000", 10);
-  // In production, listen on 0.0.0.0 to accept external connections
-  // In development, listen on localhost for security
-  const hostname = process.env.NODE_ENV === "production" ? "0.0.0.0" : (process.env.HOST || "localhost");
+// Initialize on module load and start server if this is the main module
+(async () => {
+  await initializeServer();
   
-  httpServer.listen(port, hostname, () => {
-    log(`serving on http://${hostname}:${port}`);
-  });
+  // Only listen if this is being run directly (not in Vercel serverless)
+  if (process.env.NODE_ENV === "production" && process.env.VERCEL !== "1") {
+    // In production locally, always listen
+    const port = parseInt(process.env.PORT || "3000", 10);
+    const hostname = "0.0.0.0";
+    
+    httpServer.listen(port, hostname, () => {
+      log(`serving on http://${hostname}:${port}`);
+    });
+  } else if (process.env.NODE_ENV !== "production") {
+    // In development, listen on localhost
+    const port = parseInt(process.env.PORT || "3000", 10);
+    const hostname = process.env.HOST || "localhost";
+    
+    httpServer.listen(port, hostname, () => {
+      log(`serving on http://${hostname}:${port}`);
+    });
+  }
+  // Note: In Vercel (NODE_ENV=production AND VERCEL=1), api/index.ts handles requests
 })();
+
+// Export for use as middleware (e.g., in Vercel serverless functions)
+export default app;
+export { httpServer, initializeServer };

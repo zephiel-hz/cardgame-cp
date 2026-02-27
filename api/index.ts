@@ -1,45 +1,43 @@
-// Vercel serverless function for full-stack Node.js app
-// This module bridges Vercel's serverless environment with our Express server
+// Vercel Serverless Function Entry Point
+// This file serves as the gateway for all HTTP requests in the production environment
 
-import { createServer } from "http";
-import express from "express";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-// Load environment variables
-if (process.env.NODE_ENV !== "production") {
-  const { config } = await import("dotenv");
-  config({ path: ".env.local" });
+// Cache the Express app after first import
+let cachedApp: any = null;
+
+async function getApp() {
+  if (cachedApp) {
+    return cachedApp;
+  }
+
+  try {
+    // Import the built Express server
+    const imported = await import("../dist/index.cjs");
+    cachedApp = imported.default;
+    return cachedApp;
+  } catch (error) {
+    console.error("Failed to import server modules:", error);
+    throw error;
+  }
 }
 
-// Create minimal Express app for Vercel
-const app = express();
-
-// Health check endpoint
-app.get("/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
-
-// For all other routes, try to load and run the production server
-app.use(async (req, res, next) => {
+// Vercel Function Handler
+export default async (req: VercelRequest, res: VercelResponse) => {
   try {
-    // Dynamically import the built server
-    const serverModule = await import("../dist/index.cjs");
-    const server = serverModule.default || serverModule;
-    
-    // If the module exports a function (Express app), use it
-    if (typeof server === "function") {
-      return server(req as any, res as any, next);
+    const app = await getApp();
+
+    if (!app) {
+      return res.status(500).json({ error: "Server app is not available" });
     }
-    
-    // Otherwise return error
-    res.status(500).json({ error: "Server module is not an Express app" });
+
+    // Forward the request to the Express app
+    return app(req as any, res as any);
   } catch (error) {
-    console.error("Failed to load server:", error);
-    res.status(500).json({ 
-      error: "Server failed to initialize",
-      message: error instanceof Error ? error.message : "Unknown error"
+    console.error("Serverless function error:", error);
+    return res.status(500).json({
+      error: "Internal Server Error",
+      message: error instanceof Error ? error.message : "Unknown error",
     });
   }
-});
-
-// Export for Vercel
-export default app;
+};
