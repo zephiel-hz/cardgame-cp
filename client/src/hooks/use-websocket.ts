@@ -3,12 +3,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { api, WS_EVENTS, type WsMessage } from "@shared/routes";
 
-export function useAppWebSocket() {
+export function useAppWebSocket(userId?: number) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
+    if (!userId) return;
+
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${protocol}//${window.location.host}/ws`;
     
@@ -37,8 +39,10 @@ export function useAppWebSocket() {
       };
 
       wsRef.current.onclose = () => {
-        // Reconnect after a delay
-        setTimeout(connect, 3000);
+        // Reconnect after a delay if the socket wasn't intentionally closed
+        if (wsRef.current) {
+          setTimeout(connect, 3000);
+        }
       };
     };
 
@@ -46,8 +50,10 @@ export function useAppWebSocket() {
 
     return () => {
       if (wsRef.current) {
-        wsRef.current.close();
+        const socket = wsRef.current;
+        wsRef.current = null;
+        socket.close();
       }
     };
-  }, [queryClient, toast]);
+  }, [queryClient, toast, userId]);
 }

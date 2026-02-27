@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -36,12 +36,7 @@ function AppServices() {
   const { user } = useAuth();
   
   // Custom hook that uses hooks internally must be called at top level
-  // but we can move the condition inside useAppWebSocket or wrap the logic here
-  // The error "Hooks can only be called inside of the body of a function component" 
-  // happened because useAppWebSocket was likely called conditionally or improperly.
-  
-  // Let's fix the Hook rule violation in AppServices
-  useAppWebSocket(); 
+  useAppWebSocket(user?.id); 
   
   return null;
 }
@@ -61,18 +56,10 @@ function Router() {
     <Layout>
       <Switch>
         <Route path="/" component={Login} />
-        <Route path="/gacha">
-          {() => <ProtectedRoute component={Gacha} />}
-        </Route>
-        <Route path="/inventory">
-          {() => <ProtectedRoute component={Inventory} />}
-        </Route>
-        <Route path="/active">
-          {() => <ProtectedRoute component={ActiveCards} />}
-        </Route>
-        <Route path="/profile">
-          {() => <ProtectedRoute component={Profile} />}
-        </Route>
+        <Route path="/gacha" component={() => <ProtectedRoute component={Gacha} />} />
+        <Route path="/inventory" component={() => <ProtectedRoute component={Inventory} />} />
+        <Route path="/active" component={() => <ProtectedRoute component={ActiveCards} />} />
+        <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
