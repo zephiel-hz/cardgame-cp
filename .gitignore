@@ -5,6 +5,7 @@ server/public
 server/public/avatars
 public/avatars
 client/public/avatars
+api/
 vite.config.ts.*
 *.tar.gz
 .env.local
