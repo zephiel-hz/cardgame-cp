@@ -48,39 +48,57 @@ export default function Profile() {
     setIsUploadingAvatar(true);
     try {
       const reader = new FileReader();
-      reader.onload = async (event) => {
-        const base64 = event.target?.result as string;
-        
-        const res = await fetch(api.auth.uploadAvatar.path, {
-          method: api.auth.uploadAvatar.method,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId: String(user?.id),
-            filename: file.name,
-            data: base64,
-          }),
+      reader.onerror = () => {
+        setIsUploadingAvatar(false);
+        toast({
+          variant: "destructive",
+          title: "Gagal",
+          description: "Gagal membaca file",
         });
+      };
+      reader.onload = async (event) => {
+        try {
+          const base64 = event.target?.result as string;
+          
+          const res = await fetch(api.auth.uploadAvatar.path, {
+            method: api.auth.uploadAvatar.method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: String(user?.id),
+              filename: file.name,
+              data: base64,
+            }),
+          });
 
-        if (!res.ok) {
-          throw new Error("Gagal mengunggah foto");
+          if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.message || "Gagal mengunggah foto");
+          }
+
+          const data = await res.json();
+          setAvatarUrl(data.avatarUrl);
+          toast({ title: "Berhasil", description: "Foto berhasil diunggah!" });
+        } catch (error: any) {
+          toast({
+            variant: "destructive",
+            title: "Gagal",
+            description: error.message || "Gagal mengunggah foto",
+          });
+        } finally {
+          setIsUploadingAvatar(false);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
         }
-
-        const data = await res.json();
-        setAvatarUrl(data.avatarUrl);
-        toast({ title: "Berhasil", description: "Foto berhasil diunggah!" });
       };
       reader.readAsDataURL(file);
     } catch (error: any) {
+      setIsUploadingAvatar(false);
       toast({
         variant: "destructive",
         title: "Gagal",
-        description: error.message || "Gagal mengunggah foto",
+        description: error.message || "Gagal membaca file",
       });
-    } finally {
-      setIsUploadingAvatar(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
     }
   };
 

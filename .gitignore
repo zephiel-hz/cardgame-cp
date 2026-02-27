@@ -2,6 +2,8 @@ node_modules
 dist
 .DS_Store
 server/public
+server/public/avatars
+public/avatars
 vite.config.ts.*
 *.tar.gz
 .env.local

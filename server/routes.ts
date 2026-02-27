@@ -89,14 +89,19 @@ export async function registerRoutes(
       const buffer = Buffer.from(base64Data, "base64");
 
       // Save file
-      fs.writeFileSync(filePath, buffer);
+      try {
+        fs.writeFileSync(filePath, buffer);
+      } catch (writeErr: any) {
+        console.error("File write error:", writeErr);
+        return res.status(400).json({ message: "Failed to save file: " + writeErr.message });
+      }
 
       // Return the avatar URL
       const avatarUrl = `/avatars/${uniqueFilename}`;
       res.status(200).json({ avatarUrl });
-    } catch (err) {
+    } catch (err: any) {
       console.error("Avatar upload error:", err);
-      res.status(400).json({ message: "Failed to upload avatar" });
+      res.status(500).json({ message: "Server error: " + (err.message || "Unknown error") });
     }
   });
 
