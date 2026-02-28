@@ -97,8 +97,35 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     
     console.log(`[api] Delegating to Express app...`);
     
-    // Call the Express app
-    expressApp(req, res);
+    // Call the Express app and wait for response to finish
+    // This is critical in Vercel - handler must not return until response is sent
+    await new Promise<void>((resolve, reject) => {
+      expressApp(req, res);
+      
+      // Resolve when response is finished
+      res.on('finish', () => {
+        console.log(`[api] ✓ Response finished`);
+        resolve();
+      });
+      
+      // Also handle early close (disconnected client)
+      res.on('close', () => {
+        console.log(`[api] ℹ Response closed stream`);
+        resolve();
+      });
+      
+      // Catch any response errors
+      res.on('error', (err) => {
+        console.error(`[api] ✗ Response error:`, err);
+        reject(err);
+      });
+      
+      // Safety timeout - if no finish/close/error in 30s, resolve anyway
+      setTimeout(() => {
+        console.warn(`[api] ⚠ Response timeout - resolving anyway`);
+        resolve();
+      }, 30000);
+    });
     
   } catch (error) {
     console.error("\n[api] !!! ERROR:", error);
