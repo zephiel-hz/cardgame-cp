@@ -10,7 +10,7 @@ async function getApp() {
   console.log(`[api] === LOAD ATTEMPT #${loadAttempts} ===`);
   
   // If we have a cached app, verify it's actually valid before using
-  if (app !== null && typeof app === "function" && initPromise) {
+  if (app !== null && (typeof app === "function" || app?.use) && initPromise) {
     console.log("[api] Using cached app, waiting for initPromise...");
     try {
       await initPromise;
@@ -45,10 +45,12 @@ async function getApp() {
     initPromise = mod.initPromise;
     
     console.log("[api] app type:", typeof app);
+    console.log("[api] app constructor:", app?.constructor?.name);
     console.log("[api] initPromise type:", typeof initPromise);
     
-    if (typeof app !== "function") {
-      throw new Error(`App is not a function, got ${typeof app}`);
+    // Validate app - Express apps are callable (function) OR objects with middleware methods
+    if (typeof app !== "function" && !app?.use) {
+      throw new Error(`App is invalid - not a function or Express app, got ${typeof app}`);
     }
     
     console.log("[api] ✓ Waiting for initialization...");
@@ -82,11 +84,11 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     // Get the initialized app
     const expressApp = await getApp();
     
-    // Validate expressApp is actually a function
-    if (typeof expressApp !== "function") {
-      console.error(`[api] !!! CRITICAL: expressApp is not a function, got ${typeof expressApp}`);
-      console.error(`[api] expressApp value:`, expressApp);
-      throw new Error(`expressApp is not a function (got ${typeof expressApp})`);
+    // Validate expressApp is callable (Express apps are function objects)
+    if (typeof expressApp !== "function" && !expressApp?.use) {
+      console.error(`[api] !!! CRITICAL: expressApp is invalid, got ${typeof expressApp}`);
+      console.error(`[api] expressApp keys:`, Object.keys(expressApp || {}));
+      throw new Error(`expressApp is not callable or not an Express app`);
     }
     
     console.log(`[api] Delegating to Express app...`);
