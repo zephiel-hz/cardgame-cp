@@ -40,24 +40,25 @@ async function getApp() {
     console.log("[api] Module loaded, inspecting exports...");
     console.log("[api] Module keys:", Object.keys(mod));
     
-    // Get exports
-    app = mod.default;
+    // Handle CommonJS/ESM interop - mod.default might be a namespace or the app itself
+    let defaultExport = mod.default;
+    console.log("[api] mod.default type:", typeof defaultExport);
+    console.log("[api] mod.default keys:", defaultExport ? Object.keys(defaultExport).slice(0, 5) : "N/A");
+    
+    // If mod.default is an object with a 'default' property (CommonJS interop), unwrap it
+    if (defaultExport && typeof defaultExport === "object" && "default" in defaultExport && typeof defaultExport.default === "function") {
+      console.log("[api] Detected CommonJS interop - unwrapping mod.default.default");
+      app = defaultExport.default;
+    } else {
+      app = defaultExport;
+    }
+    
+    // Always get initPromise from mod directly
     initPromise = mod.initPromise;
     
-    console.log("[api] app type:", typeof app);
-    console.log("[api] app constructor:", app?.constructor?.name);
-    console.log("[api] app is null/undefined:", app == null);
-    console.log("[api] app keys:", app ? Object.keys(app).slice(0, 10) : "N/A");
-    console.log("[api] has .use:", typeof app?.use);
-    console.log("[api] has .listen:", typeof app?.listen);
-    console.log("[api] is callable:", typeof app === "function");
+    console.log("[api] Final app type:", typeof app);
+    console.log("[api] Final app is callable:", typeof app === "function");
     console.log("[api] initPromise type:", typeof initPromise);
-    
-    // Express apps are callable AND have middleware methods
-    // But also accept plain objects for debugging
-    if (app == null) {
-      throw new Error(`App is null or undefined`);
-    }
     
     console.log("[api] ✓ Waiting for initialization...");
     
@@ -90,16 +91,16 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     // Get the initialized app
     const expressApp = await getApp();
     
-    console.log(`[api] Got app, type: ${typeof expressApp}, has .use: ${!!expressApp?.use}`);
+    console.log(`[api] Got app, type: ${typeof expressApp}`);
+    
+    if (typeof expressApp !== "function") {
+      throw new Error(`App is not callable, got ${typeof expressApp}`);
+    }
+    
     console.log(`[api] Delegating to Express app...`);
     
-    // Call the Express app (it should be callable or have express methods)
-    if (typeof expressApp === "function") {
-      expressApp(req, res);
-    } else {
-      // If not a function, might still work if Express middleware
-      expressApp(req, res);
-    }
+    // Call the Express app
+    expressApp(req, res);
     
   } catch (error) {
     console.error("\n[api] !!! ERROR:", error);
