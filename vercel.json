@@ -3,9 +3,5 @@
   "installCommand": "npm install",
   "env": {
     "NODE_ENV": "production"
-  },
-  "public": "dist/public",
-  "cleanUrls": true,
-  "trailingSlash": false,
-  "regions": ["sin1"]
+  }
 }
