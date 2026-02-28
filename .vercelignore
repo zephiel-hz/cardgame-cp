@@ -6,27 +6,7 @@ node_modules
 .DS_Store
 *.md
 !README.md
-.next
-out
-
-# Source code - not needed in Vercel
-server/
-client/
-shared/
-script/
-
-# Build outputs that shouldn't be in vercel
-dist/
-
-# Config files not needed in runtime
-tsconfig.json
-vite.config.ts
-tailwind.config.ts
-postcss.config.js
-drizzle.config.ts
-components.json
-
-# Dev files
 .local/
 .replit
 *.tar.gz
+
