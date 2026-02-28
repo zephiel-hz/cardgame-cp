@@ -97,21 +97,12 @@ async function initializeServer() {
   }
 }
 
-// Initialize on module load and start server if this is the main module
+// Initialize on module load
 (async () => {
   await initializeServer();
   
-  // Only listen if this is being run directly (not in Vercel serverless)
-  if (process.env.NODE_ENV === "production" && process.env.VERCEL !== "1") {
-    // In production locally, always listen
-    const port = parseInt(process.env.PORT || "3000", 10);
-    const hostname = "0.0.0.0";
-    
-    httpServer.listen(port, hostname, () => {
-      log(`serving on http://${hostname}:${port}`);
-    });
-  } else if (process.env.NODE_ENV !== "production") {
-    // In development, listen on localhost
+  // Only listen in development
+  if (process.env.NODE_ENV !== "production") {
     const port = parseInt(process.env.PORT || "3000", 10);
     const hostname = process.env.HOST || "localhost";
     
@@ -119,9 +110,9 @@ async function initializeServer() {
       log(`serving on http://${hostname}:${port}`);
     });
   }
-  // Note: In Vercel (NODE_ENV=production AND VERCEL=1), api/index.ts handles requests
+  // In production, server.mjs or other entry point will handle listening
 })();
 
-// Export for use as middleware (e.g., in Vercel serverless functions)
+// Export for use in production entry points like server.mjs
 export default app;
 export { httpServer, initializeServer };

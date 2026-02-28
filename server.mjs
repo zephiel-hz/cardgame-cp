@@ -1,61 +1,59 @@
 #!/usr/bin/env node
 
 /**
- * Standalone server for Vercel deployment
- * Runs the pre-built Express app from dist/index.cjs
+ * Standalone server entry point for production (including Vercel)
+ * Loads and initializes the pre-built Express server from dist/index.cjs
  */
-
-import { createServer } from "http";
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function startServer() {
   try {
-    console.log("[server] Starting...");
+    console.log("[server] Starting server...");
     
-    // Load the pre-built Express app
-    console.log("[server] Loading app from dist/index.cjs");
-    const appModule = await import("./dist/index.cjs");
-    const app = appModule.default || appModule;
+    // Load the pre-built CommonJS module
+    const mod = await import("./dist/index.cjs");
+    const { default: app, httpServer: httpServerExport, initializeServer } = mod;
 
     if (!app) {
-      throw new Error("Failed to load app: app is null or undefined");
+      throw new Error("Failed to load app: no default export");
     }
 
-    console.log("[server] App loaded successfully");
+    console.log("[server] App module loaded");
 
-    // Create HTTP server
-    const httpServer = createServer(app);
+    // Use the exported httpServer or create a new one
+    let server = httpServerExport;
+    if (!server) {
+      console.log("[server] Creating new HTTP server from Express app");
+      const { createServer } = await import("http");
+      server = createServer(app);
+    }
 
+    // Start listening
     const port = parseInt(process.env.PORT || "3000", 10);
     const hostname = process.env.VERCEL ? "0.0.0.0" : "localhost";
 
-    httpServer.listen(port, hostname, () => {
-      console.log(`[server] listening on http://${hostname}:${port}`);
+    server.listen(port, hostname, () => {
+      console.log(`[server] ✓ listening on http://${hostname}:${port}`);
       console.log(`[server] NODE_ENV=${process.env.NODE_ENV}`);
-      console.log(`[server] VERCEL=${process.env.VERCEL}`);
     });
 
     // Handle graceful shutdown
     process.on("SIGTERM", () => {
-      console.log("[server] SIGTERM received, shutting down gracefully");
-      httpServer.close(() => {
-        console.log("[server] Server closed");
+      console.log("[server] SIGTERM received, shutting down...");
+      server.close(() => {
+        console.log("[server] ✓ Server closed");
         process.exit(0);
       });
     });
 
     process.on("SIGINT", () => {
-      console.log("[server] SIGINT received, shutting down");
-      httpServer.close(() => {
-        console.log("[server] Server closed");
+      console.log("[server] SIGINT received, shutting down...");
+      server.close(() => {
+        console.log("[server] ✓ Server closed");
         process.exit(0);
       });
     });
   } catch (error) {
-    console.error("[server] Failed to start:", error);
+    console.error("[server] ✗ Failed to start:", error);
     process.exit(1);
   }
 }
