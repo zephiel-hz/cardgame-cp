@@ -5,7 +5,11 @@
   },
   "rewrites": [
     {
-      "source": "^/((?!public/|favicon\\.png|api/).*)",
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/(.*)",
       "destination": "/api/[...routes]"
     }
   ]
