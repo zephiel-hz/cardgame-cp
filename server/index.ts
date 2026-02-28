@@ -102,9 +102,24 @@ async function initializeServer() {
   }
 }
 
+// Track initialization state
+let isInitialized = false;
+let initPromise: Promise<void> | null = null;
+
+// Ensure initialization is complete
+async function ensureInitialized() {
+  if (isInitialized) return;
+  if (!initPromise) {
+    initPromise = initializeServer().then(() => {
+      isInitialized = true;
+    });
+  }
+  await initPromise;
+}
+
 // Initialize on module load
-(async () => {
-  await initializeServer();
+initPromise = initializeServer().then(() => {
+  isInitialized = true;
   
   // Only listen in development
   if (process.env.NODE_ENV !== "production") {
@@ -115,9 +130,21 @@ async function initializeServer() {
       log(`serving on http://${hostname}:${port}`);
     });
   }
-  // In production, server.mjs or other entry point will handle listening
-})();
+  // In production, Vercel handler will call the app directly
+}).catch(err => {
+  console.error("[server] Initialization error:", err);
+});
 
-// Export for use in production entry points like server.mjs
-export default app;
-export { httpServer, initializeServer };
+// Export a wrapper that ensures initialization before handling
+const expressHandler = (req: any, res: any) => {
+  if (isInitialized) {
+    return app(req, res);
+  } else if (initPromise) {
+    initPromise.then(() => app(req, res));
+  } else {
+    res.status(503).json({ error: "Server not initialized" });
+  }
+};
+
+export default expressHandler;
+export { httpServer, initializeServer, app };
