@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0066cc;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0052a3;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="192" height="192" fill="url(#cardGrad)" rx="45"/>
+  
+  <!-- Card shapes -->
+  <rect x="30" y="40" width="60" height="90" rx="8" fill="white" opacity="0.9"/>
+  <path d="M 50 60 L 60 75 L 50 90 Z" fill="#0066cc"/>
+  <circle cx="60" cy="65" r="15" fill="#ff6b6b" opacity="0.8"/>
+  
+  <rect x="102" y="50" width="60" height="90" rx="8" fill="white" opacity="0.7" transform="rotate(-15 132 95)"/>
+  <circle cx="132" cy="75" r="12" fill="#ffd700" opacity="0.8"/>
+  
+  <!-- Shine effect -->
+  <circle cx="96" cy="96" r="50" fill="white" opacity="0.1"/>
+</svg>

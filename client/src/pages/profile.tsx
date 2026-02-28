@@ -136,7 +136,7 @@ export default function Profile() {
       <div className="px-2">
         <h2 className="text-2xl font-bold text-foreground">Kustomisasi Profil</h2>
         <p className="text-muted-foreground text-sm font-medium mt-1">
-          Ubah tampilan dan keamanan profilmu
+          Ubah tampilan, keamanan, dan notifikasi profilmu
         </p>
       </div>
 
