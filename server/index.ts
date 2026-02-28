@@ -110,11 +110,15 @@ async function initializeServer() {
 let isInitialized = false;
 let initPromise: Promise<void> | null = null;
 
+console.log("[server] Module loading...");
+console.log("[server] NODE_ENV:", process.env.NODE_ENV);
+
 // Initialize on module load
 initPromise = initializeServer()
   .then(() => {
     isInitialized = true;
-    console.log("[server] ✓ Initialization complete");
+    console.log("[server] ✓✓✓ INITIALIZATION COMPLETE ✓✓✓");
+    console.log("[server] App is ready for requests");
     
     // Only listen in development
     if (process.env.NODE_ENV !== "production") {
@@ -127,9 +131,13 @@ initPromise = initializeServer()
     }
   })
   .catch(err => {
-    console.error("[server] ✗ Initialization error:", err);
+    console.error("[server] ✗✗✗ INITIALIZATION FAILED ✗✗✗");
+    console.error("[server] Error:", err);
     process.exit(1);
   });
+
+console.log("[server] App object type:", typeof app);
+console.log("[server] Exporting app and initPromise...");
 
 // Export the raw Express app - it will be used once initialized
 export default app;

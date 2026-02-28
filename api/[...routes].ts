@@ -3,41 +3,59 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 let app: any = null;
 let initPromise: any = null;
 let lastError: Error | null = null;
+let loadAttempts = 0;
 
 async function getApp() {
+  loadAttempts++;
+  console.log(`[api] === LOAD ATTEMPT #${loadAttempts} ===`);
+  
   if (app && initPromise) {
+    console.log("[api] Using cached app, waiting for initPromise...");
     // Wait for initialization to complete
     await initPromise;
+    console.log("[api] initPromise resolved");
     return app;
   }
   
-  if (lastError) throw lastError;
+  if (lastError) {
+    console.error("[api] Throwing cached error:", lastError);
+    throw lastError;
+  }
 
   try {
-    console.log("[api] Loading app from ./dist/index.cjs...");
+    console.log("[api] Loading fresh app from ./dist/index.cjs...");
+    console.log("[api] Current working directory:", process.cwd());
+    
     // @ts-ignore - dist/index.cjs is copied here during build
     const mod = await import("./dist/index.cjs");
+    
+    console.log("[api] Module loaded, inspecting exports...");
+    console.log("[api] Module keys:", Object.keys(mod));
     
     // Get exports
     app = mod.default;
     initPromise = mod.initPromise;
     
+    console.log("[api] app type:", typeof app);
+    console.log("[api] initPromise type:", typeof initPromise);
+    
     if (typeof app !== "function") {
       throw new Error(`App is not a function, got ${typeof app}`);
     }
     
-    console.log("[api] ✓ App loaded, waiting for initialization...");
+    console.log("[api] ✓ Waiting for initialization...");
     
     // Wait for init to complete
     if (initPromise) {
       await initPromise;
+      console.log("[api] ✓ Initialization complete");
     }
     
-    console.log("[api] ✓ Initialization complete");
+    console.log("[api] ✓ App ready to serve requests");
     return app;
   } catch (error) {
     lastError = error as Error;
-    console.error("[api] ✗ Failed to load app:", error);
+    console.error("[api] ✗ Fatal error loading app:", error);
     throw error;
   }
 }
@@ -49,17 +67,20 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
     
-    const path = req.url || "";
+    const pathname = req.url || "/";
     const method = req.method || "GET";
-    console.log(`[api] ${method} ${path}`);
+    console.log(`\n[api] >>> REQUEST: ${method} ${pathname}`);
     
     // Get the initialized app
     const expressApp = await getApp();
     
+    console.log(`[api] Delegating to Express app...`);
+    
     // Call the Express app directly (synchronous call)
     expressApp(req, res);
+    
   } catch (error) {
-    console.error("[api] ✗ Request failed:", error);
+    console.error("\n[api] !!! ERROR:", error);
     
     if (!res.headersSent) {
       res.setHeader("Content-Type", "application/json");
@@ -68,6 +89,8 @@ export default async (req: VercelRequest, res: VercelResponse) => {
         message: error instanceof Error ? error.message : String(error),
         timestamp: new Date().toISOString()
       });
+    } else {
+      console.error("[api] Headers already sent, cannot send error response");
     }
   }
 };
