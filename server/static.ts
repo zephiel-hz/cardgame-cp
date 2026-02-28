@@ -13,47 +13,30 @@ export function serveStatic(app: Express) {
 
   let distPath: string = "";
   
-  // Vercel specific: Try multiple possible locations
-  if (process.env.VERCEL === "1" || process.env.VERCEL_ENV) {
-    console.log("[static] Vercel environment detected");
-    // Vercel prioritizes /public folder for static assets
-    const vercelPaths = [
-      "/var/task/public",                    // Standard Vercel /public
-      "/var/task/api/dist/public",           // Custom api/dist location
-      "/home/player/.vercel/output/public",  // Other possible Vercel paths
-    ];
-    
-    for (const p of vercelPaths) {
-      console.log(`[static] Checking Vercel path: ${p}`);
-      if (fs.existsSync(p)) {
-        distPath = p;
-        console.log("[static] ✓ Found at Vercel path:", distPath);
-        break;
-      }
-    }
-  } else {
-    // Development: files are at distPath relative to repo root
-    // Could be at api/dist/public or dist/public depending on how we run it
-    const possiblePaths = [
-      path.resolve(process.cwd(), "public"),                         // Recommend /public
-      path.resolve(process.cwd(), "api", "dist", "public"),         // api/dist/public
-      path.resolve(process.cwd(), "dist", "public"),                // dist/public
-      path.resolve(__dirname, "public"),                            // fallback
-      path.resolve(__dirname, "..", "..", "api", "dist", "public"), // bundled
-    ];
-    
-    for (const p of possiblePaths) {
-      if (fs.existsSync(p)) {
-        distPath = p;
-        console.log("[static] Found public at:", distPath);
-        break;
-      }
+  // Try multiple locations where static files might be
+  const possiblePaths = [
+    "/var/task/public",                    // Standard Vercel /public (if committed to git)
+    "/var/task/dist/public",               // Vite output (fallback location)
+    "/var/task/api/dist/public",           // Build artifact location
+    path.resolve(process.cwd(), "public"),      // Generated /public folder
+    path.resolve(process.cwd(), "dist", "public"),  // Local dev build
+    path.resolve(process.cwd(), "api", "dist", "public"),  // Build output fallback
+    path.resolve(__dirname, "public"),     // Relative to bundled server
+    path.resolve(__dirname, "..", "..", "api", "dist", "public"), // Bundled
+  ];
+  
+  console.log(`[static] Checking ${possiblePaths.length} possible paths for static files...`);
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      distPath = p;
+      console.log("[static] ✓ Found public files at:", distPath);
+      break;
     }
   }
 
   // Verify path exists
   if (!distPath) {
-    console.error("[static] ⚠ WARNING: distPath not configured");
+    console.error("[static] ⚠ WARNING: distPath not configured - skipping static file serving");
   } else if (!fs.existsSync(distPath)) {
     console.warn("[static] ⚠ WARNING: Public directory not found at:", distPath);
     console.warn("[static]   If running on Vercel, files may need custom deployment config");
@@ -69,10 +52,11 @@ export function serveStatic(app: Express) {
     }
   }
 
-  // Configure express.static
-  app.use(express.static(distPath, {
-    maxAge: "1h",
-    etag: true,
+  // Configure express.static ONLY if distPath is valid
+  if (distPath && fs.existsSync(distPath)) {
+    app.use(express.static(distPath, {
+      maxAge: "1h",
+      etag: true,
     lastModified: true,
     extensions: ["html", "js", "css"],
     setHeaders: (res, filePath, stat) => {
@@ -116,6 +100,9 @@ export function serveStatic(app: Express) {
       res.removeHeader("Content-Disposition");
     }
   }));
+  } else {
+    console.warn("[static] ⚠ Skipping express.static middleware - no valid public directory found");
+  }
 
   // Avatar serving
   if (process.env.NODE_ENV === "production") {

@@ -1,6 +1,5 @@
 ﻿node_modules
 dist
-public
 .DS_Store
 server/public
 server/public/avatars
