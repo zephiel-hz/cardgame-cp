@@ -8,9 +8,9 @@ async function getApp() {
   if (lastError) throw lastError;
 
   try {
-    console.log("[api] Loading Express app from dist/index.cjs...");
-    // @ts-ignore - dist/index.cjs is generated at build time
-    const mod = await import("../../dist/index.cjs");
+    console.log("[api] Loading Express app from ./dist/index.cjs...");
+    // @ts-ignore - dist/index.cjs is copied here during build
+    const mod = await import("./dist/index.cjs");
     app = mod.default || mod;
     
     if (typeof app !== "function") {

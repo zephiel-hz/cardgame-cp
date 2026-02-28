@@ -1,6 +1,7 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
-import { rm, readFile } from "fs/promises";
+import { rm, readFile, copyFile, mkdir } from "fs/promises";
+import path from "path";
 
 // server deps to bundle to reduce openat(2) syscalls
 // which helps cold start times
@@ -59,6 +60,16 @@ async function buildAll() {
     external: externals,
     logLevel: "info",
   });
+
+  // Copy dist/index.cjs to api/ so Vercel serverless functions can access it
+  console.log("copying server bundle to api/...");
+  try {
+    await mkdir("api/dist", { recursive: true });
+    await copyFile("dist/index.cjs", "api/dist/index.cjs");
+    console.log("✓ Server bundle copied to api/dist/index.cjs");
+  } catch (err) {
+    console.warn("⚠ Warning: Could not copy dist to api (might be okay in non-Vercel environments):", err);
+  }
 }
 
 buildAll().catch((err) => {
