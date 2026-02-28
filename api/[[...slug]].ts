@@ -7,17 +7,17 @@ let loadAttempts = 0;
 
 async function getApp() {
   loadAttempts++;
-  console.log(`[spa] === LOAD ATTEMPT #${loadAttempts} ===`);
+  console.log(`[api] === LOAD ATTEMPT #${loadAttempts} ===`);
   
   // If we have a cached app, verify it's actually valid before using
   if (app !== null && app !== undefined && initPromise) {
-    console.log("[spa] Using cached app (type: " + typeof app + "), waiting for initPromise...");
+    console.log("[api] Using cached app (type: " + typeof app + "), waiting for initPromise...");
     try {
       await initPromise;
-      console.log("[spa] initPromise resolved, app is valid");
+      console.log("[api] initPromise resolved, app is valid");
       return app;
     } catch (e) {
-      console.error("[spa] initPromise rejected, resetting cache:", e);
+      console.error("[api] initPromise rejected, resetting cache:", e);
       app = null;
       initPromise = null;
       lastError = null;
@@ -26,27 +26,27 @@ async function getApp() {
   }
   
   if (lastError) {
-    console.error("[spa] Throwing cached error:", lastError);
+    console.error("[api] Throwing cached error:", lastError);
     throw lastError;
   }
 
   try {
-    console.log("[spa] Loading fresh app from ./api/dist/index.cjs...");
-    console.log("[spa] Current working directory:", process.cwd());
+    console.log("[api] Loading fresh app from ./dist/index.cjs...");
+    console.log("[api] Current working directory:", process.cwd());
     
     // @ts-ignore - dist/index.cjs is copied here during build
-    const mod = await import("./api/dist/index.cjs");
+    const mod = await import("./dist/index.cjs");
     
-    console.log("[spa] Module loaded, inspecting exports...");
-    console.log("[spa] Module keys:", Object.keys(mod));
+    console.log("[api] Module loaded, inspecting exports...");
+    console.log("[api] Module keys:", Object.keys(mod));
     
     // Handle CommonJS/ESM interop - mod.default might be a namespace or the app itself
     let defaultExport = mod.default;
-    console.log("[spa] mod.default type:", typeof defaultExport);
+    console.log("[api] mod.default type:", typeof defaultExport);
     
     // If mod.default is an object with a 'default' property (CommonJS interop), unwrap it
     if (defaultExport && typeof defaultExport === "object" && "default" in defaultExport && typeof defaultExport.default === "function") {
-      console.log("[spa] Detected CommonJS interop - unwrapping mod.default.default");
+      console.log("[api] Detected CommonJS interop - unwrapping mod.default.default");
       app = defaultExport.default;
     } else {
       app = defaultExport;
@@ -55,22 +55,22 @@ async function getApp() {
     // Always get initPromise from mod directly
     initPromise = mod.initPromise;
     
-    console.log("[spa] Final app type:", typeof app);
-    console.log("[spa] Final app is callable:", typeof app === "function");
+    console.log("[api] Final app type:", typeof app);
+    console.log("[api] Final app is callable:", typeof app === "function");
     
-    console.log("[spa] ✓ Waiting for initialization...");
+    console.log("[api] ✓ Waiting for initialization...");
     
     // Wait for init to complete
     if (initPromise) {
       await initPromise;
-      console.log("[spa] ✓ Initialization complete");
+      console.log("[api] ✓ Initialization complete");
     }
     
-    console.log("[spa] ✓ App ready to serve requests");
+    console.log("[api] ✓ App ready to serve requests");
     return app;
   } catch (error) {
     lastError = error as Error;
-    console.error("[spa] ✗ Fatal error loading app:", error);
+    console.error("[api] ✗ Fatal error loading app:", error);
     throw error;
   }
 }
@@ -84,11 +84,11 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     
     const pathname = req.url || "/";
     const method = req.method || "GET";
-    console.log(`\n[spa] >>> REQUEST: ${method} ${pathname}`);
+    console.log(`\n[api] >>> REQUEST: ${method} ${pathname}`);
     
     // Skip static files - let Vercel handle them from /public
     if (/\.[a-z]+$/i.test(pathname) && !pathname.startsWith("/api")) {
-      console.log(`[spa] Request has file extension, skipping...`);
+      console.log(`[api] Request has file extension, skipping...`);
       res.status(404).json({ error: "Not found" });
       return;
     }
@@ -96,19 +96,19 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     // Get the initialized app
     const expressApp = await getApp();
     
-    console.log(`[spa] Got app, type: ${typeof expressApp}`);
+    console.log(`[api] Got app, type: ${typeof expressApp}`);
     
     if (typeof expressApp !== "function") {
       throw new Error(`App is not callable, got ${typeof expressApp}`);
     }
     
-    console.log(`[spa] Delegating to Express app...`);
+    console.log(`[api] Delegating to Express app...`);
     
     // Call the Express app
     expressApp(req, res);
     
   } catch (error) {
-    console.error("\n[spa] !!! ERROR:", error);
+    console.error("\n[api] !!! ERROR:", error);
     
     if (!res.headersSent) {
       res.setHeader("Content-Type", "application/json");
@@ -118,7 +118,7 @@ export default async (req: VercelRequest, res: VercelResponse) => {
         timestamp: new Date().toISOString()
       });
     } else {
-      console.error("[spa] Headers already sent, cannot send error response");
+      console.error("[api] Headers already sent, cannot send error response");
     }
   }
 };
