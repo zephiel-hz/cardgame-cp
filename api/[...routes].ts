@@ -9,12 +9,20 @@ async function getApp() {
   loadAttempts++;
   console.log(`[api] === LOAD ATTEMPT #${loadAttempts} ===`);
   
-  if (app && initPromise) {
+  // If we have a cached app, verify it's actually valid before using
+  if (app !== null && typeof app === "function" && initPromise) {
     console.log("[api] Using cached app, waiting for initPromise...");
-    // Wait for initialization to complete
-    await initPromise;
-    console.log("[api] initPromise resolved");
-    return app;
+    try {
+      await initPromise;
+      console.log("[api] initPromise resolved, app is valid");
+      return app;
+    } catch (e) {
+      console.error("[api] initPromise rejected, resetting cache:", e);
+      app = null;
+      initPromise = null;
+      lastError = null;
+      // Fall through to reload
+    }
   }
   
   if (lastError) {
@@ -73,6 +81,13 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     
     // Get the initialized app
     const expressApp = await getApp();
+    
+    // Validate expressApp is actually a function
+    if (typeof expressApp !== "function") {
+      console.error(`[api] !!! CRITICAL: expressApp is not a function, got ${typeof expressApp}`);
+      console.error(`[api] expressApp value:`, expressApp);
+      throw new Error(`expressApp is not a function (got ${typeof expressApp})`);
+    }
     
     console.log(`[api] Delegating to Express app...`);
     
