@@ -15,6 +15,7 @@ export function NotificationSettings() {
   const [isSupported, setIsSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isIOSPWA, setIsIOSPWA] = useState(false);
   const [preferences, setPreferences] = useState({
     cardUsed: true,
     cardExpired: true,
@@ -23,8 +24,16 @@ export function NotificationSettings() {
   });
   const [isLoadingPrefs, setIsLoadingPrefs] = useState(false);
 
-  // Check if browser supports push notifications
+  // Check if browser supports push notifications and detect iOS PWA
   useEffect(() => {
+    // Detect iOS PWA (installed on home screen)
+    const isIOSSafari = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isPWA = (window.navigator as any).standalone === true || 
+                  document.referrer.includes('android-app://') ||
+                  (window.matchMedia('(display-mode: standalone)').matches);
+    
+    setIsIOSPWA(isIOSSafari && isPWA);
+
     const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
     setIsSupported(supported);
 
@@ -240,6 +249,44 @@ export function NotificationSettings() {
   };
 
   if (!isSupported) {
+    // iOS PWA installed but no Web Push API support
+    if (isIOSPWA) {
+      return (
+        <Card className="border-none shadow-xl bg-white/80 backdrop-blur-md rounded-3xl overflow-hidden">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Bell className="w-5 h-5 text-primary" />
+              <div>
+                <CardTitle>Notifikasi</CardTitle>
+                <CardDescription>PWA mode - Limited support</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+              <h3 className="font-semibold text-blue-900">✅ Notifikasi Tersedia!</h3>
+              <p className="text-sm text-blue-800">
+                Anda telah install aplikasi ini di home screen iOS. Notifikasi akan terkirim saat Anda membuka aplikasi.
+              </p>
+              <div className="text-xs text-blue-700 space-y-2">
+                <p>📲 <strong>Untuk notifikasi otomatis:</strong></p>
+                <p>1. Buka Settings → Notifications</p>
+                <p>2. Cari "Card Game" atau nama browser Anda</p>
+                <p>3. Enable "Allow Notifications"</p>
+              </div>
+            </div>
+            
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <p className="text-xs text-amber-800">
+                💡 iOS Safari tidak support Web Push API. Notifikasi akan ditampilkan saat Anda aktif menggunakan aplikasi.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    // Android or other browsers without Push support
     return (
       <Card className="border-none shadow-xl bg-white/80 backdrop-blur-md rounded-3xl overflow-hidden">
         <CardHeader>
@@ -249,6 +296,11 @@ export function NotificationSettings() {
           </div>
           <CardDescription>Browser tidak mendukung push notifications</CardDescription>
         </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Update browser Anda atau gunakan Chrome / Firefox untuk mendapatkan push notifications.
+          </p>
+        </CardContent>
       </Card>
     );
   }
