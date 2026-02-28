@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Camera, Lock, User as UserIcon } from "lucide-react";
+import { NotificationSettings } from "@/components/notification-settings";
 
 export default function Profile() {
   const { user, login } = useAuth();
@@ -244,6 +245,9 @@ export default function Profile() {
           </form>
         </CardContent>
       </Card>
+
+      {/* Notification Settings */}
+      <NotificationSettings />
     </div>
   );
 }

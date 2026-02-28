@@ -155,6 +155,14 @@ export const api = {
         200: z.object({ success: z.boolean() }),
         400: errorSchemas.validation,
       }
+    },
+    vapidKey: {
+      method: 'GET' as const,
+      path: '/api/notifications/vapid-key' as const,
+      responses: {
+        200: z.object({ vapidPublicKey: z.string() }),
+        500: errorSchemas.internal,
+      }
     }
   }
 };
