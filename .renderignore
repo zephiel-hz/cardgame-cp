@@ -1,0 +1,14 @@
+node_modules
+.git
+.gitignore
+.env
+.env.*
+.DS_Store
+*.md
+!README.md
+.local/
+.replit
+*.tar.gz
+# Build artifacts needed at runtime
+dist/
+api/dist/

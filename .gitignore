@@ -10,5 +10,5 @@ vite.config.ts.*
 .env.local
 .env
 .env.*
-api/dist
+api/
 .env.production
