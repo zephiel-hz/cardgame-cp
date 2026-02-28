@@ -102,49 +102,50 @@ async function initializeServer() {
   }
 }
 
-// Track initialization state
+// Track initialization state for serverless
 let isInitialized = false;
 let initPromise: Promise<void> | null = null;
 
-// Ensure initialization is complete
-async function ensureInitialized() {
-  if (isInitialized) return;
-  if (!initPromise) {
-    initPromise = initializeServer().then(() => {
-      isInitialized = true;
-    });
-  }
-  await initPromise;
-}
-
 // Initialize on module load
-initPromise = initializeServer().then(() => {
-  isInitialized = true;
-  
-  // Only listen in development
-  if (process.env.NODE_ENV !== "production") {
-    const port = parseInt(process.env.PORT || "3000", 10);
-    const hostname = process.env.HOST || "localhost";
+initPromise = initializeServer()
+  .then(() => {
+    isInitialized = true;
     
-    httpServer.listen(port, hostname, () => {
-      log(`serving on http://${hostname}:${port}`);
-    });
-  }
-  // In production, Vercel handler will call the app directly
-}).catch(err => {
-  console.error("[server] Initialization error:", err);
-});
+    // Only listen in development
+    if (process.env.NODE_ENV !== "production") {
+      const port = parseInt(process.env.PORT || "3000", 10);
+      const hostname = process.env.HOST || "localhost";
+      
+      httpServer.listen(port, hostname, () => {
+        log(`serving on http://${hostname}:${port}`);
+      });
+    }
+  })
+  .catch(err => {
+    console.error("[server] Initialization error:", err);
+    process.exit(1);
+  });
 
-// Export a wrapper that ensures initialization before handling
-const expressHandler = (req: any, res: any) => {
-  if (isInitialized) {
+// Async handler wrapper for Vercel - ensures initialization before handling requests
+export default async (req: any, res: any) => {
+  try {
+    // Wait for initialization to complete
+    if (!isInitialized && initPromise) {
+      await initPromise;
+    }
+    
+    if (!isInitialized) {
+      throw new Error("Server failed to initialize");
+    }
+    
+    // Call the Express app
     return app(req, res);
-  } else if (initPromise) {
-    initPromise.then(() => app(req, res));
-  } else {
-    res.status(503).json({ error: "Server not initialized" });
+  } catch (err) {
+    console.error("[server] Handler error:", err);
+    if (!res.headersSent) {
+      res.status(503).json({ error: "Service unavailable" });
+    }
   }
 };
 
-export default expressHandler;
 export { httpServer, initializeServer, app };

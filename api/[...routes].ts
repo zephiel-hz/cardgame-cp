@@ -1,41 +1,43 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-let app: any = null;
+let handler: any = null;
 let lastError: Error | null = null;
 
-async function getApp() {
-  if (app) return app;
+async function getHandler() {
+  if (handler) return handler;
   if (lastError) throw lastError;
 
   try {
-    console.log("[api] Loading Express app from ./dist/index.cjs...");
+    console.log("[api] Loading handler from ./dist/index.cjs...");
     // @ts-ignore - dist/index.cjs is copied here during build
     const mod = await import("./dist/index.cjs");
-    app = mod.default || mod;
+    handler = mod.default;
     
-    if (typeof app !== "function") {
-      throw new Error(`App is not a function, got ${typeof app}`);
+    if (typeof handler !== "function") {
+      throw new Error(`Handler is not a function, got ${typeof handler}`);
     }
     
-    console.log("[api] ✓ Express app loaded successfully");
-    return app;
+    console.log("[api] ✓ Handler loaded successfully");
+    return handler;
   } catch (error) {
     lastError = error as Error;
-    console.error("[api] ✗ Failed to load app:", error);
+    console.error("[api] ✗ Failed to load handler:", error);
     throw error;
   }
 }
 
 export default async (req: VercelRequest, res: VercelResponse) => {
   try {
-    // Set proper headers before anything else
+    // Set proper cache headers
     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     
     console.log(`[api] ${req.method} ${req.url}`);
-    const app = await getApp();
+    const handler = await getHandler();
     
-    // Call Express app - it should handle the response
-    return app(req, res);
+    // Call the async handler which will wait for app initialization
+    return await handler(req, res);
   } catch (error) {
     console.error("[api] ✗ Request failed:", error);
     
