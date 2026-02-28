@@ -120,24 +120,13 @@ initPromise = initializeServer()
     console.log("[server] ✓✓✓ INITIALIZATION COMPLETE ✓✓✓");
     console.log("[server] App is ready for requests");
     
-    // Listen in both development AND production (Render, traditional hosting)
-    // In Vercel, this won't be called since app exports for serverless handler
-    if (process.env.NODE_ENV !== "production") {
-      const port = parseInt(process.env.PORT || "3000", 10);
-      const hostname = process.env.HOST || "localhost";
-      
-      httpServer.listen(port, hostname, () => {
-        log(`serving on http://${hostname}:${port}`);
-      });
-    } else {
-      // Production: listen on PORT (set by Render or other platform)
-      const port = parseInt(process.env.PORT || "3000", 10);
-      const hostname = process.env.HOST || "0.0.0.0";
-      
-      httpServer.listen(port, hostname, () => {
-        console.log(`[server] ✓ Production server listening on http://${hostname}:${port}`);
-      });
-    }
+    // Listen on PORT for both development and production
+    const port = parseInt(process.env.PORT || "3000", 10);
+    const hostname = process.env.HOST || "0.0.0.0";
+    
+    httpServer.listen(port, hostname, () => {
+      log(`serving on http://${hostname}:${port}`);
+    });
   })
   .catch(err => {
     console.error("[server] ✗✗✗ INITIALIZATION FAILED ✗✗✗");

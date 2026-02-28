@@ -63,19 +63,21 @@ async function buildAll() {
 
   // Copy dist/ to api/ so Vercel serverless functions have everything they need
   // ALSO copy static files to /public so Vercel's static file hosting serves them
-  console.log("packaging for deployment...");
+  console.log("packaging for Vercel...");
   try {
-    // Copy public (static) files to /public for Render and other platforms
+    await mkdir("api/dist", { recursive: true });
+    
+    // Copy server bundle
+    await copyFile("dist/index.cjs", "api/dist/index.cjs");
+    console.log("✓ Server bundle copied to api/dist/index.cjs");
+    
+    // Copy public (static) files to /public for Vercel's built-in static hosting
     await cp("dist/public", "public", { recursive: true, force: true });
     console.log("✓ Static files copied to /public/");
     
-    // For Vercel compatibility (if ever reverting): also copy to api/dist
-    // Comment out if only using Render
-    // await mkdir("api/dist", { recursive: true });
-    // await copyFile("dist/index.cjs", "api/dist/index.cjs");
-    // await cp("dist/public", "api/dist/public", { recursive: true, force: true });
-    // console.log("✓ Vercel artifacts packaged");
-
+    // Also copy to api/dist/public as fallback for development
+    await cp("dist/public", "api/dist/public", { recursive: true, force: true });
+    console.log("✓ Static files copied to api/dist/public/ (fallback)");
   } catch (err) {
     console.warn("⚠ Warning: Could not package for Vercel:", err);
   }

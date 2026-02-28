@@ -1,3 +1,11 @@
 {
-  "serviceName": "cardgame-ldr"
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "nixpacks",
+    "buildCommand": "npm run build"
+  },
+  "deploy": {
+    "startCommand": "NODE_ENV=production node dist/index.cjs",
+    "restartPolicyMaxRetries": 5
+  }
 }
