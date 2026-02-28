@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx server/index.ts",
     "build": "tsx script/build.ts",
-    "start": "node server.mjs",
+    "start": "npm run build",
     "check": "tsc",
     "db:push": "drizzle-kit push"
   },
