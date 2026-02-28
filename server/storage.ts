@@ -219,6 +219,44 @@ export class DatabaseStorage implements IStorage {
     
     return updated;
   }
+
+  async getExpiredCards(): Promise<UserCardWithDetails[]> {
+    const now = new Date();
+    const items = await db.query.userCards.findMany({
+      where: and(
+        eq(userCards.status, 'active'),
+        gte(now, userCards.expiresAt)
+      ),
+      with: { card: true, user: true },
+    });
+    return items;
+  }
+
+  async markCardAsExpired(userCardId: number): Promise<UserCardWithDetails> {
+    const uc = await db.query.userCards.findFirst({
+      where: eq(userCards.id, userCardId),
+      with: { card: true, user: true },
+    });
+    if (!uc) throw new Error("Card not found");
+
+    const [updated] = await db.update(userCards)
+      .set({ status: 'used' })
+      .where(eq(userCards.id, userCardId))
+      .returning();
+
+    return { ...updated, card: uc.card, user: uc.user };
+  }
+
+  async handleExpiredCards(): Promise<UserCardWithDetails[]> {
+    const expiredCards = await this.getExpiredCards();
+    
+    // Mark all expired cards as used
+    for (const card of expiredCards) {
+      await this.markCardAsExpired(card.id);
+    }
+    
+    return expiredCards;
+  }
 }
 
 export const storage = new DatabaseStorage();

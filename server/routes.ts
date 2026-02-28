@@ -2,6 +2,7 @@ import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
 import { api, WS_EVENTS } from "@shared/routes";
+import { pushNotificationService } from "./push-notifications";
 import { z } from "zod";
 import { WebSocketServer, WebSocket } from "ws";
 import fs from "fs";
@@ -165,6 +166,29 @@ export async function registerRoutes(
       await storage.addGachaLog(input.userId);
       const userCard = await storage.addCardToInventory(input.userId, pulledCard.id);
 
+      // Get user info for notification
+      const user = await storage.getUser(input.userId);
+      
+      // Send gacha pull notification
+      if (user) {
+        const payload = {
+          title: '🎉 Kartu Baru!',
+          body: `Selamat! Anda mendapat kartu "${pulledCard.name}" tier ${pulledCard.tier}`,
+          tag: 'gacha_pull',
+          icon: '/logo.png',
+          badge: '/badge.png',
+          data: {
+            type: 'gacha_pull',
+            cardId: pulledCard.id,
+            url: '/inventory',
+          },
+        };
+        
+        await pushNotificationService.notifyUser(input.userId, payload).catch(err => {
+          console.error('[Push] Failed to send gacha notification:', err);
+        });
+      }
+
       res.status(200).json({ success: true, card: userCard, remainingPulls: 2 - (count + 1) });
     } catch (err) {
       res.status(400).json({ message: "Invalid request" });
@@ -188,6 +212,35 @@ export async function registerRoutes(
         userName: usedCard.user.username
       });
 
+      // Send notification to other users about card being used
+      try {
+        const allUsers = await storage.getAllUsers();
+        const otherUserIds = allUsers
+          .filter(u => u.id !== usedCard.userId)
+          .map(u => u.id);
+        
+        if (otherUserIds.length > 0) {
+          const payload = {
+            title: '🎴 Kartu Digunakan!',
+            body: `${usedCard.user.username} menggunakan kartu "${usedCard.card.name}" (${usedCard.card.tier})`,
+            tag: 'card_used',
+            icon: '/logo.png',
+            badge: '/badge.png',
+            data: {
+              type: 'card_used',
+              userCardId: input.userCardId,
+              url: '/active-cards',
+            },
+          };
+          
+          await pushNotificationService.notifyUsers(otherUserIds, payload).catch(err => {
+            console.error('[Push] Failed to send card used notification:', err);
+          });
+        }
+      } catch (error) {
+        console.error('[Push] Error sending card used notifications:', error);
+      }
+
       res.status(200).json(usedCard);
     } catch (err) {
       res.status(400).json({ message: "Failed to use card" });
@@ -195,8 +248,76 @@ export async function registerRoutes(
   });
 
   app.get(api.activeCards.list.path, async (req, res) => {
-    const items = await storage.getActiveCards();
-    res.status(200).json(items);
+    try {
+      const items = await storage.getActiveCards();
+      res.json(items);
+    } catch (err) {
+      console.error('[Active Cards] Error:', err);
+      res.status(500).json({ message: 'Failed to fetch active cards' });
+    }
+  });
+
+  // Check for expired cards and send notifications
+  app.post('/api/cards/check-expiry', async (req, res) => {
+    try {
+      const now = new Date();
+      
+      // Get all active cards
+      const activeCards = await storage.getActiveCards();
+      
+      // Filter for cards that are about to expire (within next 5 minutes)
+      const expiringCards = activeCards.filter(card => {
+        const timeUntilExpiry = (card.expiresAt?.getTime() ?? 0) - now.getTime();
+        const minutesUntilExpiry = timeUntilExpiry / 60000;
+        return minutesUntilExpiry > 0 && minutesUntilExpiry <= 5;
+      });
+
+      // Send expiry warning notifications
+      for (const card of expiringCards) {
+        if (card.expiresAt) {
+          await pushNotificationService.notifyCardExpiring(
+            card.userId,
+            card.card.name,
+            card.expiresAt
+          ).catch(err => {
+            console.error('[Push] Failed to send expiry warning:', err);
+          });
+        }
+      }
+
+      res.json({ 
+        checked: activeCards.length, 
+        expiring: expiringCards.length 
+      });
+    } catch (err) {
+      console.error('[Check Expiry] Error:', err);
+      res.status(500).json({ message: 'Failed to check expiry' });
+    }
+  });
+
+  // Handle expired cards - for when app requests to clean up expired cards
+  app.post('/api/cards/handle-expired', async (req, res) => {
+    try {
+      const expiredCards = await storage.handleExpiredCards();
+
+      // Send expiry notifications for each expired card
+      for (const card of expiredCards) {
+        await pushNotificationService.notifyCardExpired(
+          card.userId,
+          card.card.name
+        ).catch(err => {
+          console.error('[Push] Failed to send expiry notification:', err);
+        });
+      }
+
+      res.json({ 
+        processed: expiredCards.length,
+        message: `${expiredCards.length} expired cards handled`
+      });
+    } catch (err) {
+      console.error('[Handle Expired] Error:', err);
+      res.status(500).json({ message: 'Failed to handle expired cards' });
+    }
   });
 
   // Push Notifications Routes
