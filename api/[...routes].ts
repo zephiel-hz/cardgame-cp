@@ -33,10 +33,14 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     res.setHeader("Pragma", "no-cache");
     res.setHeader("Expires", "0");
     
-    console.log(`[api] ${req.method} ${req.url}`);
+    const path = req.url || "";
+    const method = req.method || "GET";
+    console.log(`[api] ${method} ${path}`);
+    
     const handler = await getHandler();
     
     // Call the async handler which will wait for app initialization
+    // This handler is the Express app export from server/index.ts
     return await handler(req, res);
   } catch (error) {
     console.error("[api] ✗ Request failed:", error);

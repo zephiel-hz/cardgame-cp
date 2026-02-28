@@ -64,6 +64,14 @@ app.use((req, res, next) => {
 
 // Create and initialize the server
 async function initializeServer() {
+  // IMPORTANT: Setup static file serving FIRST before registering routes
+  // This ensures static files are matched before API routes
+  if (process.env.NODE_ENV === "production") {
+    serveStatic(app);
+    log("Static file serving configured for production");
+  }
+
+  // Register API routes after static serving
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
@@ -91,12 +99,8 @@ async function initializeServer() {
     log(`avatar directory not found at ${avatarDir}, uploads will be cached in memory`);
   }
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (process.env.NODE_ENV === "production") {
-    serveStatic(app);
-  } else {
+  // Setup Vite in development ONLY
+  if (process.env.NODE_ENV !== "production") {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
   }
