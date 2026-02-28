@@ -132,17 +132,17 @@ export function serveStatic(app: Express) {
   // SPA fallback ONLY for unmatched routes that aren't static files
   app.use((req, res, next) => {
     // Skip API, WebSocket, and obvious static file extensions
-    const path = req.path;
+    const pathname = req.path;
     
-    if (path.startsWith("/api") || 
-        path.startsWith("/ws") ||
-        /\.\w+$/.test(path)) { // Has file extension
+    if (pathname.startsWith("/api") || 
+        pathname.startsWith("/ws") ||
+        /\.\w+$/.test(pathname)) { // Has file extension
       return next();
     }
     
     // This is a SPA route, serve index.html
     const indexPath = path.resolve(distPath, "index.html");
-    console.log("[static] SPA fallback for:", path, "→ index.html");
+    console.log("[static] SPA fallback for:", pathname, "→ index.html");
     
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");

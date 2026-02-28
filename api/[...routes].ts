@@ -1,27 +1,43 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-let handler: any = null;
+let app: any = null;
+let initPromise: any = null;
 let lastError: Error | null = null;
 
-async function getHandler() {
-  if (handler) return handler;
+async function getApp() {
+  if (app && initPromise) {
+    // Wait for initialization to complete
+    await initPromise;
+    return app;
+  }
+  
   if (lastError) throw lastError;
 
   try {
-    console.log("[api] Loading handler from ./dist/index.cjs...");
+    console.log("[api] Loading app from ./dist/index.cjs...");
     // @ts-ignore - dist/index.cjs is copied here during build
     const mod = await import("./dist/index.cjs");
-    handler = mod.default;
     
-    if (typeof handler !== "function") {
-      throw new Error(`Handler is not a function, got ${typeof handler}`);
+    // Get exports
+    app = mod.default;
+    initPromise = mod.initPromise;
+    
+    if (typeof app !== "function") {
+      throw new Error(`App is not a function, got ${typeof app}`);
     }
     
-    console.log("[api] ✓ Handler loaded successfully");
-    return handler;
+    console.log("[api] ✓ App loaded, waiting for initialization...");
+    
+    // Wait for init to complete
+    if (initPromise) {
+      await initPromise;
+    }
+    
+    console.log("[api] ✓ Initialization complete");
+    return app;
   } catch (error) {
     lastError = error as Error;
-    console.error("[api] ✗ Failed to load handler:", error);
+    console.error("[api] ✗ Failed to load app:", error);
     throw error;
   }
 }
@@ -37,11 +53,11 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     const method = req.method || "GET";
     console.log(`[api] ${method} ${path}`);
     
-    const handler = await getHandler();
+    // Get the initialized app
+    const expressApp = await getApp();
     
-    // Call the async handler which will wait for app initialization
-    // This handler is the Express app export from server/index.ts
-    return await handler(req, res);
+    // Call the Express app directly (synchronous call)
+    expressApp(req, res);
   } catch (error) {
     console.error("[api] ✗ Request failed:", error);
     

@@ -114,6 +114,7 @@ let initPromise: Promise<void> | null = null;
 initPromise = initializeServer()
   .then(() => {
     isInitialized = true;
+    console.log("[server] ✓ Initialization complete");
     
     // Only listen in development
     if (process.env.NODE_ENV !== "production") {
@@ -126,30 +127,10 @@ initPromise = initializeServer()
     }
   })
   .catch(err => {
-    console.error("[server] Initialization error:", err);
+    console.error("[server] ✗ Initialization error:", err);
     process.exit(1);
   });
 
-// Async handler wrapper for Vercel - ensures initialization before handling requests
-export default async (req: any, res: any) => {
-  try {
-    // Wait for initialization to complete
-    if (!isInitialized && initPromise) {
-      await initPromise;
-    }
-    
-    if (!isInitialized) {
-      throw new Error("Server failed to initialize");
-    }
-    
-    // Call the Express app
-    return app(req, res);
-  } catch (err) {
-    console.error("[server] Handler error:", err);
-    if (!res.headersSent) {
-      res.status(503).json({ error: "Service unavailable" });
-    }
-  }
-};
-
-export { httpServer, initializeServer, app };
+// Export the raw Express app - it will be used once initialized
+export default app;
+export { httpServer, initializeServer, initPromise };
