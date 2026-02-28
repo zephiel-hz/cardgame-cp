@@ -19,14 +19,16 @@ export default function Profile() {
 
   const [username, setUsername] = useState(user?.username || "");
   const [pin, setPin] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || "");
+  const [baseAvatarUrl, setBaseAvatarUrl] = useState(user?.avatarUrl || "");
+  const [displayAvatarUrl, setDisplayAvatarUrl] = useState(user?.avatarUrl ? `${user.avatarUrl}?t=${Date.now()}` : "");
   const [gender, setGender] = useState((user?.gender as any) || "other");
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   // Sync avatar URL when user updates, with cache-busting
   useEffect(() => {
     if (user?.avatarUrl) {
-      setAvatarUrl(`${user.avatarUrl}?t=${Date.now()}`);
+      setBaseAvatarUrl(user.avatarUrl);
+      setDisplayAvatarUrl(`${user.avatarUrl}?t=${Date.now()}`);
     }
   }, [user?.avatarUrl, user?.id]);
 
@@ -85,9 +87,11 @@ export default function Profile() {
           }
 
           const data = await res.json();
-          // Add timestamp to URL for cache-busting
+          // Store base URL without timestamp
+          setBaseAvatarUrl(data.avatarUrl);
+          // Display URL with cache-busting timestamp
           const urlWithTimestamp = `${data.avatarUrl}?t=${Date.now()}`;
-          setAvatarUrl(urlWithTimestamp);
+          setDisplayAvatarUrl(urlWithTimestamp);
           toast({ title: "Berhasil", description: "Foto berhasil diunggah!" });
         } catch (error: any) {
           toast({
@@ -118,7 +122,7 @@ export default function Profile() {
     const updates: any = {};
     if (username !== user?.username) updates.username = username;
     if (pin) updates.pin = pin;
-    if (avatarUrl !== user?.avatarUrl) updates.avatarUrl = avatarUrl;
+    if (baseAvatarUrl !== user?.avatarUrl) updates.avatarUrl = baseAvatarUrl;
     if (gender !== user?.gender) updates.gender = gender;
     
     if (Object.keys(updates).length > 0) {
@@ -143,7 +147,7 @@ export default function Profile() {
               onClick={() => fileInputRef.current?.click()}
             >
               <Avatar className="w-24 h-24 border-4 border-primary/20 shadow-xl">
-                <AvatarImage src={avatarUrl} />
+                <AvatarImage src={displayAvatarUrl} />
                 <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">
                   {user?.username.charAt(0).toUpperCase()}
                 </AvatarFallback>
