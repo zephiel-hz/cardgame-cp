@@ -122,42 +122,56 @@ export function serveStatic(app: Express) {
     }
   }
 
-  // SPA fallback
+  // SPA fallback - MUST be last route so API/files are handled first
   app.use((req, res, next) => {
     const pathname = req.path;
     
-    // Skip non-SPA routes
+    // Skip non-SPA routes (API, WebSocket, files with extensions)
     if (pathname.startsWith("/api") || 
         pathname.startsWith("/ws") ||
         /\.\w+$/.test(pathname)) {
       return next();
     }
     
-    if (!distPath || !fs.existsSync(distPath)) {
-      console.warn(`[static] SPA fallback skipped - public dir unavailable`);
-      return next();
+    // Try to serve index.html if public dir available
+    if (distPath && fs.existsSync(distPath)) {
+      const indexPath = path.join(distPath, "index.html");
+      if (fs.existsSync(indexPath)) {
+        console.log(`[static] SPA: ${pathname} → index.html`);
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        return res.sendFile(indexPath, (err) => {
+          if (err) {
+            console.error(`[static] Error serving SPA: ${err.message}`);
+            if (!res.headersSent) {
+              res.status(404).json({ error: "Not found" });
+            }
+          }
+        });
+      }
     }
     
-    // Serve index.html for SPA routing
-    const indexPath = path.join(distPath, "index.html");
-    if (!fs.existsSync(indexPath)) {
-      console.warn(`[static] index.html not found at ${indexPath}`);
-      return next();
-    }
-    
-    console.log(`[static] SPA: ${pathname} → index.html`);
-    
+    // FALLBACK: If public dir not available, send minimal HTML that loads app
+    // This ensures SPA routes work even if static files aren't found
+    console.warn(`[static] ⚠ SPA fallback - public dir unavailable, sending minimal HTML`);
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-    
-    return res.sendFile(indexPath, (err) => {
-      if (err) {
-        console.error(`[static] Error serving SPA: ${err.message}`);
-        if (!res.headersSent) {
-          res.status(404).json({ error: "Not found" });
-        }
-      }
-    });
+    return res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gacha LDR Card Game</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module">
+    console.error('Static files not available. Check server logs.');
+    document.getElementById('root').innerHTML = '<h1>Loading...</h1><p>Static assets not found. Please check Vercel build logs.</p>';
+  </script>
+</body>
+</html>`);
   });
   
   console.log("[static] ===== STATIC READY =====");
