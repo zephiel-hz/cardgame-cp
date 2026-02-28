@@ -3,7 +3,6 @@
   "env": {
     "NODE_ENV": "production"
   },
-  "public": true,
   "rewrites": [
     {
       "source": "/(.*)",

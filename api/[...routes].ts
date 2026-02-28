@@ -28,32 +28,23 @@ async function getApp() {
 
 export default async (req: VercelRequest, res: VercelResponse) => {
   try {
+    // Set proper headers before anything else
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    
     console.log(`[api] ${req.method} ${req.url}`);
     const app = await getApp();
     
-    // Call Express app and handle response
-    return await new Promise<void>((resolve, reject) => {
-      app(req, res, (err: any) => {
-        if (err) {
-          console.error("[api] Handler error:", err);
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
+    // Call Express app - it should handle the response
+    return app(req, res);
   } catch (error) {
     console.error("[api] ✗ Request failed:", error);
     
     if (!res.headersSent) {
+      res.setHeader("Content-Type", "application/json");
       res.status(500).json({
         error: "Internal Server Error",
         message: error instanceof Error ? error.message : String(error),
-        environment: {
-          nodeEnv: process.env.NODE_ENV,
-          vercel: process.env.VERCEL,
-          dbUrl: process.env.DATABASE_URL ? "SET" : "NOT SET" 
-        }
+        timestamp: new Date().toISOString()
       });
     }
   }
