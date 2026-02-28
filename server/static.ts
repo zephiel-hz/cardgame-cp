@@ -13,20 +13,32 @@ export function serveStatic(app: Express) {
 
   let distPath: string = "";
   
-  // Vercel specific: Files are at /var/task/api/dist/public when running
-  // But we need to detect this at runtime, not build time
-  
+  // Vercel specific: Try multiple possible locations
   if (process.env.VERCEL === "1" || process.env.VERCEL_ENV) {
     console.log("[static] Vercel environment detected");
-    distPath = "/var/task/api/dist/public";
-    console.log("[static] Using Vercel path:", distPath);
+    // Vercel prioritizes /public folder for static assets
+    const vercelPaths = [
+      "/var/task/public",                    // Standard Vercel /public
+      "/var/task/api/dist/public",           // Custom api/dist location
+      "/home/player/.vercel/output/public",  // Other possible Vercel paths
+    ];
+    
+    for (const p of vercelPaths) {
+      console.log(`[static] Checking Vercel path: ${p}`);
+      if (fs.existsSync(p)) {
+        distPath = p;
+        console.log("[static] ✓ Found at Vercel path:", distPath);
+        break;
+      }
+    }
   } else {
     // Development: files are at distPath relative to repo root
     // Could be at api/dist/public or dist/public depending on how we run it
     const possiblePaths = [
-      path.resolve(process.cwd(), "api", "dist", "public"),  // npm run dev / production build
-      path.resolve(process.cwd(), "dist", "public"),         // vite built
-      path.resolve(__dirname, "public"),                     // fallback
+      path.resolve(process.cwd(), "public"),                         // Recommend /public
+      path.resolve(process.cwd(), "api", "dist", "public"),         // api/dist/public
+      path.resolve(process.cwd(), "dist", "public"),                // dist/public
+      path.resolve(__dirname, "public"),                            // fallback
       path.resolve(__dirname, "..", "..", "api", "dist", "public"), // bundled
     ];
     
@@ -40,24 +52,21 @@ export function serveStatic(app: Express) {
   }
 
   // Verify path exists
-  if (!distPath || !fs.existsSync(distPath)) {
-    console.error("[static] ✗✗✗ CRITICAL: Public directory not found!");
-    console.error("[static] Expected path:", distPath);
-    console.error("[static] Tried paths:");
-    if (process.env.VERCEL === "1") {
-      console.error("[static]   - /var/task/api/dist/public (Vercel)");
+  if (!distPath) {
+    console.error("[static] ⚠ WARNING: distPath not configured");
+  } else if (!fs.existsSync(distPath)) {
+    console.warn("[static] ⚠ WARNING: Public directory not found at:", distPath);
+    console.warn("[static]   If running on Vercel, files may need custom deployment config");
+  } else {
+    // Log contents if directory exists
+    try {
+      const files = fs.readdirSync(distPath);
+      console.log(`[static] ✓ Public dir exists with ${files.length} items`);
+      files.slice(0, 5).forEach(f => console.log(`[static]   - ${f}`));
+      if (files.length > 5) console.log(`[static]   ... and ${files.length - 5} more`);
+    } catch (e) {
+      console.error("[static] Error listing directory:", e);
     }
-    console.error("[static] CWD:", process.cwd());
-    throw new Error(`Cannot find public directory at ${distPath}`);
-  }
-
-  // Log contents
-  try {
-    const files = fs.readdirSync(distPath);
-    console.log(`[static] ✓ Public dir exists with ${files.length} items`);
-    files.forEach(f => console.log(`[static]   - ${f}`));
-  } catch (e) {
-    console.error("[static] Error listing directory:", e);
   }
 
   // Configure express.static
@@ -137,8 +146,18 @@ export function serveStatic(app: Express) {
       return next();
     }
     
+    if (!distPath || !fs.existsSync(distPath)) {
+      console.warn(`[static] SPA fallback skipped - public dir unavailable`);
+      return next();
+    }
+    
     // Serve index.html for SPA routing
     const indexPath = path.join(distPath, "index.html");
+    if (!fs.existsSync(indexPath)) {
+      console.warn(`[static] index.html not found at ${indexPath}`);
+      return next();
+    }
+    
     console.log(`[static] SPA: ${pathname} → index.html`);
     
     res.setHeader("Content-Type", "text/html; charset=utf-8");

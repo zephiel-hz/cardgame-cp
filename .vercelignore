@@ -9,4 +9,6 @@ node_modules
 .local/
 .replit
 *.tar.gz
+# DO NOT IGNORE api/dist - these are Vercel build artifacts needed at runtime!
+# api/dist/ is created during "npm run build" and must be deployed
 
