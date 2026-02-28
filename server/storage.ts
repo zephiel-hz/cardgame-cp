@@ -1,6 +1,6 @@
 import { db } from "./db";
-import { users, cards, userCards, gachaLogs } from "@shared/schema";
-import type { User, InsertUser, Card, UserCard, UserCardWithDetails } from "@shared/schema";
+import { users, cards, userCards, gachaLogs, pushSubscriptions, notificationPreferences } from "@shared/schema";
+import type { User, InsertUser, Card, UserCard, UserCardWithDetails, PushSubscription, NotificationPreference } from "@shared/schema";
 import { eq, and, gte } from "drizzle-orm";
 
 function getCurrentPeriodStart(): Date {
@@ -33,6 +33,13 @@ export interface IStorage {
   getTodayGachaCount(userId: number): Promise<number>;
   addGachaLog(userId: number): Promise<void>;
   addCardToInventory(userId: number, cardId: number): Promise<UserCardWithDetails>;
+  // Push notification methods
+  subscribeToPushNotifications(userId: number, subscription: any, platform: string): Promise<PushSubscription>;
+  unsubscribeFromPushNotifications(userId: number, endpoint: string): Promise<boolean>;
+  getUserPushSubscriptions(userId: number): Promise<PushSubscription[]>;
+  getAllPushSubscriptions(): Promise<PushSubscription[]>;
+  getNotificationPreferences(userId: number): Promise<NotificationPreference | undefined>;
+  updateNotificationPreferences(userId: number, preferences: Partial<NotificationPreference>): Promise<NotificationPreference>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -118,6 +125,99 @@ export class DatabaseStorage implements IStorage {
       where: eq(userCards.id, inserted.id),
       with: { card: true, user: true },
     }) as Promise<UserCardWithDetails>;
+  }
+
+  // Push notification methods
+  async subscribeToPushNotifications(userId: number, subscription: any, platform: string = 'web'): Promise<PushSubscription> {
+    const { endpoint, keys } = subscription;
+    
+    // Check if subscription already exists
+    const existing = await db.select().from(pushSubscriptions)
+      .where(and(eq(pushSubscriptions.userId, userId), eq(pushSubscriptions.endpoint, endpoint)));
+    
+    if (existing.length > 0) {
+      // Update existing subscription
+      const [updated] = await db.update(pushSubscriptions)
+        .set({ 
+          auth: keys.auth, 
+          p256dh: keys.p256dh,
+          isActive: true,
+          lastUsedAt: new Date()
+        })
+        .where(eq(pushSubscriptions.endpoint, endpoint))
+        .returning();
+      return updated;
+    }
+    
+    // Create new subscription
+    const [created] = await db.insert(pushSubscriptions).values({
+      userId,
+      endpoint,
+      auth: keys.auth,
+      p256dh: keys.p256dh,
+      platform,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+    }).returning();
+    
+    // Create default notification preferences if not exists
+    const hasPrefs = await db.select().from(notificationPreferences)
+      .where(eq(notificationPreferences.userId, userId));
+    
+    if (hasPrefs.length === 0) {
+      await db.insert(notificationPreferences).values({ userId });
+    }
+    
+    return created;
+  }
+
+  async unsubscribeFromPushNotifications(userId: number, endpoint: string): Promise<boolean> {
+    const result = await db.update(pushSubscriptions)
+      .set({ isActive: false })
+      .where(and(
+        eq(pushSubscriptions.userId, userId),
+        eq(pushSubscriptions.endpoint, endpoint)
+      ));
+    
+    return result.rowCount ?? 0 > 0;
+  }
+
+  async getUserPushSubscriptions(userId: number): Promise<PushSubscription[]> {
+    return db.select().from(pushSubscriptions)
+      .where(and(
+        eq(pushSubscriptions.userId, userId),
+        eq(pushSubscriptions.isActive, true)
+      ));
+  }
+
+  async getAllPushSubscriptions(): Promise<PushSubscription[]> {
+    return db.select().from(pushSubscriptions)
+      .where(eq(pushSubscriptions.isActive, true));
+  }
+
+  async getNotificationPreferences(userId: number): Promise<NotificationPreference | undefined> {
+    const [prefs] = await db.select().from(notificationPreferences)
+      .where(eq(notificationPreferences.userId, userId));
+    return prefs;
+  }
+
+  async updateNotificationPreferences(userId: number, preferences: Partial<NotificationPreference>): Promise<NotificationPreference> {
+    const existing = await this.getNotificationPreferences(userId);
+    
+    if (!existing) {
+      // Create new preferences
+      const [created] = await db.insert(notificationPreferences)
+        .values({ userId, ...preferences })
+        .returning();
+      return created;
+    }
+    
+    // Update existing
+    const [updated] = await db.update(notificationPreferences)
+      .set({ ...preferences, updatedAt: new Date() })
+      .where(eq(notificationPreferences.userId, userId))
+      .returning();
+    
+    return updated;
   }
 }
 

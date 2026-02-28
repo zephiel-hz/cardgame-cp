@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean, jsonb } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -34,6 +34,30 @@ export const gachaLogs = pgTable("gacha_logs", {
   pulledAt: timestamp("pulled_at").defaultNow().notNull(),
 });
 
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  endpoint: text("endpoint").notNull().unique(),
+  auth: text("auth").notNull(), // base64 encoded auth key
+  p256dh: text("p256dh").notNull(), // base64 encoded p256dh key
+  userAgent: text("user_agent"),
+  platform: text("platform").default("web"), // 'web', 'android', 'ios'
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastUsedAt: timestamp("last_used_at"),
+});
+
+export const notificationPreferences = pgTable("notification_preferences", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).unique().notNull(),
+  cardUsed: boolean("card_used").default(true),
+  cardExpired: boolean("card_expired").default(true),
+  cardDropped: boolean("card_dropped").default(true),
+  promotions: boolean("promotions").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const userCardsRelations = relations(userCards, ({ one }) => ({
   user: one(users, {
     fields: [userCards.userId],
@@ -49,6 +73,8 @@ export type User = typeof users.$inferSelect;
 export type Card = typeof cards.$inferSelect;
 export type UserCard = typeof userCards.$inferSelect;
 export type GachaLog = typeof gachaLogs.$inferSelect;
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export type NotificationPreference = typeof notificationPreferences.$inferSelect;
 
 export type UserCardWithDetails = UserCard & { card: Card; user: User };
 
@@ -56,3 +82,5 @@ export const insertUserSchema = createInsertSchema(users);
 export const insertCardSchema = createInsertSchema(cards);
 export const insertUserCardSchema = createInsertSchema(userCards);
 export const insertGachaLogSchema = createInsertSchema(gachaLogs);
+export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions);
+export const insertNotificationPreferenceSchema = createInsertSchema(notificationPreferences);

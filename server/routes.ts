@@ -199,6 +199,96 @@ export async function registerRoutes(
     res.status(200).json(items);
   });
 
+  // Push Notifications Routes
+  app.get('/api/notifications/vapid-key', (req, res) => {
+    const { pushNotificationService } = require('./push-notifications');
+    res.json({ vapidPublicKey: pushNotificationService.getVapidPublicKey() });
+  });
+
+  app.post(api.notifications.subscribe.path, async (req, res) => {
+    try {
+      const { userId, subscription } = req.body;
+      
+      if (!userId || !subscription) {
+        return res.status(400).json({ message: 'Missing required fields' });
+      }
+
+      // Get platform from user agent
+      const userAgent = req.headers['user-agent'] || '';
+      let platform = 'web';
+      if (userAgent.includes('Android')) platform = 'android';
+      else if (userAgent.includes('iPhone') || userAgent.includes('iPad')) platform = 'ios';
+
+      await storage.subscribeToPushNotifications(userId, subscription, platform);
+      
+      res.json({ success: true, message: 'Subscribed to push notifications' });
+    } catch (err: any) {
+      console.error('[Push] Subscribe error:', err);
+      res.status(500).json({ message: err.message || 'Failed to subscribe' });
+    }
+  });
+
+  app.post(api.notifications.unsubscribe.path, async (req, res) => {
+    try {
+      const { userId, endpoint } = req.body;
+      
+      if (!userId || !endpoint) {
+        return res.status(400).json({ message: 'Missing required fields' });
+      }
+
+      const success = await storage.unsubscribeFromPushNotifications(userId, endpoint);
+      
+      res.json({ success });
+    } catch (err: any) {
+      console.error('[Push] Unsubscribe error:', err);
+      res.status(500).json({ message: err.message || 'Failed to unsubscribe' });
+    }
+  });
+
+  app.get(api.notifications.preferences.path, async (req, res) => {
+    try {
+      const userId = Number(req.params.userId);
+      
+      const prefs = await storage.getNotificationPreferences(userId);
+      
+      if (!prefs) {
+        return res.json({
+          cardUsed: true,
+          cardExpired: true,
+          cardDropped: true,
+          promotions: false,
+        });
+      }
+
+      res.json({
+        cardUsed: prefs.cardUsed,
+        cardExpired: prefs.cardExpired,
+        cardDropped: prefs.cardDropped,
+        promotions: prefs.promotions,
+      });
+    } catch (err: any) {
+      console.error('[Push] Get preferences error:', err);
+      res.status(500).json({ message: err.message || 'Failed to get preferences' });
+    }
+  });
+
+  app.patch(api.notifications.updatePreferences.path, async (req, res) => {
+    try {
+      const { userId, ...preferences } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ message: 'Missing userId' });
+      }
+
+      await storage.updateNotificationPreferences(userId, preferences);
+      
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error('[Push] Update preferences error:', err);
+      res.status(500).json({ message: err.message || 'Failed to update preferences' });
+    }
+  });
+
   // Seed Data Trigger
   await seedDatabase();
 

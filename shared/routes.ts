@@ -100,6 +100,62 @@ export const api = {
         200: z.array(z.custom<UserCardWithDetails>()),
       }
     }
+  },
+  notifications: {
+    subscribe: {
+      method: 'POST' as const,
+      path: '/api/notifications/subscribe' as const,
+      input: z.object({
+        userId: z.number(),
+        subscription: z.object({
+          endpoint: z.string(),
+          keys: z.object({
+            auth: z.string(),
+            p256dh: z.string(),
+          }),
+        }),
+      }),
+      responses: {
+        200: z.object({ success: z.boolean(), message: z.string() }),
+        400: errorSchemas.validation,
+      }
+    },
+    unsubscribe: {
+      method: 'POST' as const,
+      path: '/api/notifications/unsubscribe' as const,
+      input: z.object({ userId: z.number(), endpoint: z.string() }),
+      responses: {
+        200: z.object({ success: z.boolean() }),
+        400: errorSchemas.validation,
+      }
+    },
+    preferences: {
+      method: 'GET' as const,
+      path: '/api/notifications/preferences/:userId' as const,
+      responses: {
+        200: z.object({
+          cardUsed: z.boolean(),
+          cardExpired: z.boolean(),
+          cardDropped: z.boolean(),
+          promotions: z.boolean(),
+        }),
+      }
+    },
+    updatePreferences: {
+      method: 'PATCH' as const,
+      path: '/api/notifications/preferences' as const,
+      input: z.object({
+        userId: z.number(),
+        cardUsed: z.boolean().optional(),
+        cardExpired: z.boolean().optional(),
+        cardDropped: z.boolean().optional(),
+        promotions: z.boolean().optional(),
+      }),
+      responses: {
+        200: z.object({ success: z.boolean() }),
+        400: errorSchemas.validation,
+      }
+    }
   }
 };
 
