@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Clock } from "lucide-react";
+import { Clock, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CountdownTimerProps {
@@ -11,6 +11,7 @@ interface CountdownTimerProps {
 export function CountdownTimer({ expiresAt, onExpire, className }: CountdownTimerProps) {
   const [timeLeft, setTimeLeft] = useState<string>("");
   const [isExpired, setIsExpired] = useState(false);
+  const [isWarning, setIsWarning] = useState(false);
 
   useEffect(() => {
     const targetDate = new Date(expiresAt).getTime();
@@ -21,6 +22,7 @@ export function CountdownTimer({ expiresAt, onExpire, className }: CountdownTime
 
       if (distance <= 0) {
         setTimeLeft("00:00:00");
+        setIsWarning(false);
         if (!isExpired) {
           setIsExpired(true);
           onExpire?.();
@@ -31,6 +33,9 @@ export function CountdownTimer({ expiresAt, onExpire, className }: CountdownTime
       const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      // Check if expiring within next 5 minutes (300 seconds)
+      setIsWarning(distance < 5 * 60 * 1000 && distance > 0);
 
       setTimeLeft(
         `${hours.toString().padStart(2, "0")}:${minutes
@@ -47,11 +52,19 @@ export function CountdownTimer({ expiresAt, onExpire, className }: CountdownTime
 
   return (
     <div className={cn(
-      "flex items-center gap-2 font-mono font-medium px-3 py-1.5 rounded-full text-sm shadow-sm",
-      isExpired ? "bg-muted text-muted-foreground" : "bg-primary/10 text-primary border border-primary/20",
+      "flex items-center gap-2 font-mono font-medium px-3 py-1.5 rounded-full text-sm shadow-sm border transition-colors",
+      isExpired 
+        ? "bg-muted text-muted-foreground border-muted" 
+        : isWarning
+        ? "bg-amber-100 text-amber-900 border-amber-300 animate-pulse"
+        : "bg-primary/10 text-primary border-primary/20",
       className
     )}>
-      <Clock className="w-4 h-4" />
+      {isWarning ? (
+        <AlertTriangle className="w-4 h-4" />
+      ) : (
+        <Clock className="w-4 h-4" />
+      )}
       {isExpired ? "Waktu Habis" : timeLeft}
     </div>
   );

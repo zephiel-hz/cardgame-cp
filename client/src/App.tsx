@@ -9,6 +9,7 @@ import NotFound from "@/pages/not-found";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { Layout } from "@/components/layout";
 import { useAppWebSocket } from "@/hooks/use-websocket";
+import { useCardExpiryCheck } from "@/hooks/use-card-expiry-check";
 
 // Pages
 import Login from "@/pages/login";
@@ -36,7 +37,8 @@ function AppServices() {
   const { user } = useAuth();
   
   // Custom hook that uses hooks internally must be called at top level
-  useAppWebSocket(user?.id); 
+  useAppWebSocket(user?.id);
+  useCardExpiryCheck();
   
   return null;
 }
