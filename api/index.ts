@@ -6,6 +6,7 @@ async function getApp() {
   if (app) return app;
 
   try {
+    // @ts-ignore - dist/index.cjs is generated at build time
     const mod = await import("../dist/index.cjs");
     app = mod.default || mod;
     return app;
