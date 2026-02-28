@@ -8,6 +8,4 @@ node_modules
 !README.md
 .next
 out
-server/
-script/
-client/src/
+.vercelignore
