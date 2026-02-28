@@ -2,5 +2,12 @@
   "buildCommand": "npm run build",
   "env": {
     "NODE_ENV": "production"
-  }
+  },
+  "public": true,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/[...routes]"
+    }
+  ]
 }

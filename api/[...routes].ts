@@ -6,7 +6,7 @@ async function getApp() {
   if (app) return app;
 
   try {
-    const mod = await import("../dist/index.cjs");
+    const mod = await import("../../dist/index.cjs");
     app = mod.default || mod;
     return app;
   } catch (error) {
@@ -24,4 +24,3 @@ export default async (req: VercelRequest, res: VercelResponse) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 };
-
