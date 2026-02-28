@@ -7,14 +7,22 @@ import { WebSocketServer, WebSocket } from "ws";
 import fs from "fs";
 import path from "path";
 
-// Use process.cwd() for production compatibility (works in both dev and bundled)
-// Avatar upload directory - always relative to working directory
-const uploadDir = path.resolve(process.cwd(), "public/avatars");
+// Use /tmp for avatar storage in Vercel serverless (read-only filesystem)
+// Use public/avatars for local development
+const uploadDir = process.env.NODE_ENV === "production" 
+  ? path.join("/tmp", "avatars")
+  : path.resolve(process.cwd(), "public/avatars");
 
 // Ensure upload directory exists
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+  try {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  } catch (err) {
+    console.warn(`[routes] Could not create upload directory at ${uploadDir}:`, err);
+  }
 }
+
+console.log(`[routes] Using avatar upload directory: ${uploadDir}`);
 
 export async function registerRoutes(
   httpServer: Server,
@@ -92,7 +100,11 @@ export async function registerRoutes(
       try {
         // Ensure directory exists before writing
         if (!fs.existsSync(uploadDir)) {
-          fs.mkdirSync(uploadDir, { recursive: true });
+          try {
+            fs.mkdirSync(uploadDir, { recursive: true });
+          } catch (mkdirErr) {
+            console.warn(`[Avatar Upload] Could not create directory ${uploadDir}:`, mkdirErr);
+          }
         }
         fs.writeFileSync(filePath, buffer);
         console.log(`[Avatar Upload] File saved: ${filePath}`);

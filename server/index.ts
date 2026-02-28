@@ -79,11 +79,16 @@ async function initializeServer() {
     return res.status(status).json({ message });
   });
 
-  // Serve uploaded avatars from public/avatars
-  const avatarDir = path.join(process.cwd(), "public/avatars");
+  // Serve uploaded avatars from /tmp in production, public/avatars in dev
+  const avatarDir = process.env.NODE_ENV === "production" 
+    ? "/tmp/avatars"
+    : path.join(process.cwd(), "public/avatars");
+    
   if (fs.existsSync(avatarDir)) {
     app.use("/avatars", express.static(avatarDir));
     log(`avatar directory: ${avatarDir}`);
+  } else {
+    log(`avatar directory not found at ${avatarDir}, uploads will be cached in memory`);
   }
 
   // importantly only setup vite in development and after
