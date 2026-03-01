@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { useTheme } from "@/lib/theme-context";
 import { api } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -9,11 +10,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Camera, Lock, User as UserIcon } from "lucide-react";
+import { Loader2, Camera, Lock, User as UserIcon, Moon, Sun } from "lucide-react";
 import { NotificationSettings } from "@/components/notification-settings";
 
 export default function Profile() {
   const { user, login } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -240,6 +242,25 @@ export default function Profile() {
                 </>
               ) : (
                 "Simpan Perubahan"
+              )}
+            </Button>
+
+            <Button
+              type="button"
+              onClick={toggleTheme}
+              variant="outline"
+              className="w-full rounded-2xl py-6 font-bold text-lg border-border hover:bg-muted transition-all"
+            >
+              {theme === "dark" ? (
+                <>
+                  <Sun className="mr-2 h-5 w-5" />
+                  Ganti ke Mode Terang
+                </>
+              ) : (
+                <>
+                  <Moon className="mr-2 h-5 w-5" />
+                  Ganti ke Mode Gelap
+                </>
               )}
             </Button>
           </form>
