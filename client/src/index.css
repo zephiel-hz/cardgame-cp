@@ -18,16 +18,16 @@
     --primary: 330 80% 65%;
     --primary-foreground: 0 0% 100%;
     
-    --secondary: 210 80% 85%;
-    --secondary-foreground: 210 50% 20%;
+    --secondary: 280 60% 50%;
+    --secondary-foreground: 0 0% 100%;
     
-    --muted: 340 20% 90%;
-    --muted-foreground: 330 20% 40%;
+    --muted: 280 20% 80%;
+    --muted-foreground: 330 40% 30%;
     
-    --accent: 45 90% 65%;
-    --accent-foreground: 45 50% 20%;
+    --accent: 330 85% 65%;
+    --accent-foreground: 330 40% 20%;
     
-    --destructive: 0 80% 60%;
+    --destructive: 330 85% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 340 20% 85%;
@@ -61,7 +61,7 @@
     --accent: 330 85% 65%;
     --accent-foreground: 280 30% 20%;
     
-    --destructive: 0 70% 55%;
+    --destructive: 330 85% 60%;
     --destructive-foreground: 0 0% 100%;
     
     --border: 280 25% 30%;
@@ -95,18 +95,18 @@
   scrollbar-width: none;
 }
 
-/* Tier Colors */
+/* Tier Colors - Pink & Purple Only */
 .tier-common {
-  @apply bg-gradient-to-br from-slate-100 to-slate-200 border-slate-300 text-slate-700 shadow-slate-200/50;
-}
-.tier-rare {
-  @apply bg-gradient-to-br from-blue-100 to-blue-200 border-blue-300 text-blue-800 shadow-blue-300/50;
-}
-.tier-epic {
   @apply bg-gradient-to-br from-purple-100 to-purple-200 border-purple-300 text-purple-800 shadow-purple-300/50;
 }
+.tier-rare {
+  @apply bg-gradient-to-br from-pink-100 to-pink-200 border-pink-300 text-pink-800 shadow-pink-300/50;
+}
+.tier-epic {
+  @apply bg-gradient-to-br from-purple-200 to-purple-300 border-purple-400 text-purple-900 shadow-purple-400/50;
+}
 .tier-legendary {
-  @apply bg-gradient-to-br from-amber-100 via-yellow-200 to-amber-200 border-yellow-400 text-yellow-900 shadow-yellow-400/50;
+  @apply bg-gradient-to-br from-pink-200 via-pink-300 to-purple-200 border-pink-400 text-pink-900 shadow-pink-400/50;
 }
 
 .perspective-1000 {
