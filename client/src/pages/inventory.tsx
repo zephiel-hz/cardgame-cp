@@ -60,12 +60,12 @@ export default function Inventory() {
       </div>
 
       {!cards || cards.length === 0 ? (
-        <div className="flex flex-col items-center justify-center bg-gradient-to-br from-purple-800/30 to-purple-700/30 backdrop-blur-sm rounded-3xl p-10 border border-dashed border-pink-400/30 mt-10">
-          <div className="w-20 h-20 bg-purple-700/50 rounded-full flex items-center justify-center mb-4">
-            <Inbox className="w-10 h-10 text-pink-300" />
+        <div className="flex flex-col items-center justify-center bg-pink-50 dark:bg-gradient-to-br dark:from-purple-800/30 dark:to-purple-700/30 backdrop-blur-sm rounded-3xl p-10 border border-dashed border-pink-300 dark:border-pink-400/30 mt-10">
+          <div className="w-20 h-20 bg-pink-200 dark:bg-purple-700/50 rounded-full flex items-center justify-center mb-4">
+            <Inbox className="w-10 h-10 text-pink-600 dark:text-pink-300" />
           </div>
-          <h3 className="font-bold text-xl mb-2 text-pink-200">Koleksi Kosong</h3>
-          <p className="text-center text-pink-200/70">Ayo pergi ke tab Gacha untuk menarik kartu baru!</p>
+          <h3 className="font-bold text-xl mb-2 text-pink-900 dark:text-pink-200">Koleksi Kosong</h3>
+          <p className="text-center text-pink-700 dark:text-pink-200/70">Ayo pergi ke tab Gacha untuk menarik kartu baru!</p>
         </div>
       ) : (
         <motion.div 

@@ -37,7 +37,7 @@ export default function Login() {
       case "female":
         return "from-pink-400 to-rose-500 shadow-pink-500/20";
       default:
-        return "from-purple-400 to-pink-500 shadow-purple-500/20";
+        return "from-pink-400 to-pink-500 shadow-pink-500/20";
     }
   };
 
@@ -142,8 +142,8 @@ export default function Login() {
                     onClick={() => setSelectedUser(user.username)}
                     className={`w-full relative group overflow-hidden rounded-3xl p-[2px] bg-gradient-to-r ${gradient} transition-transform active:scale-95`}
                   >
-                    <div className="bg-gradient-to-r from-purple-800 to-purple-700 backdrop-blur-md rounded-[22px] px-6 py-4 group-hover:from-purple-700 group-hover:to-purple-600 transition-colors flex items-center justify-center gap-3">
-                      <span className="text-lg font-bold text-pink-200">
+                    <div className="bg-white dark:bg-gradient-to-r dark:from-purple-800 dark:to-purple-700 backdrop-blur-md rounded-[22px] px-6 py-4 group-hover:dark:from-purple-700 group-hover:dark:to-purple-600 transition-colors flex items-center justify-center gap-3">
+                      <span className="text-lg font-bold text-blue-900 dark:text-pink-200">
                         {emoji} Masuk {user.username}
                       </span>
                     </div>
@@ -157,7 +157,7 @@ export default function Login() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             onSubmit={handleLogin}
-            className="bg-gradient-to-br from-purple-900/95 to-purple-800/95 backdrop-blur-md p-8 rounded-[2.5rem] shadow-2xl border border-pink-400/20 space-y-6"
+            className="bg-white dark:bg-gradient-to-br dark:from-purple-900/95 dark:to-purple-800/95 backdrop-blur-md p-8 rounded-[2.5rem] shadow-2xl dark:border dark:border-pink-400/20 space-y-6"
           >
             <div className="text-center space-y-1">
               <h2 className="text-xl font-bold text-foreground">

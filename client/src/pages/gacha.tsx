@@ -111,9 +111,9 @@ export default function Gacha() {
       </div>
 
       <div className="w-full max-w-xs space-y-4">
-        <div className="flex items-center justify-between px-6 py-3 bg-gradient-to-r from-purple-800/50 to-purple-700/50 rounded-2xl shadow-sm border border-pink-400/30 backdrop-blur-sm">
-          <span className="font-semibold text-pink-200">Sisa Tarikan:</span>
-          <span className="font-bold text-xl text-pink-400">{statusLoading ? "-" : remaining}/2</span>
+        <div className="flex items-center justify-between px-6 py-3 bg-pink-100 dark:bg-gradient-to-r dark:from-purple-800/50 dark:to-purple-700/50 rounded-2xl shadow-sm border border-pink-300 dark:border-pink-400/30 backdrop-blur-sm">
+          <span className="font-semibold text-pink-900 dark:text-pink-200">Sisa Tarikan:</span>
+          <span className="font-bold text-xl text-pink-600 dark:text-pink-400">{statusLoading ? "-" : remaining}/2</span>
         </div>
 
         <button
