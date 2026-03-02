@@ -263,12 +263,12 @@ export function NotificationSettings() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
-              <h3 className="font-semibold text-blue-900">✅ Notifikasi Tersedia!</h3>
-              <p className="text-sm text-blue-800">
+            <div className="bg-purple-700/30 border border-pink-400/30 rounded-lg p-4 space-y-3">
+              <h3 className="font-semibold text-pink-200">✅ Notifikasi Tersedia!</h3>
+              <p className="text-sm text-pink-200/80">
                 Anda telah install aplikasi ini di home screen iOS. Notifikasi akan terkirim saat Anda membuka aplikasi.
               </p>
-              <div className="text-xs text-blue-700 space-y-2">
+              <div className="text-xs text-pink-200/70 space-y-2">
                 <p>📲 <strong>Untuk notifikasi otomatis:</strong></p>
                 <p>1. Buka Settings → Notifications</p>
                 <p>2. Cari "Card Game" atau nama browser Anda</p>
@@ -276,8 +276,8 @@ export function NotificationSettings() {
               </div>
             </div>
             
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-              <p className="text-xs text-amber-800">
+            <div className="bg-purple-700/20 border border-pink-400/20 rounded-lg p-4">
+              <p className="text-xs text-pink-200/70">
                 💡 iOS Safari tidak support Web Push API. Notifikasi akan ditampilkan saat Anda aktif menggunakan aplikasi.
               </p>
             </div>

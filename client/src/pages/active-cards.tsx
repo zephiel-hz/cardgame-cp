@@ -92,7 +92,7 @@ export default function ActiveCards() {
                         <CountdownTimer 
                           expiresAt={uc.expiresAt} 
                           onExpire={handleExpire}
-                          className={isMine ? "bg-primary/10 text-primary border-primary/20" : "bg-blue-500/10 text-blue-600 border-blue-500/20"}
+                          className={isMine ? "bg-pink-500/20 text-pink-300 border-pink-500/30" : "bg-purple-500/20 text-purple-300 border-purple-500/30"}
                         />
                       )}
                     </div>
