@@ -56,7 +56,7 @@ export function CountdownTimer({ expiresAt, onExpire, className }: CountdownTime
       isExpired 
         ? "bg-muted text-muted-foreground border-muted" 
         : isWarning
-        ? "bg-amber-100 text-amber-900 border-amber-300 animate-pulse"
+        ? "bg-pink-500/20 text-pink-300 border-pink-400/50 animate-pulse"
         : "bg-primary/10 text-primary border-primary/20",
       className
     )}>
