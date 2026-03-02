@@ -1,3 +1,4 @@
+// @ts-ignore - web-push types not available
 import webpush from 'web-push';
 import { storage } from './storage';
 
