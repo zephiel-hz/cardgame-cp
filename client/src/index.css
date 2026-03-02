@@ -95,9 +95,9 @@
   scrollbar-width: none;
 }
 
-/* Tier Colors - Pink & Purple Only */
+/* Tier Colors - Light: Pink only | Dark: Pink & Purple */
 .tier-common {
-  @apply bg-gradient-to-br from-purple-100 to-purple-200 border-purple-300 text-purple-800 shadow-purple-300/50;
+  @apply bg-gradient-to-br from-pink-100 to-pink-200 border-pink-300 text-pink-800 shadow-pink-300/50;
 }
 .dark .tier-common {
   @apply bg-gradient-to-br from-purple-900/40 to-purple-800/40 border-purple-600/60 text-purple-200 shadow-none;
@@ -111,14 +111,14 @@
 }
 
 .tier-epic {
-  @apply bg-gradient-to-br from-purple-200 to-purple-300 border-purple-400 text-purple-900 shadow-purple-400/50;
+  @apply bg-gradient-to-br from-pink-200 to-pink-300 border-pink-400 text-pink-900 shadow-pink-400/50;
 }
 .dark .tier-epic {
   @apply bg-gradient-to-br from-purple-800/50 to-purple-700/50 border-purple-500/60 text-purple-100 shadow-none;
 }
 
 .tier-legendary {
-  @apply bg-gradient-to-br from-pink-200 via-pink-300 to-purple-200 border-pink-400 text-pink-900 shadow-pink-400/50;
+  @apply bg-gradient-to-br from-pink-300 via-pink-400 to-pink-200 border-pink-400 text-pink-900 shadow-pink-400/50;
 }
 .dark .tier-legendary {
   @apply bg-gradient-to-br from-pink-800/50 via-pink-700/50 to-purple-800/50 border-pink-500/60 text-pink-100 shadow-none;
