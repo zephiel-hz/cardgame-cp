@@ -7,12 +7,16 @@ import { storage } from './storage';
 const vapidPublicKey = process.env.VAPID_PUBLIC_KEY || 'EXAMPLE_PUBLIC_KEY';
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY || 'EXAMPLE_PRIVATE_KEY';
 
-if (vapidPublicKey && vapidPrivateKey) {
+if (vapidPublicKey && vapidPrivateKey && vapidPublicKey !== 'EXAMPLE_PUBLIC_KEY') {
   webpush.setVapidDetails(
     process.env.VAPID_SUBJECT || 'mailto:support@cardgame.local',
     vapidPublicKey,
     vapidPrivateKey
   );
+  console.log('[Push] Web push configured successfully');
+} else {
+  console.warn('[Push] WARNING: VAPID keys not configured! Push notifications will not work.');
+  console.warn('[Push] Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY environment variables.');
 }
 
 export interface NotificationPayload {
@@ -76,6 +80,7 @@ export class PushNotificationService {
    * Send push notification to multiple users
    */
   async notifyUsers(userIds: number[], payload: NotificationPayload): Promise<{ totalSuccess: number; totalFailed: number }> {
+    console.log(`[Push] Sending notification to ${userIds.length} users:`, userIds);
     let totalSuccess = 0;
     let totalFailed = 0;
 
@@ -85,6 +90,7 @@ export class PushNotificationService {
       totalFailed += result.failed;
     }
 
+    console.log(`[Push] Notification batch result - Success: ${totalSuccess}, Failed: ${totalFailed}`);
     return { totalSuccess, totalFailed };
   }
 

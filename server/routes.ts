@@ -210,6 +210,8 @@ export async function registerRoutes(
       const input = api.inventory.use.input.parse(req.body);
       const usedCard = await storage.useCard(input.userCardId);
       
+      console.log(`[Card] User ${usedCard.userId} used card:`, usedCard.card.name);
+      
       // Broadcast via WS
       broadcast(WS_EVENTS.CARD_USED, {
         cardName: usedCard.card.name,
@@ -222,6 +224,8 @@ export async function registerRoutes(
         const otherUserIds = allUsers
           .filter(u => u.id !== usedCard.userId)
           .map(u => u.id);
+        
+        console.log(`[Push] Notifying other users about card used. Total users: ${allUsers.length}, Notifying: ${otherUserIds.length}`);
         
         if (otherUserIds.length > 0) {
           const payload = {
