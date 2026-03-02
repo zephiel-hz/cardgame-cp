@@ -8,6 +8,7 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   pin: text("pin").notNull().default("0000"),
   avatarUrl: text("avatar_url"),
+  avatarData: text("avatar_data"), // Store avatar as base64 string in database (persisted forever)
   gender: text("gender").default("other"), // 'male', 'female', 'other'
 });
 

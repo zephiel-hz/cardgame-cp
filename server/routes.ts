@@ -87,47 +87,66 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Missing required fields" });
       }
 
-      // Generate a unique filename
-      const ext = path.extname(filename);
-      const timestamp = Date.now();
-      const uniqueFilename = `avatar_${userId}_${timestamp}${ext}`;
-      const filePath = path.join(uploadDir, uniqueFilename);
-
       // Remove data URL prefix if present (e.g., "data:image/jpeg;base64,")
       const base64Data = data.replace(/^data:image\/[^;]+;base64,/, "");
       const buffer = Buffer.from(base64Data, "base64");
 
-      // Save file
-      try {
-        // Ensure directory exists before writing
-        if (!fs.existsSync(uploadDir)) {
-          try {
-            fs.mkdirSync(uploadDir, { recursive: true });
-          } catch (mkdirErr) {
-            console.warn(`[Avatar Upload] Could not create directory ${uploadDir}:`, mkdirErr);
-          }
-        }
-        fs.writeFileSync(filePath, buffer);
-        console.log(`[Avatar Upload] File saved: ${filePath}`);
-      } catch (writeErr: any) {
-        console.error("File write error:", writeErr);
-        console.error("[Avatar Upload] Failed path was:", filePath);
-        return res.status(400).json({ message: "Failed to save file: " + writeErr.message });
+      // Limit avatar size to 500KB
+      const MAX_AVATAR_SIZE = 500 * 1024;
+      if (buffer.length > MAX_AVATAR_SIZE) {
+        return res.status(400).json({ 
+          message: `Avatar terlalu besar. Maksimal ${MAX_AVATAR_SIZE / 1024}KB` 
+        });
       }
 
-      // Update user avatar in database
+      console.log(`[Avatar] Storing avatar for user ${userId}, size: ${buffer.length} bytes`);
+
+      // Store avatar data in database as base64 string (persisted forever in Neon PostgreSQL)
       try {
-        await storage.updateUser(Number(userId), { avatarUrl: `/avatars/${uniqueFilename}` });
+        await storage.updateUser(Number(userId), { 
+          avatarUrl: `/api/avatars/${userId}`,
+          avatarData: base64Data // Store as base64 string for easier portability
+        });
       } catch (dbErr: any) {
-        console.error("Database update error:", dbErr);
+        console.error("[Avatar] Database update error:", dbErr);
+        return res.status(500).json({ message: "Gagal menyimpan avatar: " + dbErr.message });
       }
 
       // Return the avatar URL
-      const avatarUrl = `/avatars/${uniqueFilename}`;
+      const avatarUrl = `/api/avatars/${userId}`;
       res.status(200).json({ avatarUrl });
     } catch (err: any) {
-      console.error("Avatar upload error:", err);
+      console.error("[Avatar] Upload error:", err);
       res.status(500).json({ message: "Server error: " + (err.message || "Unknown error") });
+    }
+  });
+
+  // Serve avatar data from database
+  app.get('/api/avatars/:userId', async (req, res) => {
+    try {
+      const userId = Number(req.params.userId);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const user = await storage.getUser(userId);
+      
+      if (!user || !user.avatarData) {
+        // Return placeholder if no avatar
+        return res.status(404).json({ message: "Avatar not found" });
+      }
+
+      // Convert base64 string back to buffer
+      const avatarBuffer = Buffer.from(user.avatarData, 'base64');
+
+      res.set('Content-Type', 'image/jpeg');
+      res.set('Content-Length', avatarBuffer.length);
+      res.set('Cache-Control', 'public, max-age=2592000'); // Cache for 30 days
+      res.send(avatarBuffer);
+    } catch (err) {
+      console.error("[Avatar] Serve error:", err);
+      res.status(500).json({ message: "Failed to serve avatar" });
     }
   });
 
