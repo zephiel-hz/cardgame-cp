@@ -141,6 +141,13 @@ export async function registerRoutes(
   app.post(api.gacha.pull.path, async (req, res) => {
     try {
       const input = api.gacha.pull.input.parse(req.body);
+      
+      // Validate user exists
+      const user = await storage.getUser(input.userId);
+      if (!user) {
+        return res.status(400).json({ message: "User tidak ditemukan" });
+      }
+      
       const count = await storage.getTodayGachaCount(input.userId);
       if (count >= 2) {
         return res.status(200).json({ success: false, remainingPulls: 0, message: "Gacha limit reached for this period" });
@@ -165,33 +172,30 @@ export async function registerRoutes(
 
       await storage.addGachaLog(input.userId);
       const userCard = await storage.addCardToInventory(input.userId, pulledCard.id);
-
-      // Get user info for notification
-      const user = await storage.getUser(input.userId);
       
       // Send gacha pull notification
-      if (user) {
-        const payload = {
-          title: '🎉 Kartu Baru!',
-          body: `Selamat! Anda mendapat kartu "${pulledCard.name}" tier ${pulledCard.tier}`,
-          tag: 'gacha_pull',
-          icon: '/logo.png',
-          badge: '/badge.png',
-          data: {
-            type: 'gacha_pull',
-            cardId: pulledCard.id,
-            url: '/inventory',
-          },
-        };
-        
-        await pushNotificationService.notifyUser(input.userId, payload).catch(err => {
-          console.error('[Push] Failed to send gacha notification:', err);
-        });
-      }
+      const payload = {
+        title: '🎉 Kartu Baru!',
+        body: `Selamat! Anda mendapat kartu "${pulledCard.name}" tier ${pulledCard.tier}`,
+        tag: 'gacha_pull',
+        icon: '/logo.png',
+        badge: '/badge.png',
+        data: {
+          type: 'gacha_pull',
+          cardId: pulledCard.id,
+          url: '/inventory',
+        },
+      };
+      
+      await pushNotificationService.notifyUser(input.userId, payload).catch(err => {
+        console.error('[Push] Failed to send gacha notification:', err);
+      });
 
       res.status(200).json({ success: true, card: userCard, remainingPulls: 2 - (count + 1) });
-    } catch (err) {
-      res.status(400).json({ message: "Invalid request" });
+    } catch (err: any) {
+      console.error('[Gacha] Error:', err);
+      const message = err.message || "Invalid request";
+      res.status(400).json({ message });
     }
   });
 
