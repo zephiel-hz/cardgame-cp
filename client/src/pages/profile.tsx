@@ -142,7 +142,7 @@ export default function Profile() {
         </p>
       </div>
 
-      <Card className="border-none shadow-xl bg-white/80 backdrop-blur-md rounded-3xl overflow-hidden">
+      <Card className="border-none shadow-xl bg-gradient-to-br from-purple-900/95 to-purple-800/95 backdrop-blur-md rounded-3xl overflow-hidden border-pink-400/20">
         <CardHeader className="pb-2">
           <div className="flex flex-col items-center gap-4">
             <div 

@@ -60,12 +60,12 @@ export default function Inventory() {
       </div>
 
       {!cards || cards.length === 0 ? (
-        <div className="flex flex-col items-center justify-center bg-white/50 backdrop-blur-sm rounded-3xl p-10 border border-dashed border-border mt-10">
-          <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-4">
-            <Inbox className="w-10 h-10 text-muted-foreground" />
+        <div className="flex flex-col items-center justify-center bg-gradient-to-br from-purple-800/30 to-purple-700/30 backdrop-blur-sm rounded-3xl p-10 border border-dashed border-pink-400/30 mt-10">
+          <div className="w-20 h-20 bg-purple-700/50 rounded-full flex items-center justify-center mb-4">
+            <Inbox className="w-10 h-10 text-pink-300" />
           </div>
-          <h3 className="font-bold text-xl mb-2 text-foreground">Koleksi Kosong</h3>
-          <p className="text-center text-muted-foreground">Ayo pergi ke tab Gacha untuk menarik kartu baru!</p>
+          <h3 className="font-bold text-xl mb-2 text-pink-200">Koleksi Kosong</h3>
+          <p className="text-center text-pink-200/70">Ayo pergi ke tab Gacha untuk menarik kartu baru!</p>
         </div>
       ) : (
         <motion.div 
@@ -80,7 +80,7 @@ export default function Inventory() {
                 <button
                   onClick={() => handleUseCard(userCard.id, userCard.card.name)}
                   disabled={useCard.isPending}
-                  className="w-full mt-2 bg-white/90 hover:bg-white text-foreground font-bold py-3 rounded-xl shadow-sm transition-transform active:scale-95 border border-transparent hover:border-border"
+                  className="w-full mt-2 bg-gradient-to-r from-pink-500 to-pink-400 hover:from-pink-400 hover:to-pink-300 text-white font-bold py-3 rounded-xl shadow-md shadow-pink-500/30 transition-transform active:scale-95 border border-pink-300/50"
                 >
                   {useCard.isPending && useCard.variables === userCard.id ? "Mengaktifkan..." : "Gunakan Sekarang"}
                 </button>

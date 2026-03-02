@@ -38,12 +38,12 @@ export default function ActiveCards() {
       </div>
 
       {!activeCards || activeCards.length === 0 ? (
-        <div className="flex flex-col items-center justify-center bg-white/50 backdrop-blur-sm rounded-3xl p-10 border border-dashed border-border mt-10">
-          <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-4">
-            <ZapOff className="w-10 h-10 text-muted-foreground" />
+        <div className="flex flex-col items-center justify-center bg-gradient-to-br from-purple-800/30 to-purple-700/30 backdrop-blur-sm rounded-3xl p-10 border border-dashed border-pink-400/30 mt-10">
+          <div className="w-20 h-20 bg-purple-700/50 rounded-full flex items-center justify-center mb-4">
+            <ZapOff className="w-10 h-10 text-pink-300" />
           </div>
-          <h3 className="font-bold text-xl mb-2 text-foreground">Aman Sentosa</h3>
-          <p className="text-center text-muted-foreground">Tidak ada kartu yang sedang aktif saat ini.</p>
+          <h3 className="font-bold text-xl mb-2 text-pink-200">Aman Sentosa</h3>
+          <p className="text-center text-pink-200/70">Tidak ada kartu yang sedang aktif saat ini.</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -63,11 +63,11 @@ export default function ActiveCards() {
                     isMine ? "bg-gradient-to-r from-primary to-rose-400" : "bg-gradient-to-r from-blue-400 to-indigo-500"
                   )}
                 >
-                  <div className="bg-white rounded-[22px] p-5 h-full relative">
+                  <div className="bg-gradient-to-br from-purple-800 to-purple-700 rounded-[22px] p-5 h-full relative border border-pink-400/20">
                     {/* Badge user */}
                     <div className={cn(
                       "absolute -top-3 -right-2 px-4 py-1 rounded-full text-xs font-bold text-white shadow-md transform rotate-3",
-                      isMine ? "bg-primary" : "bg-blue-500"
+                      isMine ? "bg-gradient-to-r from-pink-500 to-pink-400" : "bg-gradient-to-r from-purple-600 to-purple-500"
                     )}>
                       Dipakai oleh {uc.user.username}
                     </div>

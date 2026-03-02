@@ -89,9 +89,9 @@ export default function Gacha() {
               transition={{ duration: 0.6, type: "spring" }}
               className="w-full h-full transform-style-3d relative"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-primary to-rose-400 rounded-[2rem] shadow-2xl shadow-primary/30 flex flex-col items-center justify-center border-4 border-white backface-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-pink-500 to-pink-400 rounded-[2rem] shadow-2xl shadow-pink-500/30 flex flex-col items-center justify-center border-4 border-pink-300 backface-hidden">
                 <PackageOpen className="w-24 h-24 text-white mb-4 drop-shadow-md" />
-                <div className="text-white font-bold text-2xl tracking-widest bg-white/20 px-6 py-2 rounded-full backdrop-blur-sm">
+                <div className="text-white font-bold text-2xl tracking-widest bg-pink-400/30 px-6 py-2 rounded-full backdrop-blur-sm">
                   ? ? ?
                 </div>
               </div>
@@ -111,9 +111,9 @@ export default function Gacha() {
       </div>
 
       <div className="w-full max-w-xs space-y-4">
-        <div className="flex items-center justify-between px-6 py-3 bg-white rounded-2xl shadow-sm border border-border">
-          <span className="font-semibold text-muted-foreground">Sisa Tarikan:</span>
-          <span className="font-bold text-xl text-primary">{statusLoading ? "-" : remaining}/2</span>
+        <div className="flex items-center justify-between px-6 py-3 bg-gradient-to-r from-purple-800/50 to-purple-700/50 rounded-2xl shadow-sm border border-pink-400/30 backdrop-blur-sm">
+          <span className="font-semibold text-pink-200">Sisa Tarikan:</span>
+          <span className="font-bold text-xl text-pink-400">{statusLoading ? "-" : remaining}/2</span>
         </div>
 
         <button

@@ -252,13 +252,13 @@ export function NotificationSettings() {
     // iOS PWA installed but no Web Push API support
     if (isIOSPWA) {
       return (
-        <Card className="border-none shadow-xl bg-white/80 backdrop-blur-md rounded-3xl overflow-hidden">
+        <Card className="border-none shadow-xl bg-gradient-to-br from-purple-900/95 to-purple-800/95 backdrop-blur-md rounded-3xl overflow-hidden border-pink-400/20">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Bell className="w-5 h-5 text-primary" />
+              <Bell className="w-5 h-5 text-pink-400" />
               <div>
-                <CardTitle>Notifikasi</CardTitle>
-                <CardDescription>PWA mode - Limited support</CardDescription>
+                <CardTitle className="text-pink-100">Notifikasi</CardTitle>
+                <CardDescription className="text-pink-200/70">PWA mode - Limited support</CardDescription>
               </div>
             </div>
           </CardHeader>
@@ -288,13 +288,13 @@ export function NotificationSettings() {
 
     // Android or other browsers without Push support
     return (
-      <Card className="border-none shadow-xl bg-white/80 backdrop-blur-md rounded-3xl overflow-hidden">
+      <Card className="border-none shadow-xl bg-gradient-to-br from-purple-900/95 to-purple-800/95 backdrop-blur-md rounded-3xl overflow-hidden border-pink-400/20">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-yellow-600" />
-            <CardTitle>Notifikasi</CardTitle>
+            <AlertCircle className="w-5 h-5 text-pink-400" />
+            <CardTitle className="text-pink-100">Notifikasi</CardTitle>
           </div>
-          <CardDescription>Browser tidak mendukung push notifications</CardDescription>
+          <CardDescription className="text-pink-200/70">Browser tidak mendukung push notifications</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
@@ -306,12 +306,12 @@ export function NotificationSettings() {
   }
 
   return (
-    <Card className="border-none shadow-xl bg-white/80 backdrop-blur-md rounded-3xl overflow-hidden">
+    <Card className="border-none shadow-xl bg-gradient-to-br from-purple-900/95 to-purple-800/95 backdrop-blur-md rounded-3xl overflow-hidden border-pink-400/20">
       <CardHeader>
         <div className="flex items-center gap-2">
-          <Bell className="w-5 h-5 text-primary" />
+          <Bell className="w-5 h-5 text-pink-400" />
           <div>
-            <CardTitle>Notifikasi</CardTitle>
+            <CardTitle className="text-pink-100">Notifikasi Push</CardTitle>
             <CardDescription>Kelola preferensi notifikasi push</CardDescription>
           </div>
         </div>
