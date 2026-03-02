@@ -192,8 +192,8 @@ export async function registerRoutes(
       await storage.addGachaLog(input.userId);
       const userCard = await storage.addCardToInventory(input.userId, pulledCard.id);
       
-      // Send gacha pull notification
-      const payload = {
+      // Send gacha pull notification to user
+      const userPayload = {
         title: '🎉 Kartu Baru!',
         body: `Selamat! Anda mendapat kartu "${pulledCard.name}" tier ${pulledCard.tier}`,
         tag: 'gacha_pull',
@@ -206,9 +206,25 @@ export async function registerRoutes(
         },
       };
       
-      await pushNotificationService.notifyUser(input.userId, payload).catch(err => {
+      await pushNotificationService.notifyUser(input.userId, userPayload).catch(err => {
         console.error('[Push] Failed to send gacha notification:', err);
       });
+      
+      // Notify partner about new card
+      try {
+        const allUsers = await storage.getAllUsers();
+        const partnerIds = allUsers
+          .filter(u => u.id !== input.userId)
+          .map(u => u.id);
+        
+        if (partnerIds.length > 0) {
+          await pushNotificationService.notifyNewCard(partnerIds[0], pulledCard.tier).catch(err => {
+            console.error('[Push] Failed to send new card notification to partner:', err);
+          });
+        }
+      } catch (error) {
+        console.error('[Push] Error notifying partner:', error);
+      }
 
       res.status(200).json({ success: true, card: userCard, remainingPulls: 2 - (count + 1) });
     } catch (err: any) {
@@ -247,20 +263,14 @@ export async function registerRoutes(
         console.log(`[Push] Notifying other users about card used. Total users: ${allUsers.length}, Notifying: ${otherUserIds.length}`);
         
         if (otherUserIds.length > 0) {
-          const payload = {
-            title: '🎴 Kartu Digunakan!',
-            body: `${usedCard.user.username} menggunakan kartu "${usedCard.card.name}" (${usedCard.card.tier})`,
-            tag: 'card_used',
-            icon: '/logo.png',
-            badge: '/badge.png',
-            data: {
-              type: 'card_used',
-              userCardId: input.userCardId,
-              url: '/active-cards',
-            },
-          };
-          
-          await pushNotificationService.notifyUsers(otherUserIds, payload).catch(err => {
+          await pushNotificationService.notifyCardUsed(
+            usedCard.userId,
+            usedCard.user.username,
+            usedCard.card.name,
+            usedCard.card.tier,
+            60, // default 60 minutes
+            otherUserIds
+          ).catch(err => {
             console.error('[Push] Failed to send card used notification:', err);
           });
         }
@@ -327,14 +337,25 @@ export async function registerRoutes(
     try {
       const expiredCards = await storage.handleExpiredCards();
 
-      // Send expiry notifications for each expired card
+      // Send expiry notifications for each expired card to partner
       for (const card of expiredCards) {
-        await pushNotificationService.notifyCardExpired(
-          card.userId,
-          card.card.name
-        ).catch(err => {
-          console.error('[Push] Failed to send expiry notification:', err);
-        });
+        // Notify all other users that partner's card has expired
+        try {
+          const allUsers = await storage.getAllUsers();
+          const otherUserIds = allUsers
+            .filter(u => u.id !== card.userId)
+            .map(u => u.id);
+          
+          if (otherUserIds.length > 0) {
+            for (const partnerUserId of otherUserIds) {
+              await pushNotificationService.notifyCardExpiredNotif(partnerUserId).catch(err => {
+                console.error('[Push] Failed to send card expired notification:', err);
+              });
+            }
+          }
+        } catch (error) {
+          console.error('[Push] Error sending card expired notifications:', error);
+        }
       }
 
       res.json({ 

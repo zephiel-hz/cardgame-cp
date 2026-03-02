@@ -126,19 +126,40 @@ export class PushNotificationService {
 
   /**
    * Notify all other users when a card is used
+   * Notifikasi: "Partnermu menggunakan kartu #tiercard, durasi kartu 12 menit/jam"
    */
-  async notifyCardUsed(userCardId: number, userName: string, cardName: string, otherUserIds?: number[]): Promise<void> {
+  async notifyCardUsed(
+    userId: number,
+    userName: string,
+    cardName: string,
+    cardTier: string,
+    durationMinutes: number = 60,
+    otherUserIds?: number[]
+  ): Promise<void> {
     const targetUserIds = otherUserIds || [];
+    const hours = Math.floor(durationMinutes / 60);
+    const minutes = durationMinutes % 60;
+    let durationText = '';
+    
+    if (hours > 0 && minutes > 0) {
+      durationText = `${hours} jam ${minutes} menit`;
+    } else if (hours > 0) {
+      durationText = `${hours} jam`;
+    } else {
+      durationText = `${minutes} menit`;
+    }
 
     const payload: NotificationPayload = {
       title: '🎴 Kartu Digunakan!',
-      body: `${userName} baru saja menggunakan kartu "${cardName}"`,
+      body: `Partnermu menggunakan kartu #${cardTier}, durasi kartu ${durationText}`,
       tag: 'card_used',
       icon: '/logo.png',
       badge: '/badge.png',
       data: {
         type: 'card_used',
-        userCardId,
+        userName,
+        cardName,
+        cardTier,
         url: '/active-cards',
       },
     };
@@ -146,6 +167,47 @@ export class PushNotificationService {
     if (targetUserIds.length > 0) {
       await this.notifyUsers(targetUserIds, payload);
     }
+  }
+
+  /**
+   * Notify user when partner's card expired
+   * Notifikasi: "Durasi kartu yang digunakan partnermu telah habis"
+   */
+  async notifyCardExpiredNotif(userId: number): Promise<void> {
+    const payload: NotificationPayload = {
+      title: '⏰ Kartu Kadaluarsa',
+      body: 'Durasi kartu yang digunakan partnermu telah habis',
+      tag: 'card_expired_partner',
+      icon: '/logo.png',
+      badge: '/badge.png',
+      data: {
+        type: 'card_expired_partner',
+        url: '/active-cards',
+      },
+    };
+
+    await this.notifyUser(userId, payload);
+  }
+
+  /**
+   * Notify user when they get a new card from gacha
+   * Notifikasi: "Partnermu mendapatkan kartu common/rare/ssr"
+   */
+  async notifyNewCard(userId: number, cardTier: string): Promise<void> {
+    const payload: NotificationPayload = {
+      title: '🎁 Kartu Baru!',
+      body: `Partnermu mendapatkan kartu ${cardTier}`,
+      tag: 'new_card',
+      icon: '/logo.png',
+      badge: '/badge.png',
+      data: {
+        type: 'new_card',
+        cardTier,
+        url: '/inventory',
+      },
+    };
+
+    await this.notifyUser(userId, payload);
   }
 
   /**
