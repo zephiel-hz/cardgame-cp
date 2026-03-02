@@ -114,8 +114,8 @@ export default function Login() {
         className="w-full max-w-sm space-y-8 z-10"
       >
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white shadow-xl shadow-primary/20 mb-2">
-            <Heart className="w-10 h-10 text-primary fill-primary" />
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-pink-500 to-pink-400 shadow-xl shadow-pink-500/30 mb-2">
+            <Heart className="w-10 h-10 text-white fill-white" />
           </div>
           <h1 className="text-3xl font-extrabold text-foreground tracking-tight">
             Gacha LDR
@@ -142,8 +142,8 @@ export default function Login() {
                     onClick={() => setSelectedUser(user.username)}
                     className={`w-full relative group overflow-hidden rounded-3xl p-[2px] bg-gradient-to-r ${gradient} transition-transform active:scale-95`}
                   >
-                    <div className="bg-white/90 backdrop-blur-md rounded-[22px] px-6 py-4 group-hover:bg-white/80 transition-colors flex items-center justify-center gap-3">
-                      <span className="text-lg font-bold text-blue-900">
+                    <div className="bg-gradient-to-r from-purple-800 to-purple-700 backdrop-blur-md rounded-[22px] px-6 py-4 group-hover:from-purple-700 group-hover:to-purple-600 transition-colors flex items-center justify-center gap-3">
+                      <span className="text-lg font-bold text-pink-200">
                         {emoji} Masuk {user.username}
                       </span>
                     </div>
@@ -157,7 +157,7 @@ export default function Login() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             onSubmit={handleLogin}
-            className="bg-white/80 backdrop-blur-md p-8 rounded-[2.5rem] shadow-2xl border border-white space-y-6"
+            className="bg-gradient-to-br from-purple-900/95 to-purple-800/95 backdrop-blur-md p-8 rounded-[2.5rem] shadow-2xl border border-pink-400/20 space-y-6"
           >
             <div className="text-center space-y-1">
               <h2 className="text-xl font-bold text-foreground">

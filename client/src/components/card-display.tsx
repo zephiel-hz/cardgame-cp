@@ -19,10 +19,10 @@ const tierIcons = {
 };
 
 const tierStyles = {
-  common: "tier-common bg-gradient-to-br from-gray-100 to-gray-200 border-gray-300",
-  rare: "tier-rare bg-gradient-to-br from-blue-100 to-purple-100 border-purple-300",
-  epic: "tier-epic bg-gradient-to-br from-yellow-100 to-orange-100 border-yellow-300",
-  legendary: "tier-legendary bg-gradient-to-br from-pink-100 to-rose-100 border-rose-300",
+  common: "tier-common",
+  rare: "tier-rare",
+  epic: "tier-epic",
+  legendary: "tier-legendary",
   ssr: "tier-ssr bg-gradient-to-br from-purple-400 via-pink-400 to-red-400 border-purple-500 shadow-2xl shadow-purple-500/50 text-white",
 };
 
@@ -73,17 +73,17 @@ export function CardDisplay({ card, className, onClick, children }: CardDisplayP
         }
       `}</style>
       <div className="flex justify-between items-start mb-4 relative z-10">
-        <div className="px-3 py-1 bg-white/40 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider">
+        <div className="px-3 py-1 bg-foreground/10 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider">
           {card.tier}
         </div>
-        <div className="flex items-center gap-1 text-xs font-bold px-2 py-1 bg-white/40 backdrop-blur-md rounded-full">
+        <div className="flex items-center gap-1 text-xs font-bold px-2 py-1 bg-foreground/10 backdrop-blur-md rounded-full">
           <Clock className="w-3 h-3" />
           {formatDuration(card.durationMinutes)}
         </div>
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center text-center py-4 relative z-10">
-        <div className="w-16 h-16 rounded-full bg-white/40 backdrop-blur-md flex items-center justify-center mb-4 shadow-inner">
+        <div className="w-16 h-16 rounded-full bg-foreground/10 backdrop-blur-md flex items-center justify-center mb-4 shadow-inner">
           <Icon className="w-8 h-8 opacity-80" />
         </div>
         <h3 className="text-xl font-bold mb-2 leading-tight drop-shadow-sm">{card.name}</h3>
