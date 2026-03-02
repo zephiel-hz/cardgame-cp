@@ -10,18 +10,18 @@ export function usePushNotifications() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Check if browser supports push notifications
+  // Check if browser supports push notifications and auto-subscribe
   useEffect(() => {
     const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
     setIsSupported(supported);
 
-    if (supported) {
+    if (supported && user) {
       // Register service worker
       registerServiceWorker();
-      // Check subscription status
-      checkSubscriptionStatus();
+      // Check subscription status and auto-subscribe if not subscribed
+      checkSubscriptionStatusAndSubscribe();
     }
-  }, []);
+  }, [user]);
 
   const registerServiceWorker = async () => {
     try {
@@ -45,6 +45,29 @@ export function usePushNotifications() {
       setIsSubscribed(!!subscription);
     } catch (error) {
       console.error('[Push] Error checking subscription status:', error);
+    }
+  };
+
+  const checkSubscriptionStatusAndSubscribe = async () => {
+    try {
+      if (!('serviceWorker' in navigator) || !user) return;
+
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.getSubscription();
+      
+      if (subscription) {
+        // Already subscribed
+        setIsSubscribed(true);
+        console.log('[Push] Already subscribed');
+      } else {
+        // Auto-subscribe if permission granted
+        if (Notification.permission === 'granted') {
+          console.log('[Push] Auto-subscribing user');
+          await subscribe();
+        }
+      }
+    } catch (error) {
+      console.error('[Push] Error in auto-subscription check:', error);
     }
   };
 

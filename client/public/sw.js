@@ -21,10 +21,12 @@ self.addEventListener('push', (event) => {
 
   try {
     const data = event.data.json();
+    console.log('[SW] Push data parsed:', data);
+    
     const options = {
       body: data.body || 'Notifikasi dari Card Game',
-      icon: '/logo.png',
-      badge: '/badge.png',
+      icon: '/pwa-icon-192.svg',
+      badge: '/pwa-icon-192.svg',
       tag: data.tag || 'cardgame-notification',
       requireInteraction: data.requireInteraction || false,
       data: data.data || {},
@@ -32,9 +34,15 @@ self.addEventListener('push', (event) => {
       vibrate: [200, 100, 200],
     };
 
-    event.waitUntil(self.registration.showNotification(data.title, options));
+    console.log('[SW] Showing notification:', data.title, options);
+    event.waitUntil(self.registration.showNotification(data.title || 'Notifikasi', options));
   } catch (err) {
     console.error('[SW] Error parsing push data:', err);
+    // Fallback notification
+    event.waitUntil(self.registration.showNotification('Notifikasi', {
+      body: 'Ada notifikasi baru untuk Anda',
+      icon: '/pwa-icon-192.svg',
+    }));
   }
 });
 

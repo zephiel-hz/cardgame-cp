@@ -11,6 +11,7 @@ import { ThemeProvider } from "@/lib/theme-context";
 import { Layout } from "@/components/layout";
 import { useAppWebSocket } from "@/hooks/use-websocket";
 import { useCardExpiryCheck } from "@/hooks/use-card-expiry-check";
+import { usePushNotifications } from "@/hooks/use-push-notifications";
 
 // Pages
 import Login from "@/pages/login";
@@ -37,9 +38,10 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 function AppServices() {
   const { user } = useAuth();
   
-  // Custom hook that uses hooks internally must be called at top level
+  // Custom hooks that use hooks internally must be called at top level
   useAppWebSocket(user?.id);
   useCardExpiryCheck();
+  usePushNotifications();
   
   return null;
 }
@@ -70,6 +72,11 @@ function Router() {
 }
 
 function App() {
+  // Set page title
+  useEffect(() => {
+    document.title = 'Card Game Couple ❤️';
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
