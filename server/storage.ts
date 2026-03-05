@@ -270,6 +270,10 @@ export class DatabaseStorage implements IStorage {
     // Mark all expired cards as used
     for (const card of expiredCards) {
       await this.markCardAsExpired(card.id);
+    }
+    
+    return expiredCards;
+  }
 
   async setEmailVerificationToken(userId: number, email: string): Promise<{ token: string; expiresAt: Date }> {
     const token = crypto.randomBytes(32).toString('hex');
