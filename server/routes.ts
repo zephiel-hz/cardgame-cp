@@ -3,6 +3,7 @@ import type { Server } from "http";
 import { storage } from "./storage";
 import { api, WS_EVENTS } from "@shared/routes";
 import { pushNotificationService } from "./push-notifications";
+import { emailNotificationService } from "./email-notifications";
 import { z } from "zod";
 import { WebSocketServer, WebSocket } from "ws";
 import fs from "fs";
@@ -150,6 +151,69 @@ export async function registerRoutes(
     }
   });
 
+  // Email routes
+  app.post(api.auth.updateEmail.path, async (req, res) => {
+    try {
+      const { userId, email } = api.auth.updateEmail.input.parse(req.body);
+      
+      // Check if email already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser && existingUser.id !== userId) {
+        return res.status(409).json({ message: "Email sudah terdaftar" });
+      }
+
+      // Generate verification token
+      const { token } = await storage.setEmailVerificationToken(userId, email);
+      
+      // Send verification email
+      const sent = await emailNotificationService.sendVerificationEmail(userId, email, token);
+      
+      if (sent) {
+        res.status(200).json({ 
+          success: true, 
+          message: "Email verifikasi telah dikirim. Silakan cek inbox Anda." 
+        });
+      } else {
+        res.status(200).json({ 
+          success: false, 
+          message: "Gagal mengirim email verifikasi. Email sudah disimpan tapi perlu verifikasi manual." 
+        });
+      }
+    } catch (err: any) {
+      console.error('[Email] Update email error:', err);
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Gagal mengupdate email" });
+    }
+  });
+
+  app.post(api.auth.verifyEmail.path, async (req, res) => {
+    try {
+      const { token } = api.auth.verifyEmail.input.parse(req.body);
+      
+      const verified = await storage.verifyEmail(token);
+      
+      if (verified) {
+        res.status(200).json({ 
+          success: true, 
+          message: "Email berhasil diverifikasi!" 
+        });
+      } else {
+        res.status(400).json({ 
+          success: false, 
+          message: "Link verifikasi tidak valid atau sudah kadaluarsa" 
+        });
+      }
+    } catch (err: any) {
+      console.error('[Email] Verify email error:', err);
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Gagal memverifikasi email" });
+    }
+  });
+
   app.get(api.gacha.status.path, async (req, res) => {
     const userId = Number(req.params.userId);
     const count = await storage.getTodayGachaCount(userId);
@@ -220,12 +284,25 @@ export async function registerRoutes(
           .map(u => u.id);
         
         if (partnerIds.length > 0) {
+          // Send push notification
           await pushNotificationService.notifyNewCard(partnerIds[0], pulledCard.tier).catch(err => {
             console.error('[Push] Failed to send new card notification to partner:', err);
           });
+          
+          // Send email notification to partner
+          const partnerUser = allUsers.find(u => u.id === partnerIds[0]);
+          if (partnerUser?.email && partnerUser.emailVerified) {
+            await emailNotificationService.notifyNewCardEmail(
+              partnerUser.email,
+              user?.username || 'Partner',
+              pulledCard.tier
+            ).catch(err => {
+              console.error('[Email] Failed to send new card notification:', err);
+            });
+          }
         }
       } catch (error) {
-        console.error('[Push] Error notifying partner:', error);
+        console.error('[Notifications] Error notifying partner:', error);
       }
 
       res.status(200).json({ success: true, card: userCard, remainingPulls: 2 - (count + 1) });
@@ -265,6 +342,7 @@ export async function registerRoutes(
         console.log(`[Push] Notifying other users about card used. Total users: ${allUsers.length}, Notifying: ${otherUserIds.length}`);
         
         if (otherUserIds.length > 0) {
+          // Send push notification
           await pushNotificationService.notifyCardUsed(
             usedCard.userId,
             usedCard.user.username,
@@ -275,9 +353,25 @@ export async function registerRoutes(
           ).catch(err => {
             console.error('[Push] Failed to send card used notification:', err);
           });
+          
+          // Send email notification to partners
+          for (const partnerUserId of otherUserIds) {
+            const partnerUser = allUsers.find(u => u.id === partnerUserId);
+            if (partnerUser?.email && partnerUser.emailVerified) {
+              const durationText = '60 menit';
+              await emailNotificationService.notifyCardUsedEmail(
+                partnerUser.email,
+                usedCard.user.username,
+                usedCard.card.tier,
+                durationText
+              ).catch(err => {
+                console.error('[Email] Failed to send card used notification:', err);
+              });
+            }
+          }
         }
       } catch (error) {
-        console.error('[Push] Error sending card used notifications:', error);
+        console.error('[Notifications] Error sending card used notifications:', error);
       }
 
       res.status(200).json(usedCard);
@@ -350,13 +444,22 @@ export async function registerRoutes(
           
           if (otherUserIds.length > 0) {
             for (const partnerUserId of otherUserIds) {
+              // Send push notification
               await pushNotificationService.notifyCardExpiredNotif(partnerUserId).catch(err => {
                 console.error('[Push] Failed to send card expired notification:', err);
               });
+              
+              // Send email notification
+              const partnerUser = allUsers.find(u => u.id === partnerUserId);
+              if (partnerUser?.email && partnerUser.emailVerified) {
+                await emailNotificationService.notifyCardExpiredEmail(partnerUser.email).catch(err => {
+                  console.error('[Email] Failed to send card expired notification:', err);
+                });
+              }
             }
           }
         } catch (error) {
-          console.error('[Push] Error sending card expired notifications:', error);
+          console.error('[Notifications] Error sending card expired notifications:', error);
         }
       }
 

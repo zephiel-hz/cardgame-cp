@@ -2,6 +2,7 @@ import { db } from "./db";
 import { users, cards, userCards, gachaLogs, pushSubscriptions, notificationPreferences } from "@shared/schema";
 import type { User, InsertUser, Card, UserCard, UserCardWithDetails, PushSubscription, NotificationPreference } from "@shared/schema";
 import { eq, and, gte } from "drizzle-orm";
+import crypto from 'crypto';
 
 function getCurrentPeriodStart(): Date {
   const now = new Date();
@@ -28,6 +29,7 @@ export interface IStorage {
   updateUser(id: number, updates: Partial<User>): Promise<User>;
   getAllUsers(): Promise<User[]>;
   getCards(): Promise<Card[]>;
+  getCard(id: number): Promise<Card | undefined>;
   getInventory(userId: number): Promise<UserCardWithDetails[]>;
   getActiveCards(): Promise<UserCardWithDetails[]>;
   useCard(userCardId: number): Promise<UserCardWithDetails>;
@@ -41,6 +43,10 @@ export interface IStorage {
   getAllPushSubscriptions(): Promise<PushSubscription[]>;
   getNotificationPreferences(userId: number): Promise<NotificationPreference | undefined>;
   updateNotificationPreferences(userId: number, preferences: Partial<NotificationPreference>): Promise<NotificationPreference>;
+  // Email methods
+  setEmailVerificationToken(userId: number, email: string): Promise<{ token: string; expiresAt: Date }>;
+  verifyEmail(token: string): Promise<boolean>;
+  getUserByEmail(email: string): Promise<User | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -70,6 +76,11 @@ export class DatabaseStorage implements IStorage {
 
   async getCards(): Promise<Card[]> {
     return await db.select().from(cards);
+  }
+
+  async getCard(id: number): Promise<Card | undefined> {
+    const [card] = await db.select().from(cards).where(eq(cards.id, id));
+    return card;
   }
 
   async getInventory(userId: number): Promise<UserCardWithDetails[]> {
@@ -259,9 +270,55 @@ export class DatabaseStorage implements IStorage {
     // Mark all expired cards as used
     for (const card of expiredCards) {
       await this.markCardAsExpired(card.id);
-    }
+
+  async setEmailVerificationToken(userId: number, email: string): Promise<{ token: string; expiresAt: Date }> {
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+
+    await db.update(users)
+      .set({
+        email,
+        emailVerificationToken: token,
+        emailVerificationExpiresAt: expiresAt,
+        emailVerified: false,
+      })
+      .where(eq(users.id, userId));
+
+    return { token, expiresAt };
+  }
+
+  async verifyEmail(token: string): Promise<boolean> {
+    const now = new Date();
     
-    return expiredCards;
+    const user = await db.query.users.findFirst({
+      where: eq(users.emailVerificationToken, token),
+    });
+
+    if (!user) {
+      console.log('[Storage] Email verification token not found');
+      return false;
+    }
+
+    if (!user.emailVerificationExpiresAt || user.emailVerificationExpiresAt < now) {
+      console.log('[Storage] Email verification token expired');
+      return false;
+    }
+
+    await db.update(users)
+      .set({
+        emailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationExpiresAt: null,
+      })
+      .where(eq(users.id, user.id));
+
+    console.log(`[Storage] Email verified for user ${user.id}`);
+    return true;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
   }
 }
 

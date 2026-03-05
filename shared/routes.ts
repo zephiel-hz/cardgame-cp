@@ -49,6 +49,30 @@ export const api = {
         200: z.object({ avatarUrl: z.string() }),
         400: errorSchemas.validation,
       }
+    },
+    updateEmail: {
+      method: 'POST' as const,
+      path: '/api/auth/update-email' as const,
+      input: z.object({ 
+        userId: z.number(),
+        email: z.string().email(),
+      }),
+      responses: {
+        200: z.object({ success: z.boolean(), message: z.string() }),
+        400: errorSchemas.validation,
+        409: z.object({ message: z.string() }), // Email already exists
+      }
+    },
+    verifyEmail: {
+      method: 'POST' as const,
+      path: '/api/auth/verify-email' as const,
+      input: z.object({ 
+        token: z.string(),
+      }),
+      responses: {
+        200: z.object({ success: z.boolean(), message: z.string() }),
+        400: z.object({ message: z.string() }),
+      }
     }
   },
   gacha: {

@@ -10,6 +10,10 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   avatarData: text("avatar_data"), // Store avatar as base64 string in database (persisted forever)
   gender: text("gender").default("other"), // 'male', 'female', 'other'
+  email: text("email").unique(),
+  emailVerified: boolean("email_verified").default(false),
+  emailVerificationToken: text("email_verification_token"),
+  emailVerificationExpiresAt: timestamp("email_verification_expires_at"),
 });
 
 export const cards = pgTable("cards", {
