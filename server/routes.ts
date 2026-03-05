@@ -42,6 +42,27 @@ export async function registerRoutes(
     });
   };
 
+  app.post(api.auth.register.path, async (req, res) => {
+    try {
+      const input = api.auth.register.input.parse(req.body);
+      const existing = await storage.getUserByUsername(input.username);
+      if (existing) {
+        return res.status(409).json({ message: "Username sudah digunakan" });
+      }
+      const newUser = await storage.createUser({
+        username: input.username,
+        pin: input.pin,
+        gender: input.gender || 'other',
+      });
+      res.status(200).json(newUser);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.post(api.auth.login.path, async (req, res) => {
     try {
       const input = api.auth.login.input.parse(req.body);

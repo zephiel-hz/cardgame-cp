@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Heart, Stars, Lock, User as UserIcon } from "lucide-react";
+import { Heart, Stars, Lock, User as UserIcon, UserPlus } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { User } from "@shared/schema";
 
 export default function Login() {
@@ -18,6 +19,10 @@ export default function Login() {
   const [pin, setPin] = useState("");
   const [users, setUsers] = useState<User[]>([]);
   const [usersLoading, setUsersLoading] = useState(true);
+  const [isRegisterMode, setIsRegisterMode] = useState(false);
+  const [regUsername, setRegUsername] = useState("");
+  const [regPin, setRegPin] = useState("");
+  const [regGender, setRegGender] = useState("other");
 
   const getGenderEmoji = (gender?: string): string => {
     switch (gender) {
@@ -91,6 +96,41 @@ export default function Login() {
     }
   };
 
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!regUsername || regPin.length !== 4) return;
+
+    setIsLoading(true);
+    try {
+      const res = await fetch(api.auth.register.path, {
+        method: api.auth.register.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          username: regUsername, 
+          pin: regPin,
+          gender: regGender,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Gagal mendaftar");
+      }
+
+      login(data);
+      setLocation("/gacha");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Oops!",
+        description: error.message || "Gagal mendaftar.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-gradient-to-b from-pink-50 to-background flex flex-col items-center justify-center p-6 overflow-hidden">
       {/* Decorative background elements */}
@@ -125,12 +165,99 @@ export default function Login() {
           </p>
         </div>
 
-        {!selectedUser ? (
+        {isRegisterMode ? (
+          <motion.form
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            onSubmit={handleRegister}
+            className="bg-white dark:bg-gradient-to-br dark:from-purple-900/95 dark:to-purple-800/95 backdrop-blur-md p-8 rounded-[2.5rem] shadow-2xl dark:border dark:border-pink-400/20 space-y-6"
+          >
+            <div className="text-center space-y-1">
+              <h2 className="text-xl font-bold text-foreground flex items-center justify-center gap-2">
+                <UserPlus size={20} /> Daftar Akun Baru
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Buat akun untuk bermain Gacha LDR
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="username" className="text-xs font-semibold">
+                Nama Pengguna
+              </Label>
+              <Input
+                id="username"
+                autoFocus
+                value={regUsername}
+                onChange={(e) => setRegUsername(e.target.value)}
+                placeholder="Minimal 3 karakter"
+                className="h-12 rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="pin" className="text-xs font-semibold">
+                PIN (4 Digit)
+              </Label>
+              <Input
+                id="pin"
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                value={regPin}
+                onChange={(e) => setRegPin(e.target.value.replace(/\D/g, ""))}
+                placeholder="PIN"
+                className="h-12 text-center text-lg tracking-[0.5em] font-bold rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="gender" className="text-xs font-semibold">
+                Jenis Kelamin
+              </Label>
+              <Select value={regGender} onValueChange={setRegGender}>
+                <SelectTrigger className="h-12 rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">👦🏻 Laki-laki</SelectItem>
+                  <SelectItem value="female">👧🏻 Perempuan</SelectItem>
+                  <SelectItem value="other">🤷 Lainnya</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                type="submit"
+                disabled={isLoading || regUsername.length < 3 || regPin.length < 4}
+                className="w-full py-4 rounded-2xl font-bold text-white shadow-lg bg-gradient-to-r from-primary to-rose-500 hover:shadow-primary/40 active:scale-95 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none transition-all"
+              >
+                {isLoading ? "Mendaftar..." : "Buat Akun"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRegisterMode(false);
+                  setRegUsername("");
+                  setRegPin("");
+                  setRegGender("other");
+                }}
+                className="w-full text-sm font-semibold text-muted-foreground hover:text-primary transition-colors py-2"
+              >
+                Kembali ke Login
+              </button>
+            </div>
+          </motion.form>
+        ) : !selectedUser ? (
           <div className="space-y-4">
             {usersLoading ? (
               <div className="text-center text-muted-foreground">Memuat pengguna...</div>
             ) : users.length === 0 ? (
-              <div className="text-center text-muted-foreground">Tidak ada pengguna</div>
+              <div className="text-center text-muted-foreground text-sm">
+                Belum ada akun
+              </div>
             ) : (
               users.map((user) => {
                 const gradient = getGradient((user as any).gender);
@@ -151,6 +278,18 @@ export default function Login() {
                 );
               })
             )}
+
+            <button
+              type="button"
+              onClick={() => setIsRegisterMode(true)}
+              className="w-full relative group overflow-hidden rounded-3xl p-[2px] bg-gradient-to-r from-amber-400 to-yellow-500 transition-transform active:scale-95"
+            >
+              <div className="bg-white dark:bg-gradient-to-r dark:from-purple-800 dark:to-purple-700 backdrop-blur-md rounded-[22px] px-6 py-4 group-hover:dark:from-purple-700 group-hover:dark:to-purple-600 transition-colors flex items-center justify-center gap-3">
+                <span className="text-lg font-bold text-blue-900 dark:text-yellow-200">
+                  <UserPlus size={18} className="inline mr-2" /> Daftar Akun Baru
+                </span>
+              </div>
+            </button>
           </div>
         ) : (
           <motion.form

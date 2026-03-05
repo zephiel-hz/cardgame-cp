@@ -10,6 +10,20 @@ export const errorSchemas = {
 
 export const api = {
   auth: {
+    register: {
+      method: 'POST' as const,
+      path: '/api/auth/register' as const,
+      input: z.object({ 
+        username: z.string().min(3),
+        pin: z.string().length(4),
+        gender: z.enum(['male', 'female', 'other']).optional(),
+      }),
+      responses: {
+        200: z.custom<typeof users.$inferSelect>(),
+        400: errorSchemas.validation,
+        409: z.object({ message: z.string() }), // User exists
+      }
+    },
     login: {
       method: 'POST' as const,
       path: '/api/auth/login' as const,
