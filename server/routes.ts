@@ -94,10 +94,13 @@ export async function registerRoutes(
 
   app.get(api.auth.listUsers.path, async (req, res) => {
     try {
+      console.log("[DEBUG:listUsers] Request received");
       const allUsers = await storage.getAllUsers();
+      console.log("[DEBUG:listUsers] Got users:", allUsers.length, "users");
       res.status(200).json(allUsers);
     } catch (err) {
-      res.status(500).json({ message: "Failed to fetch users" });
+      console.error("[DEBUG:listUsers] Error:", err);
+      res.status(500).json({ message: "Failed to fetch users", error: String(err) });
     }
   });
 
