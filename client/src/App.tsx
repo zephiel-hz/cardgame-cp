@@ -72,11 +72,6 @@ function Router() {
 }
 
 function App() {
-  // Set page title
-  useEffect(() => {
-    document.title = 'Card Game Couple ❤️';
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>

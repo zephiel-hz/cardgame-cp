@@ -197,11 +197,13 @@ export async function registerRoutes(
         title: '🎉 Kartu Baru!',
         body: `Selamat! Anda mendapat kartu "${pulledCard.name}" tier ${pulledCard.tier}`,
         tag: 'gacha_pull',
-        icon: '/logo.png',
-        badge: '/badge.png',
+        icon: '/pwa-icon-192.svg',
+        badge: '/pwa-icon-192.svg',
         data: {
           type: 'gacha_pull',
           cardId: pulledCard.id,
+          cardName: pulledCard.name,
+          cardTier: pulledCard.tier,
           url: '/inventory',
         },
       };

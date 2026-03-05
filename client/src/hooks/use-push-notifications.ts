@@ -30,6 +30,13 @@ export function usePushNotifications() {
           scope: '/',
         });
         console.log('[Push] Service worker registered:', registration);
+        
+        // Request notification permission if not already set
+        if (Notification.permission === 'default') {
+          Notification.requestPermission().then(permission => {
+            console.log('[Push] Notification permission:', permission);
+          });
+        }
       }
     } catch (error) {
       console.error('[Push] Service worker registration failed:', error);
