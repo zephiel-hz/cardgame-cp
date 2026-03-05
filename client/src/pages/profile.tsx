@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Camera, Lock, User as UserIcon, Moon, Sun } from "lucide-react";
+import { Loader2, Camera, Lock, User as UserIcon, Moon, Sun, Mail, CheckCircle, RefreshCw } from "lucide-react";
 import { NotificationSettings } from "@/components/notification-settings";
 
 export default function Profile() {
@@ -26,6 +26,9 @@ export default function Profile() {
   const [displayAvatarUrl, setDisplayAvatarUrl] = useState(user?.avatarUrl ? `${user.avatarUrl}?t=${Date.now()}` : "");
   const [gender, setGender] = useState((user?.gender as any) || "other");
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [showVerificationInput, setShowVerificationInput] = useState(false);
 
   // Sync avatar URL when user updates, with cache-busting
   useEffect(() => {
@@ -49,6 +52,57 @@ export default function Profile() {
       login(updatedUser);
       queryClient.invalidateQueries({ queryKey: [api.activeCards.list.path] });
       toast({ title: "Berhasil", description: "Profil diperbarui!" });
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", title: "Gagal", description: error.message });
+    },
+  });
+
+  const updateEmailMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const res = await fetch(api.auth.updateEmail.path, {
+        method: api.auth.updateEmail.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user?.id, email }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Gagal memperbarui email");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      setShowVerificationInput(true);
+      setNewEmail("");
+      toast({ 
+        title: "Email dikirim", 
+        description: "Periksa email kamu untuk kode verifikasi" 
+      });
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", title: "Gagal", description: error.message });
+    },
+  });
+
+  const verifyEmailMutation = useMutation({
+    mutationFn: async (token: string) => {
+      const res = await fetch(api.auth.verifyEmail.path, {
+        method: api.auth.verifyEmail.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      if (!res.ok) throw new Error("Kode verifikasi tidak valid atau sudah kadaluarsa");
+      return res.json();
+    },
+    onSuccess: (updatedUser) => {
+      login(updatedUser);
+      setShowVerificationInput(false);
+      setVerificationCode("");
+      queryClient.invalidateQueries({ queryKey: [api.activeCards.list.path] });
+      toast({ 
+        title: "Berhasil", 
+        description: "Email berhasil diverifikasi!" 
+      });
     },
     onError: (error: any) => {
       toast({ variant: "destructive", title: "Gagal", description: error.message });
@@ -214,6 +268,82 @@ export default function Profile() {
                 placeholder="Kosongkan jika tidak ingin diubah"
               />
               <p className="text-[10px] text-muted-foreground">PIN harus berupa 4 digit angka.</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Mail size={16} className="text-primary" /> Email untuk Notifikasi
+              </Label>
+              <div className="bg-primary/5 rounded-lg p-3 border border-primary/10 space-y-3">
+                {user?.email && user?.emailVerified ? (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="text-green-500" size={16} />
+                      <span className="text-sm font-medium">{user.email}</span>
+                    </div>
+                    <span className="text-xs bg-green-500/20 text-green-700 px-2 py-1 rounded">Terverifikasi</span>
+                  </div>
+                ) : user?.email ? (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <RefreshCw className="text-yellow-500" size={16} />
+                      <span className="text-sm">{user.email}</span>
+                    </div>
+                    <span className="text-xs bg-yellow-500/20 text-yellow-700 px-2 py-1 rounded">Menunggu verifikasi</span>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Belum ada email</p>
+                )}
+              </div>
+
+              {showVerificationInput ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">Masukkan kode verifikasi dari email</p>
+                  <div className="flex gap-2">
+                    <Input
+                      type="text"
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value)}
+                      className="rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20"
+                      placeholder="Kode verifikasi"
+                    />
+                    <Button
+                      type="button"
+                      onClick={() => verifyEmailMutation.mutate(verificationCode)}
+                      disabled={verifyEmailMutation.isPending || !verificationCode}
+                      className="rounded-xl px-6"
+                    >
+                      {verifyEmailMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        "Verifikasi"
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    className="rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20"
+                    placeholder="Masukkan email baru"
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => updateEmailMutation.mutate(newEmail)}
+                    disabled={updateEmailMutation.isPending || !newEmail}
+                    className="rounded-xl px-6"
+                  >
+                    {updateEmailMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Daftarkan"
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
