@@ -608,7 +608,7 @@ async function seedDatabase() {
     if (cards.length === 0) {
       console.log("[SEED] No cards found, will seed database...");
       const { db } = await import("./db");
-      const { cards: cardsSchema, users } = await import("@shared/schema");
+      const { cards: cardsSchema, users, userCards } = await import("@shared/schema");
       
       // Seed users
       try {
@@ -617,13 +617,12 @@ async function seedDatabase() {
         
         if (userCount.length === 0) {
           console.log("[SEED] Inserting 4 users...");
-          const insertResult = await db.insert(users).values([
+          await db.insert(users).values([
             { username: 'Priatna', pin: '1010' }, 
             { username: 'Cia', pin: '0412' },
             { username: 'kwahsotoo', pin: '1234' },
             { username: 'visimisi', pin: '5678' }
           ]);
-          console.log("[SEED] Insert result:", insertResult);
           
           // Verify users were inserted
           const usersAfter = await db.select().from(users);
@@ -654,6 +653,46 @@ async function seedDatabase() {
         { name: "Kartu Jin Aladdin Virtual", tier: "SSR", durationMinutes: 60, description: "Minta tolong satu hal remeh dan target tidak boleh menolak." },
       ]);
       console.log("[SEED] Cards seeded successfully");
+      
+      // Seed user_cards (distribute cards to users)
+      try {
+        const { eq } = await import("drizzle-orm");
+        const allUsers = await db.select().from(users);
+        const commonCards = await db.select().from(cardsSchema).where(eq(cardsSchema.tier, "Common"));
+        const rareCards = await db.select().from(cardsSchema).where(eq(cardsSchema.tier, "Rare"));
+        
+        console.log("[SEED] Distributing cards to users...");
+        const userCardsToInsert = [];
+        
+        allUsers.forEach((user, userIndex) => {
+          // Add 5 common cards (rotated)
+          for (let i = 0; i < 5; i++) {
+            const cardIndex = (userIndex * 5 + i) % commonCards.length;
+            userCardsToInsert.push({
+              userId: user.id,
+              cardId: commonCards[cardIndex].id,
+              status: "inventory"
+            });
+          }
+          
+          // Add 3 rare cards (rotated)
+          for (let i = 0; i < 3; i++) {
+            const cardIndex = (userIndex * 3 + i) % rareCards.length;
+            userCardsToInsert.push({
+              userId: user.id,
+              cardId: rareCards[cardIndex].id,
+              status: "inventory"
+            });
+          }
+        });
+        
+        if (userCardsToInsert.length > 0) {
+          await db.insert(userCards).values(userCardsToInsert);
+          console.log("[SEED] ✅ User cards distributed:", userCardsToInsert.length, "cards");
+        }
+      } catch (err) {
+        console.error("[SEED] User cards seeding error:", err);
+      }
     } else {
       console.log("[SEED] Cards already exist, skipping seeding");
     }
