@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Debug Page</title>
+</head>
+<body>
+  <h1>Debugging Page Load</h1>
+  <div id="debug-info"></div>
+  <script>
+    const debugInfo = document.getElementById('debug-info');
+    const info = [];
+    
+    info.push(`<p>URL: ${window.location.href}</p>`);
+    info.push(`<p>Root element exists: ${document.getElementById('root') ? 'YES' : 'NO'}</p>`);
+    info.push(`<p>Scripts: ${document.querySelectorAll('script').length}</p>`);
+    info.push(`<p>Styles: ${document.querySelectorAll('style, link[rel="stylesheet"]').length}</p>`);
+    info.push(`<p>DOM Ready: ${document.readyState}</p>`);
+    
+    debugInfo.innerHTML = info.join('');
+    
+    window.addEventListener('error', (e) => {
+      console.error('Global error:', e);
+      debugInfo.innerHTML += `<p style="color:red;">ERROR: ${e.message}</p>`;
+    });
+    
+    window.addEventListener('unhandledrejection', (e) => {
+      console.error('Unhandled rejection:', e);
+      debugInfo.innerHTML += `<p style="color:red;">REJECTION: ${e.reason}</p>`;
+    });
+  </script>
+</body>
+</html>
