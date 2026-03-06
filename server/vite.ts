@@ -20,14 +20,8 @@ export async function setupVite(server: Server, app: Express) {
       },
     },
     server: {
-      ...viteConfig.server,
       middlewareMode: true,
-      hmr: {
-        host: "localhost",
-        port: 3000,
-        protocol: "ws",
-        path: "/vite-hmr",
-      },
+      hmr: false,
     },
     appType: "custom",
   });

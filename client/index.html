@@ -11,6 +11,20 @@
           document.documentElement.classList.add('dark');
         }
       })();
+      
+      // Suppress Vite HMR errors - HMR disabled in middleware mode
+      window.__vite_is_modern__ = true;
+      if (typeof window !== 'undefined') {
+        const originalConsoleError = console.error;
+        console.error = function(...args) {
+          const message = String(args[0] || '');
+          // Suppress Vite HMR related errors
+          if (message.includes('[vite]') || message.includes('websocket') || message.includes('5173')) {
+            return;
+          }
+          originalConsoleError.apply(console, args);
+        };
+      }
     </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover" />

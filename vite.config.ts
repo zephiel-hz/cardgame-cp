@@ -95,10 +95,7 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
-    hmr: {
-      host: "localhost",
-      port: 3000,
-      protocol: "ws",
-    },
+    middlewareMode: true,
+    hmr: false,
   },
 });
