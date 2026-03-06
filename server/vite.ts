@@ -9,19 +9,6 @@ import { nanoid } from "nanoid";
 const viteLogger = createLogger();
 
 export async function setupVite(server: Server, app: Express) {
-  const serverOptions = {
-    middlewareMode: true,
-    hmr: {
-      server,
-      path: "/vite-hmr",
-      // Allow HMR to work with direct localhost connection
-      host: "localhost",
-      port: 3000,
-      protocol: "ws",
-    },
-    allowedHosts: true as const,
-  };
-
   const vite = await createViteServer({
     ...viteConfig,
     configFile: false,
@@ -32,7 +19,16 @@ export async function setupVite(server: Server, app: Express) {
         process.exit(1);
       },
     },
-    server: serverOptions,
+    server: {
+      middlewareMode: true,
+      hmr: {
+        host: "localhost",
+        port: 3000,
+        protocol: "ws",
+        path: "/vite-hmr",
+      },
+      allowedHosts: true as const,
+    },
     appType: "custom",
   });
 
