@@ -11,7 +11,14 @@ const viteLogger = createLogger();
 export async function setupVite(server: Server, app: Express) {
   const serverOptions = {
     middlewareMode: true,
-    hmr: { server, path: "/vite-hmr" },
+    hmr: {
+      server,
+      path: "/vite-hmr",
+      // Allow HMR to work with direct localhost connection
+      host: "localhost",
+      port: 3000,
+      protocol: "ws",
+    },
     allowedHosts: true as const,
   };
 
@@ -37,11 +44,17 @@ export async function setupVite(server: Server, app: Express) {
   app.use(async (req, res, next) => {
     // Skip API requests and WebSocket upgrading
     if (req.path.startsWith("/api") || req.path.startsWith("/ws")) {
-      console.log(`[vite] Skipping non-HTML: ${req.method} ${req.path}`);
       return next();
     }
     
-    console.log(`[vite] Handling: ${req.method} ${req.path}`);
+    // Skip static assets: .js, .css, .json, .png, .jpg, etc.
+    // Only serve HTML for paths without extensions or .html specifically
+    const ext = path.extname(req.path);
+    if (ext && ext !== ".html") {
+      // Has extension that's not .html - skip (let Vite serve it)
+      return next();
+    }
+    
     const url = req.originalUrl;
 
     try {
@@ -53,19 +66,14 @@ export async function setupVite(server: Server, app: Express) {
         "index.html",
       );
 
-      console.log(`[vite] Reading template from: ${clientTemplate}`);
       // always reload the index.html file from disk incase it changes
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
-      console.log(`[vite] Template read successfully, length: ${template.length}`);
-      
       template = template.replace(
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`,
       );
-      console.log(`[vite] Template modified`);
       
       const page = await vite.transformIndexHtml(url, template);
-      console.log(`[vite] HTML transformed successfully, length: ${page.length}`);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
       console.error(`[vite] Error in handler:`, e);
