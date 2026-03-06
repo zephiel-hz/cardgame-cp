@@ -14,10 +14,8 @@ async function directSeed() {
     console.log("[DirectSeed] Existing users:", existingUsers.length);
     
     if (existingUsers.length === 0) {
-      console.log("[DirectSeed] Inserting users...");
+      console.log("[DirectSeed] Inserting 2 users...");
       await db.insert(users).values([
-        { username: 'Priatna', pin: '1010' }, 
-        { username: 'Cia', pin: '0412' },
         { username: 'kwahsotoo', pin: '1234' },
         { username: 'visimisi', pin: '5678' }
       ]);

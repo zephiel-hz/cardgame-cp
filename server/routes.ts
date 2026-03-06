@@ -616,10 +616,8 @@ async function seedDatabase() {
         console.log("[SEED] Users count before seeding:", userCount.length);
         
         if (userCount.length === 0) {
-          console.log("[SEED] Inserting 4 users...");
+          console.log("[SEED] Inserting 2 users...");
           await db.insert(users).values([
-            { username: 'Priatna', pin: '1010' }, 
-            { username: 'Cia', pin: '0412' },
             { username: 'kwahsotoo', pin: '1234' },
             { username: 'visimisi', pin: '5678' }
           ]);
