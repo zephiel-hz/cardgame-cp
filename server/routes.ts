@@ -588,44 +588,76 @@ export async function registerRoutes(
   });
 
   // Seed Data Trigger
-  await seedDatabase();
+  try {
+    console.log("[ROUTES] About to call seedDatabase...");
+    await seedDatabase();
+    console.log("[ROUTES] seedDatabase completed");
+  } catch (err) {
+    console.error("[ROUTES] seedDatabase error:", err);
+  }
 
   return httpServer;
 }
 
 async function seedDatabase() {
-  const cards = await storage.getCards();
-  if (cards.length === 0) {
-    const { db } = await import("./db");
-    const { cards: cardsSchema, users } = await import("@shared/schema");
+  try {
+    console.log("[SEED] Starting database seeding...");
+    const cards = await storage.getCards();
+    console.log("[SEED] Cards count:", cards.length);
     
-    // Seed users
-    const userCount = await db.select().from(users);
-    if (userCount.length === 0) {
-      await db.insert(users).values([
-        { username: 'Priatna', pin: '1010' }, 
-        { username: 'Cia', pin: '0412' }
-      ]);
-    }
+    if (cards.length === 0) {
+      console.log("[SEED] No cards found, will seed database...");
+      const { db } = await import("./db");
+      const { cards: cardsSchema, users } = await import("@shared/schema");
+      
+      // Seed users
+      try {
+        const userCount = await db.select().from(users);
+        console.log("[SEED] Users count before seeding:", userCount.length);
+        
+        if (userCount.length === 0) {
+          console.log("[SEED] Inserting 4 users...");
+          const insertResult = await db.insert(users).values([
+            { username: 'Priatna', pin: '1010' }, 
+            { username: 'Cia', pin: '0412' },
+            { username: 'kwahsotoo', pin: '1234' },
+            { username: 'visimisi', pin: '5678' }
+          ]);
+          console.log("[SEED] Insert result:", insertResult);
+          
+          // Verify users were inserted
+          const usersAfter = await db.select().from(users);
+          console.log("[SEED] Users after insert:", usersAfter.length, usersAfter.map(u => u.username));
+        }
+      } catch (err) {
+        console.error("[SEED] User seeding error:", err);
+      }
 
-    // Seed cards
-    await db.insert(cardsSchema).values([
-      // Common
-      { name: "Kartu PAP Random", tier: "Common", durationMinutes: 5, description: "Target wajib kirim foto selfie random saat itu juga!" },
-      { name: "Kartu Mode Alien", tier: "Common", durationMinutes: 15, description: "Selama 15 menit, target balas chat wajib pakai tambahan kata aneh/typo." },
-      { name: "Kartu Kirim Meme", tier: "Common", durationMinutes: 5, description: "Target wajib kirim 1 meme random/stiker paling jelek." },
-      { name: "Kartu VN Konser Fals", tier: "Common", durationMinutes: 5, description: "Target wajib kirim VN nyanyi lagu anak-anak." },
-      
-      // Rare
-      { name: "Kartu Boleh Marah 20 Menit", tier: "Rare", durationMinutes: 20, description: "Pengguna ngomel bebas, target cuma boleh bilang 'Iya, kamu bener'." },
-      { name: "Kartu Aku Bosnya", tier: "Rare", durationMinutes: 30, description: "Selama 30 menit, target wajib panggil dengan sebutan 'Paduka/Bos'." },
-      { name: "Kartu Ketik Pakai Hidung", tier: "Rare", durationMinutes: 5, description: "Target wajib ngetik 'Aku sayang banget sama kamu' pakai hidung tanpa hapus typo." },
-      { name: "Kartu Pantun Maksa", tier: "Rare", durationMinutes: 30, description: "Untuk 5 chat ke depan (selama aktif), balas pesan pakai pantun." },
-      
-      // SSR
-      { name: "Kartu Pause Ngambek", tier: "SSR", durationMinutes: 5, description: "Target wajib langsung kirim foto senyum dan batal ngambek detik itu juga." },
-      { name: "Kartu Ganti Nama Kontak", tier: "SSR", durationMinutes: 1440, description: "Tentukan nama kontak memalukan di HP target selama 24 jam. Wajib SS." },
-      { name: "Kartu Jin Aladdin Virtual", tier: "SSR", durationMinutes: 60, description: "Minta tolong satu hal remeh dan target tidak boleh menolak." },
-    ]);
+      // Seed cards
+      console.log("[SEED] Seeding cards...");
+      await db.insert(cardsSchema).values([
+        // Common
+        { name: "Kartu PAP Random", tier: "Common", durationMinutes: 5, description: "Target wajib kirim foto selfie random saat itu juga!" },
+        { name: "Kartu Mode Alien", tier: "Common", durationMinutes: 15, description: "Selama 15 menit, target balas chat wajib pakai tambahan kata aneh/typo." },
+        { name: "Kartu Kirim Meme", tier: "Common", durationMinutes: 5, description: "Target wajib kirim 1 meme random/stiker paling jelek." },
+        { name: "Kartu VN Konser Fals", tier: "Common", durationMinutes: 5, description: "Target wajib kirim VN nyanyi lagu anak-anak." },
+        
+        // Rare
+        { name: "Kartu Boleh Marah 20 Menit", tier: "Rare", durationMinutes: 20, description: "Pengguna ngomel bebas, target cuma boleh bilang 'Iya, kamu bener'." },
+        { name: "Kartu Aku Bosnya", tier: "Rare", durationMinutes: 30, description: "Selama 30 menit, target wajib panggil dengan sebutan 'Paduka/Bos'." },
+        { name: "Kartu Ketik Pakai Hidung", tier: "Rare", durationMinutes: 5, description: "Target wajib ngetik 'Aku sayang banget sama kamu' pakai hidung tanpa hapus typo." },
+        { name: "Kartu Pantun Maksa", tier: "Rare", durationMinutes: 30, description: "Untuk 5 chat ke depan (selama aktif), balas pesan pakai pantun." },
+        
+        // SSR
+        { name: "Kartu Pause Ngambek", tier: "SSR", durationMinutes: 5, description: "Target wajib langsung kirim foto senyum dan batal ngambek detik itu juga." },
+        { name: "Kartu Ganti Nama Kontak", tier: "SSR", durationMinutes: 1440, description: "Tentukan nama kontak memalukan di HP target selama 24 jam. Wajib SS." },
+        { name: "Kartu Jin Aladdin Virtual", tier: "SSR", durationMinutes: 60, description: "Minta tolong satu hal remeh dan target tidak boleh menolak." },
+      ]);
+      console.log("[SEED] Cards seeded successfully");
+    } else {
+      console.log("[SEED] Cards already exist, skipping seeding");
+    }
+  } catch (err) {
+    console.error("[SEED] Error:", err);
   }
 }
