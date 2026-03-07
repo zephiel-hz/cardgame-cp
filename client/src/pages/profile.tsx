@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-context";
 import { api } from "@shared/routes";
@@ -12,22 +12,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Camera, Lock, User as UserIcon, Moon, Sun, Mail, CheckCircle, RefreshCw } from "lucide-react";
 import { NotificationSettings } from "@/components/notification-settings";
-
-class ErrorBoundary extends React.Component {
-  state = { hasError: false };
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-  componentDidCatch(error: Error) {
-    console.error('[Profile] Error:', error);
-  }
-  render() {
-    if (this.state.hasError) {
-      return <div className="text-destructive text-sm p-2">Error rendering notification settings. Please refresh page.</div>;
-    }
-    return this.props.children;
-  }
-}
 
 export default function Profile() {
   const { user, login } = useAuth();
@@ -416,9 +400,7 @@ export default function Profile() {
       </Card>
 
       {/* Notification Settings */}
-      <ErrorBoundary>
-        <NotificationSettings />
-      </ErrorBoundary>
+      <NotificationSettings />
     </div>
   );
 }
