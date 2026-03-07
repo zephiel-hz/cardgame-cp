@@ -206,7 +206,7 @@ export default function Profile() {
               <Avatar className="w-24 h-24 border-4 border-primary/20 shadow-xl">
                 <AvatarImage src={displayAvatarUrl} />
                 <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">
-                  {user?.username.charAt(0).toUpperCase()}
+                  {user?.username?.charAt(0)?.toUpperCase() || 'U'}
                 </AvatarFallback>
               </Avatar>
               <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
