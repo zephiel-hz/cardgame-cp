@@ -64,21 +64,25 @@ app.use((req, res, next) => {
 
 // Create and initialize the server
 async function initializeServer() {
-  // IMPORTANT: Setup static file serving FIRST before registering routes
-  // This ensures static files are matched before API routes
+  // IMPORTANT: Setup static file serving FIRST before Vite and API routes
+  // This ensures static files (public/, avatars) are matched before catch-all handlers
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
     log("Static file serving configured for production");
+  } else {
+    // In development, serve public directory to handle registerSW.js, sw.js, etc.
+    app.use(express.static(path.join(process.cwd(), "public")));
+    log("Public directory served for development");
   }
 
-  // Setup Vite in development BEFORE registering API routes
-  // This ensures Vite middlewares and HMR are ready before API handlers
+  // Setup Vite in development AFTER static files but BEFORE API routes
+  // This ensures Vite middlewares can transform source files
   if (process.env.NODE_ENV !== "production") {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
   }
 
-  // Register API routes AFTER Vite setup so they take precedence
+  // Register API routes AFTER static/Vite setup so they take precedence
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
