@@ -270,12 +270,13 @@ export default function Profile() {
               <p className="text-[10px] text-muted-foreground">PIN harus berupa 4 digit angka.</p>
             </div>
 
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Mail size={16} className="text-primary" /> Email untuk Notifikasi
-              </Label>
-              <div className="bg-primary/5 rounded-lg p-3 border border-primary/10 space-y-3">
-                {user?.email && user?.emailVerified ? (
+            {user ? (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Mail size={16} className="text-primary" /> Email untuk Notifikasi
+                </Label>
+                <div className="bg-primary/5 rounded-lg p-3 border border-primary/10 space-y-3">
+                  {user?.email && user?.emailVerified ? (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <CheckCircle className="text-green-500" size={16} />
@@ -345,6 +346,7 @@ export default function Profile() {
                 </div>
               )}
             </div>
+            ) : null}
 
             <div className="space-y-2">
               <Label htmlFor="gender">Jenis Kelamin</Label>
