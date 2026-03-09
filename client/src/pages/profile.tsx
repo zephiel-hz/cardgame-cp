@@ -238,6 +238,8 @@ export default function Profile() {
               </Label>
               <Input
                 id="username"
+                name="username"
+                autoComplete="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20"
@@ -260,8 +262,10 @@ export default function Profile() {
               </Label>
               <Input
                 id="pin"
+                name="pin"
                 type="password"
                 maxLength={4}
+                autoComplete="new-password"
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
                 className="rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20"
@@ -272,85 +276,91 @@ export default function Profile() {
 
             {user ? (
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
+                <Label htmlFor="newEmail" className="flex items-center gap-2">
                   <Mail size={16} className="text-primary" /> Email untuk Notifikasi
                 </Label>
                 <div className="bg-primary/5 rounded-lg p-3 border border-primary/10 space-y-3">
                   {user?.email && user?.emailVerified ? (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="text-green-500" size={16} />
-                      <span className="text-sm font-medium">{user.email}</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="text-green-500" size={16} />
+                        <span className="text-sm font-medium">{user.email}</span>
+                      </div>
+                      <span className="text-xs bg-green-500/20 text-green-700 px-2 py-1 rounded">Terverifikasi</span>
                     </div>
-                    <span className="text-xs bg-green-500/20 text-green-700 px-2 py-1 rounded">Terverifikasi</span>
-                  </div>
-                ) : user?.email ? (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <RefreshCw className="text-yellow-500" size={16} />
-                      <span className="text-sm">{user.email}</span>
+                  ) : user?.email ? (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <RefreshCw className="text-yellow-500" size={16} />
+                        <span className="text-sm">{user.email}</span>
+                      </div>
+                      <span className="text-xs bg-yellow-500/20 text-yellow-700 px-2 py-1 rounded">Menunggu verifikasi</span>
                     </div>
-                    <span className="text-xs bg-yellow-500/20 text-yellow-700 px-2 py-1 rounded">Menunggu verifikasi</span>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Belum ada email</p>
+                  )}
+                </div>
+
+                {showVerificationInput ? (
+                  <div className="space-y-2">
+                    <label htmlFor="verificationCode" className="text-sm text-muted-foreground">Masukkan kode verifikasi dari email</label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="verificationCode"
+                        name="verificationCode"
+                        type="text"
+                        autoComplete="off"
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value)}
+                        className="rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20"
+                        placeholder="Kode verifikasi"
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => verifyEmailMutation.mutate(verificationCode)}
+                        disabled={verifyEmailMutation.isPending || !verificationCode}
+                        className="rounded-xl px-6"
+                      >
+                        {verifyEmailMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          "Verifikasi"
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Belum ada email</p>
-                )}
-              </div>
-
-              {showVerificationInput ? (
-                <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Masukkan kode verifikasi dari email</p>
                   <div className="flex gap-2">
                     <Input
-                      type="text"
-                      value={verificationCode}
-                      onChange={(e) => setVerificationCode(e.target.value)}
+                      id="newEmail"
+                      name="newEmail"
+                      type="email"
+                      autoComplete="email"
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
                       className="rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20"
-                      placeholder="Kode verifikasi"
+                      placeholder="Masukkan email baru"
                     />
                     <Button
                       type="button"
-                      onClick={() => verifyEmailMutation.mutate(verificationCode)}
-                      disabled={verifyEmailMutation.isPending || !verificationCode}
+                      onClick={() => updateEmailMutation.mutate(newEmail)}
+                      disabled={updateEmailMutation.isPending || !newEmail}
                       className="rounded-xl px-6"
                     >
-                      {verifyEmailMutation.isPending ? (
+                      {updateEmailMutation.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        "Verifikasi"
+                        "Daftarkan"
                       )}
                     </Button>
                   </div>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <Input
-                    type="email"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    className="rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20"
-                    placeholder="Masukkan email baru"
-                  />
-                  <Button
-                    type="button"
-                    onClick={() => updateEmailMutation.mutate(newEmail)}
-                    disabled={updateEmailMutation.isPending || !newEmail}
-                    className="rounded-xl px-6"
-                  >
-                    {updateEmailMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      "Daftarkan"
-                    )}
-                  </Button>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
             ) : null}
 
             <div className="space-y-2">
               <Label htmlFor="gender">Jenis Kelamin</Label>
-              <Select value={gender} onValueChange={setGender}>
+              <Select value={gender} onValueChange={setGender} name="gender">
                 <SelectTrigger className="rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20">
                   <SelectValue />
                 </SelectTrigger>
