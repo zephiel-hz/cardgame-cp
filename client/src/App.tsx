@@ -24,13 +24,10 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
-  console.log('[ProtectedRoute] Render with user:', { userId: user?.id, hasUser: !!user });
-
   useEffect(() => {
     // Give it a brief moment for user to load from localStorage
     const timer = setTimeout(() => {
       if (!user) {
-        console.log('[ProtectedRoute] User not found after delay, redirecting to login');
         setLocation("/");
       }
     }, 100);
@@ -58,13 +55,9 @@ function Router() {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
 
-  console.log('[Router] Rendering, user:', { userId: user?.id, location });
-
   // Simple root redirect logic
   useEffect(() => {
-    console.log('[Router] Effect running, user:', { userId: user?.id, location });
     if (user && location === "/") {
-      console.log('[Router] Redirecting to /gacha');
       setLocation("/gacha");
     }
   }, [user, location, setLocation]);
@@ -84,8 +77,6 @@ function Router() {
 }
 
 function App() {
-  console.log('[App] Rendering');
-  
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>

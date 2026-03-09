@@ -12,9 +12,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem("gacha_ldr_user");
-    const parsed = saved ? JSON.parse(saved) : null;
-    console.log('[Auth] Initializing from localStorage:', { hasData: !!saved, userId: parsed?.id });
-    return parsed;
+    return saved ? JSON.parse(saved) : null;
   });
 
   // Force reload from localStorage on mount to handle HMR scenarios
@@ -22,7 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const saved = localStorage.getItem("gacha_ldr_user");
     const parsed = saved ? JSON.parse(saved) : null;
     if (parsed?.id !== user?.id) {
-      console.log('[Auth] HMR detected - reloading from localStorage:', { newUserId: parsed?.id, oldUserId: user?.id });
+      console.log('[Auth] Reloading from localStorage after HMR/mount');
       setUser(parsed);
     }
   }, []); // Only run once on mount

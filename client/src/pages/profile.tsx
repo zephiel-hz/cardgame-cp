@@ -20,19 +20,6 @@ export default function Profile() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  console.log('[Profile] Render called with user:', { userId: user?.id, username: user?.username, hasUser: !!user });
-
-  // Detect component mount - run ONCE on every mount
-  useEffect(() => {
-    console.log('[Profile] *** MOUNTED ***');
-    return () => console.log('[Profile] *** UNMOUNTED ***');
-  }, []);
-
-  // Log user state when it changes
-  useEffect(() => {
-    console.log('[Profile] User state changed:', { userId: user?.id, username: user?.username, email: user?.email });
-  }, [user?.id, user?.username, user?.email]);
-
   const [username, setUsername] = useState(user?.username || "");
   const [pin, setPin] = useState("");
   const [baseAvatarUrl, setBaseAvatarUrl] = useState(user?.avatarUrl || "");
@@ -43,10 +30,15 @@ export default function Profile() {
   const [verificationCode, setVerificationCode] = useState("");
   const [showVerificationInput, setShowVerificationInput] = useState(false);
 
+  // Detect component mount - run ONCE on every mount
+  useEffect(() => {
+    console.log('[Profile] Component mounted successfully');
+    return () => console.log('[Profile] Component unmounting');
+  }, []);
+
   // Sync state when user changes - IMPORTANT for consistency after refresh/HMR
   useEffect(() => {
     if (user?.id) {
-      console.log('[Profile] Syncing user state after load');
       setUsername(user.username || "");
       setBaseAvatarUrl(user.avatarUrl || "");
       setDisplayAvatarUrl(user.avatarUrl ? `${user.avatarUrl}?t=${Date.now()}` : "");

@@ -13,21 +13,22 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2,ttf,eot}"],
+        // Don't precache HTML - let it be fetched fresh every time
+        globPatterns: ["**/*.{js,css,ico,png,svg,woff,woff2,ttf,eot}"],
         // Network-first for HTML documents to ensure fresh page load on refresh
         navigateFallbackDenylist: [/^\/api\//],
-        // Separate runtime caching rules for different file types
+        // Runtime caching rules
         runtimeCaching: [
           {
             // HTML - network first to ensure fresh content on refresh
-            urlPattern: /\.html$/,
+            urlPattern: /index\.html$/,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'html-cache',
               networkTimeoutSeconds: 3,
               expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 300, // 5 minutes
+                maxEntries: 5,
+                maxAgeSeconds: 60, // 1 minute only
               }
             }
           },
