@@ -14,6 +14,36 @@ export default defineConfig({
       registerType: "autoUpdate",
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2,ttf,eot}"],
+        // Network-first for HTML documents to ensure fresh page load on refresh
+        navigateFallbackDenylist: [/^\/api\//],
+        // Separate runtime caching rules for different file types
+        runtimeCaching: [
+          {
+            // HTML - network first to ensure fresh content on refresh
+            urlPattern: /\.html$/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'html-cache',
+              networkTimeoutSeconds: 3,
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 300, // 5 minutes
+              }
+            }
+          },
+          {
+            // Assets - cache first since they have hash in filename
+            urlPattern: /^\/assets\//,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'assets-cache',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+              }
+            }
+          }
+        ]
       },
       manifest: {
         name: "Card Game",
