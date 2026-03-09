@@ -369,7 +369,7 @@ export default function Profile() {
             <div className="space-y-2">
               <Label htmlFor="gender">Jenis Kelamin</Label>
               <Select value={gender} onValueChange={setGender} name="gender">
-                <SelectTrigger className="rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20">
+                <SelectTrigger id="gender" className="rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

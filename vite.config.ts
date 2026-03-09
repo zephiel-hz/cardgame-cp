@@ -7,7 +7,9 @@ import { VitePWA } from "vite-plugin-pwa";
 export default defineConfig({
   plugins: [
     react(),
-    runtimeErrorOverlay(),
+    ...(process.env.NODE_ENV !== "production" && process.env.REPL_ID !== undefined
+      ? [runtimeErrorOverlay()]
+      : []),
     VitePWA({
       registerType: "autoUpdate",
       workbox: {
