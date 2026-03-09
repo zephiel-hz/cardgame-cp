@@ -20,9 +20,12 @@ export default function Profile() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  console.log('[Profile] Render called with user:', { userId: user?.id, username: user?.username, hasUser: !!user });
+
   // Detect component mount - run ONCE on every mount
   useEffect(() => {
     console.log('[Profile] Component mounted, user:', { userId: user?.id, username: user?.username });
+    return () => console.log('[Profile] Component unmounting');
   }, []);
 
   // Log user state when it changes

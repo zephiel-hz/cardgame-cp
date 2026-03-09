@@ -12,7 +12,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem("gacha_ldr_user");
-    return saved ? JSON.parse(saved) : null;
+    const parsed = saved ? JSON.parse(saved) : null;
+    console.log('[Auth] Initializing from localStorage:', { hasData: !!saved, userId: parsed?.id });
+    return parsed;
   });
 
   const login = (userData: User) => {
