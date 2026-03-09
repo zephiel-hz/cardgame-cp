@@ -58,9 +58,13 @@ function Router() {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
 
+  console.log('[Router] Rendering, user:', { userId: user?.id, location });
+
   // Simple root redirect logic
   useEffect(() => {
+    console.log('[Router] Effect running, user:', { userId: user?.id, location });
     if (user && location === "/") {
+      console.log('[Router] Redirecting to /gacha');
       setLocation("/gacha");
     }
   }, [user, location, setLocation]);
@@ -80,6 +84,8 @@ function Router() {
 }
 
 function App() {
+  console.log('[App] Rendering');
+  
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>

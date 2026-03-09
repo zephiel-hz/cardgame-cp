@@ -24,8 +24,8 @@ export default function Profile() {
 
   // Detect component mount - run ONCE on every mount
   useEffect(() => {
-    console.log('[Profile] Component mounted, user:', { userId: user?.id, username: user?.username });
-    return () => console.log('[Profile] Component unmounting');
+    console.log('[Profile] *** MOUNTED ***');
+    return () => console.log('[Profile] *** UNMOUNTED ***');
   }, []);
 
   // Log user state when it changes
