@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { Gift, LayoutGrid, Zap, User as UserIcon, LogOut } from "lucide-react";
+import { Gift, LayoutGrid, Zap, User as UserIcon, LogOut, Heart } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { href: "/gacha", icon: Gift, label: "Gacha" },
     { href: "/inventory", icon: LayoutGrid, label: "Koleksi" },
     { href: "/active", icon: Zap, label: "Aktif" },
+    { href: "/partner-pairing", icon: Heart, label: "Partner" },
     { href: "/profile", icon: UserIcon, label: "Profil" },
   ];
 

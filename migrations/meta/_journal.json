@@ -8,6 +8,27 @@
       "when": 1772738273640,
       "tag": "0000_futuristic_reaper",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1772738273641,
+      "tag": "0001_add_missing_columns",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1772738273642,
+      "tag": "0002_add_partner_column",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1772738273643,
+      "tag": "0003_partnership_requests",
+      "breakpoints": true
     }
   ]
 }

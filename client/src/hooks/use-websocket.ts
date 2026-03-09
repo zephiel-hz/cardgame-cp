@@ -30,7 +30,8 @@ export function useAppWebSocket(userId?: number) {
               className: "bg-primary text-primary-foreground border-none rounded-2xl shadow-xl",
             });
             
-            // Invalidate active cards to refresh the list
+            // Invalidate ALL active cards queries to ensure everyone sees the update
+            // This covers both the user who used the card and any partners viewing it
             queryClient.invalidateQueries({ queryKey: [api.activeCards.list.path] });
           }
         } catch (e) {

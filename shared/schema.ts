@@ -14,6 +14,7 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").default(false),
   emailVerificationToken: text("email_verification_token"),
   emailVerificationExpiresAt: timestamp("email_verification_expires_at"),
+  partnerId: integer("partner_id").references(() => users.id), // Partner relationship (nullable)
 });
 
 export const cards = pgTable("cards", {
@@ -63,6 +64,15 @@ export const notificationPreferences = pgTable("notification_preferences", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const partnershipRequests = pgTable("partnership_requests", {
+  id: serial("id").primaryKey(),
+  fromUserId: integer("from_user_id").references(() => users.id).notNull(),
+  toUserId: integer("to_user_id").references(() => users.id).notNull(),
+  status: text("status").notNull().default("pending"), // 'pending', 'accepted', 'declined'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  respondedAt: timestamp("responded_at"),
+});
+
 export const userCardsRelations = relations(userCards, ({ one }) => ({
   user: one(users, {
     fields: [userCards.userId],
@@ -80,6 +90,8 @@ export type UserCard = typeof userCards.$inferSelect;
 export type GachaLog = typeof gachaLogs.$inferSelect;
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type NotificationPreference = typeof notificationPreferences.$inferSelect;
+export type PartnershipRequest = typeof partnershipRequests.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
 
 export type UserCardWithDetails = UserCard & { card: Card; user: User };
 
@@ -89,3 +101,4 @@ export const insertUserCardSchema = createInsertSchema(userCards);
 export const insertGachaLogSchema = createInsertSchema(gachaLogs);
 export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions);
 export const insertNotificationPreferenceSchema = createInsertSchema(notificationPreferences);
+export const insertPartnershipRequestSchema = createInsertSchema(partnershipRequests);

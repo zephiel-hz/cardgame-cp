@@ -10,12 +10,15 @@ import { useAuth } from "@/lib/auth-context";
 
 export default function ActiveCards() {
   const { user } = useAuth();
-  const { data: activeCards, isLoading } = useActiveCards();
+  const { data: activeCards, isLoading, error } = useActiveCards(user?.id);
   const queryClient = useQueryClient();
+
+  console.log('[ActiveCards] Rendering:', { userId: user?.id, isLoading, error: error?.message, cardCount: activeCards?.length });
 
   const handleExpire = () => {
     // Refresh list when a timer naturally expires
     setTimeout(() => {
+      // Invalidate ALL active cards queries to ensure consistency
       queryClient.invalidateQueries({ queryKey: [api.activeCards.list.path] });
     }, 1000);
   };
@@ -24,6 +27,20 @@ export default function ActiveCards() {
     return (
       <div className="flex justify-center items-center h-[50vh]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-accent"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="pb-10">
+        <div className="flex flex-col items-center justify-center bg-yellow-50 dark:bg-gradient-to-br dark:from-yellow-800/20 dark:to-yellow-700/20 backdrop-blur-sm rounded-3xl p-10 border border-dashed border-yellow-300 dark:border-yellow-400/30 mt-10">
+          <div className="w-20 h-20 bg-yellow-200 dark:bg-yellow-700/50 rounded-full flex items-center justify-center mb-4">
+            <ZapOff className="w-10 h-10 text-yellow-600 dark:text-yellow-300" />
+          </div>
+          <h3 className="font-bold text-xl mb-2 text-yellow-900 dark:text-yellow-200">Belum Ada Partner</h3>
+          <p className="text-center text-yellow-700 dark:text-yellow-200/70">Kamu harus memiliki partner terlebih dahulu untuk melihat kartu aktif mereka.</p>
+        </div>
       </div>
     );
   }
