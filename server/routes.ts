@@ -597,9 +597,6 @@ export async function registerRoutes(
     }
   });
 
-  // Email Notifications Only
-  // Push notifications have been deprecated in favor of reliable email notifications
-
   // Seed Data Trigger
   try {
     console.log("[ROUTES] About to call seedDatabase...");

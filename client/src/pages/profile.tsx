@@ -443,9 +443,6 @@ export default function Profile() {
           </form>
         </CardContent>
       </Card>
-
-      {/* Notification Settings */}
-
     </div>
   );
 }
