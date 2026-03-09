@@ -38,7 +38,7 @@ export function CardDisplay({ card, className, onClick, children }: CardDisplayP
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className={cn(
-        "relative flex flex-col justify-between p-5 rounded-3xl border-2 transition-all duration-300",
+        "relative flex flex-col justify-between p-2 rounded-2xl border-2 transition-all duration-300 overflow-hidden h-full",
         tierStyles[styleKey as keyof typeof tierStyles],
         className
       )}
@@ -72,25 +72,25 @@ export function CardDisplay({ card, className, onClick, children }: CardDisplayP
           pointer-events: none;
         }
       `}</style>
-      <div className="flex justify-between items-start mb-4 relative z-10">
-        <div className="px-3 py-1 bg-foreground/10 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-wider">
+      <div className="flex justify-between items-start mb-1 relative z-10 gap-1">
+        <div className="px-1.5 py-0.5 bg-foreground/10 backdrop-blur-md rounded-full text-xs font-bold uppercase tracking-widest">
           {card.tier}
         </div>
-        <div className="flex items-center gap-1 text-xs font-bold px-2 py-1 bg-foreground/10 backdrop-blur-md rounded-full">
+        <div className="flex items-center gap-0.5 text-xs font-bold px-1.5 py-0.5 bg-foreground/10 backdrop-blur-md rounded-full">
           <Clock className="w-3 h-3" />
           {formatDuration(card.durationMinutes)}
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center text-center py-4 relative z-10">
-        <div className="w-16 h-16 rounded-full bg-foreground/10 backdrop-blur-md flex items-center justify-center mb-4 shadow-inner">
-          <Icon className="w-8 h-8 opacity-80" />
+      <div className="flex-1 flex flex-col items-center justify-center text-center py-1 relative z-10">
+        <div className="w-10 h-10 rounded-full bg-foreground/10 backdrop-blur-md flex items-center justify-center mb-1 shadow-inner">
+          <Icon className="w-5 h-5 opacity-80" />
         </div>
-        <h3 className="text-xl font-bold mb-2 leading-tight drop-shadow-sm">{card.name}</h3>
-        <p className="text-sm opacity-90 leading-relaxed font-medium px-2">{card.description}</p>
+        <h3 className="text-xs font-bold mb-0.5 leading-tight drop-shadow-sm line-clamp-2">{card.name}</h3>
+        <p className="text-xs opacity-80 leading-snug font-medium px-1 line-clamp-1">{card.description}</p>
       </div>
 
-      {children && <div className="mt-4 relative z-10">{children}</div>}
+      {children && <div className="mt-auto relative z-10">{children}</div>}
       
       {/* Glossy overlay effect */}
       <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0 rounded-3xl pointer-events-none" />

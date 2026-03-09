@@ -32,6 +32,7 @@ export const userCards = pgTable("user_cards", {
   status: text("status").notNull().default("inventory"), // 'inventory', 'active', 'used'
   activatedAt: timestamp("activated_at"),
   expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const gachaLogs = pgTable("gacha_logs", {

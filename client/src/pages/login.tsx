@@ -544,7 +544,7 @@ export default function Login() {
                 <UserPlus size={20} /> Daftar Akun Baru
               </h2>
               <p className="text-xs text-muted-foreground">
-                Buat akun untuk bermain Gacha LDR
+                Buat akun untuk bermain Gacha Kartu
               </p>
             </div>
 
