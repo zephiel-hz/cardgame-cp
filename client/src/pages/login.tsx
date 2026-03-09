@@ -386,7 +386,7 @@ export default function Login() {
             <Heart className="w-10 h-10 text-white fill-white" />
           </div>
           <h1 className="text-3xl font-extrabold text-foreground tracking-tight">
-            Gacha LDR
+            Gacha Kartu Bareng Pasangan
           </h1>
           <p className="text-muted-foreground font-medium text-sm">
             Masuk untuk kumpulkan kartu kejutan! 💕
