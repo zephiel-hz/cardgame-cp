@@ -20,9 +20,14 @@ export default function Profile() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Log user state for debugging inconsistency
+  // Detect component mount - run ONCE on every mount
   useEffect(() => {
-    console.log('[Profile] User state:', { userId: user?.id, username: user?.username, email: user?.email });
+    console.log('[Profile] Component mounted, user:', { userId: user?.id, username: user?.username });
+  }, []);
+
+  // Log user state when it changes
+  useEffect(() => {
+    console.log('[Profile] User state changed:', { userId: user?.id, username: user?.username, email: user?.email });
   }, [user?.id, user?.username, user?.email]);
 
   const [username, setUsername] = useState(user?.username || "");
