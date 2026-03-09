@@ -20,6 +20,11 @@ export default function Profile() {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Log user state for debugging inconsistency
+  useEffect(() => {
+    console.log('[Profile] User state:', { userId: user?.id, username: user?.username, email: user?.email });
+  }, [user?.id, user?.username, user?.email]);
+
   const [username, setUsername] = useState(user?.username || "");
   const [pin, setPin] = useState("");
   const [baseAvatarUrl, setBaseAvatarUrl] = useState(user?.avatarUrl || "");
@@ -30,9 +35,10 @@ export default function Profile() {
   const [verificationCode, setVerificationCode] = useState("");
   const [showVerificationInput, setShowVerificationInput] = useState(false);
 
-  // Sync state when user changes
+  // Sync state when user changes - IMPORTANT for consistency after refresh/HMR
   useEffect(() => {
-    if (user) {
+    if (user?.id) {
+      console.log('[Profile] Syncing user state after load');
       setUsername(user.username || "");
       setBaseAvatarUrl(user.avatarUrl || "");
       setDisplayAvatarUrl(user.avatarUrl ? `${user.avatarUrl}?t=${Date.now()}` : "");
@@ -197,7 +203,14 @@ export default function Profile() {
     }
   };
 
-  return (
+  return !user ? (
+    <div className="pb-10 space-y-6">
+      <div className="px-2">
+        <h2 className="text-2xl font-bold text-foreground">Kustomisasi Profil</h2>
+        <p className="text-muted-foreground text-sm font-medium mt-1">Memuat data profil...</p>
+      </div>
+    </div>
+  ) : (
     <div className="pb-10 space-y-6">
       <div className="px-2">
         <h2 className="text-2xl font-bold text-foreground">Kustomisasi Profil</h2>
@@ -235,8 +248,8 @@ export default function Profile() {
               className="hidden"
             />
             <div className="text-center">
-              <CardTitle className="text-xl">{user?.username}</CardTitle>
-              <CardDescription>ID Pengguna: #{user?.id}</CardDescription>
+              <CardTitle className="text-xl">{user?.username || "Loading..."}</CardTitle>
+              <CardDescription>ID Pengguna: #{user?.id || "..."}</CardDescription>
             </div>
           </div>
         </CardHeader>

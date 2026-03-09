@@ -25,12 +25,18 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    if (!user) {
-      setLocation("/");
-    }
+    // Give it a brief moment for user to load from localStorage
+    const timer = setTimeout(() => {
+      if (!user) {
+        console.log('[Auth] User not found after delay, redirecting to login');
+        setLocation("/");
+      }
+    }, 100);
+    
+    return () => clearTimeout(timer);
   }, [user, setLocation]);
 
-  if (!user) return null;
+  // Render component even if user is loading - let component handle it
   return <Component />;
 }
 
