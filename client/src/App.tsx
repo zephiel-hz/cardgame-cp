@@ -11,10 +11,10 @@ import { ThemeProvider } from "@/lib/theme-context";
 import { Layout } from "@/components/layout";
 import { useAppWebSocket } from "@/hooks/use-websocket";
 import { useCardExpiryCheck } from "@/hooks/use-card-expiry-check";
-import { usePushNotifications } from "@/hooks/use-push-notifications";
 
 // Pages
 import Login from "@/pages/login";
+import PartnerPairing from "@/pages/partner-pairing";
 import Gacha from "@/pages/gacha";
 import Inventory from "@/pages/inventory";
 import ActiveCards from "@/pages/active-cards";
@@ -46,7 +46,6 @@ function AppServices() {
   // Custom hooks that use hooks internally must be called at top level
   useAppWebSocket(user?.id);
   useCardExpiryCheck();
-  usePushNotifications();
   
   return null;
 }
@@ -66,6 +65,7 @@ function Router() {
     <Layout>
       <Switch>
         <Route path="/" component={Login} />
+        <Route path="/partner-pairing" component={() => <ProtectedRoute component={PartnerPairing} />} />
         <Route path="/gacha" component={() => <ProtectedRoute component={Gacha} />} />
         <Route path="/inventory" component={() => <ProtectedRoute component={Inventory} />} />
         <Route path="/active" component={() => <ProtectedRoute component={ActiveCards} />} />

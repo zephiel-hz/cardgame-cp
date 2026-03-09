@@ -17,6 +17,7 @@ export const api = {
         username: z.string().min(3),
         pin: z.string().length(4),
         gender: z.enum(['male', 'female', 'other']).optional(),
+        email: z.string().email().optional(),
       }),
       responses: {
         200: z.custom<typeof users.$inferSelect>(),
@@ -87,6 +88,93 @@ export const api = {
         200: z.object({ success: z.boolean(), message: z.string() }),
         400: z.object({ message: z.string() }),
       }
+    },
+    sendRegistrationEmail: {
+      method: 'POST' as const,
+      path: '/api/auth/send-registration-email' as const,
+      input: z.object({ 
+        email: z.string().email(),
+      }),
+      responses: {
+        200: z.object({ success: z.boolean(), message: z.string() }),
+        400: z.object({ message: z.string() }),
+        409: z.object({ message: z.string() }),
+      }
+    },
+    pairPartner: {
+      method: 'POST' as const,
+      path: '/api/auth/pair-partner' as const,
+      input: z.object({ 
+        userId: z.number(),
+        partnerId: z.number(),
+      }),
+      responses: {
+        200: z.object({ success: z.boolean(), message: z.string() }),
+        400: z.object({ message: z.string() }),
+        404: z.object({ message: z.string() }),
+      }
+    },
+    getPartner: {
+      method: 'GET' as const,
+      path: '/api/auth/partner/:userId' as const,
+      responses: {
+        200: z.custom<typeof users.$inferSelect>().nullable(),
+        404: errorSchemas.notFound,
+      }
+    },
+    getUserInfo: {
+      method: 'GET' as const,
+      path: '/api/auth/user/:id' as const,
+      responses: {
+        200: z.object({
+          id: z.number(),
+          username: z.string(),
+          avatarUrl: z.string().nullable(),
+          gender: z.string().nullable(),
+          cardCount: z.number()
+        }).nullable(),
+        404: errorSchemas.notFound,
+      }
+    },
+    sendPartnershipRequest: {
+      method: 'POST' as const,
+      path: '/api/auth/send-partnership-request' as const,
+      input: z.object({
+        userId: z.number(),
+        partnerId: z.number(),
+      }),
+      responses: {
+        200: z.object({ success: z.boolean(), message: z.string() }),
+        400: z.object({ message: z.string() }),
+        409: z.object({ message: z.string() }),
+      }
+    },
+    getPendingRequests: {
+      method: 'GET' as const,
+      path: '/api/auth/pending-partnership-requests/:userId' as const,
+      responses: {
+        200: z.array(z.object({
+          id: z.number(),
+          fromUserId: z.number(),
+          toUserId: z.number(),
+          status: z.string(),
+          createdAt: z.instanceof(Date).nullable(),
+          respondedAt: z.instanceof(Date).nullable(),
+        })),
+      }
+    },
+    respondToPartnershipRequest: {
+      method: 'POST' as const,
+      path: '/api/auth/respond-partnership-request' as const,
+      input: z.object({
+        requestId: z.number(),
+        accept: z.boolean(),
+      }),
+      responses: {
+        200: z.object({ success: z.boolean(), message: z.string() }),
+        400: z.object({ message: z.string() }),
+        404: errorSchemas.notFound,
+      }
     }
   },
   gacha: {
@@ -133,73 +221,11 @@ export const api = {
   activeCards: {
     list: {
       method: 'GET' as const,
-      path: '/api/active-cards' as const,
+      path: '/api/active-cards/:userId' as const,
       responses: {
         200: z.array(z.custom<UserCardWithDetails>()),
-      }
-    }
-  },
-  notifications: {
-    subscribe: {
-      method: 'POST' as const,
-      path: '/api/notifications/subscribe' as const,
-      input: z.object({
-        userId: z.number(),
-        subscription: z.object({
-          endpoint: z.string(),
-          keys: z.object({
-            auth: z.string(),
-            p256dh: z.string(),
-          }),
-        }),
-      }),
-      responses: {
-        200: z.object({ success: z.boolean(), message: z.string() }),
-        400: errorSchemas.validation,
-      }
-    },
-    unsubscribe: {
-      method: 'POST' as const,
-      path: '/api/notifications/unsubscribe' as const,
-      input: z.object({ userId: z.number(), endpoint: z.string() }),
-      responses: {
-        200: z.object({ success: z.boolean() }),
-        400: errorSchemas.validation,
-      }
-    },
-    preferences: {
-      method: 'GET' as const,
-      path: '/api/notifications/preferences/:userId' as const,
-      responses: {
-        200: z.object({
-          cardUsed: z.boolean(),
-          cardExpired: z.boolean(),
-          cardDropped: z.boolean(),
-          promotions: z.boolean(),
-        }),
-      }
-    },
-    updatePreferences: {
-      method: 'PATCH' as const,
-      path: '/api/notifications/preferences' as const,
-      input: z.object({
-        userId: z.number(),
-        cardUsed: z.boolean().optional(),
-        cardExpired: z.boolean().optional(),
-        cardDropped: z.boolean().optional(),
-        promotions: z.boolean().optional(),
-      }),
-      responses: {
-        200: z.object({ success: z.boolean() }),
-        400: errorSchemas.validation,
-      }
-    },
-    vapidKey: {
-      method: 'GET' as const,
-      path: '/api/notifications/vapid-key' as const,
-      responses: {
-        200: z.object({ vapidPublicKey: z.string() }),
-        500: errorSchemas.internal,
+        401: errorSchemas.validation,
+        403: z.object({ message: z.string() }),
       }
     }
   }

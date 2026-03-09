@@ -48,28 +48,53 @@ export class EmailNotificationService {
       const verificationLink = `${VERIFICATION_URL}/verify-email?token=${verificationCode}&userId=${userId}`;
       
       const htmlBody = `
-        <h2>Verifikasi Email Card Game Couple</h2>
-        <p>Halo!</p>
-        <p>Terima kasih telah mendaftarkan email Anda untuk Card Game Couple ❤️</p>
-        
-        <p><strong>Kode Verifikasi Anda:</strong></p>
-        <div style="
-          background-color: #f5f5f5;
-          padding: 15px;
-          border-radius: 5px;
-          text-align: center;
-          margin: 20px 0;
-        ">
-          <p style="font-size: 32px; font-weight: bold; color: #0066cc; margin: 0; letter-spacing: 5px;">
-            ${verificationCode}
-          </p>
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto;">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #FF1493 0%, #FF69B4 100%); padding: 30px 20px; text-align: center; border-radius: 10px 10px 0 0;">
+            <span style="font-size: 48px; margin-right: 10px;">✉️</span>
+            <h1 style="color: white; margin: 10px 0; font-size: 28px;">Verifikasi Email Anda</h1>
+          </div>
+
+          <!-- Main Content -->
+          <div style="background: #f8f9fa; padding: 30px 20px; text-align: center;">
+            <p style="color: #666; margin: 0 0 10px 0; font-size: 16px;">Halo! 👋</p>
+            <p style="color: #333; margin: 0 0 30px 0; font-size: 16px;">Terima kasih telah mendaftarkan email Anda untuk <strong>Card Game Couple</strong> ❤️</p>
+
+            <!-- Verification Code Box -->
+            <div style="background: white; border-left: 5px solid #FF1493; border-radius: 8px; padding: 25px; margin: 25px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+              <p style="color: #999; margin: 0 0 15px 0; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Kode Verifikasi Anda</p>
+              <p style="font-size: 36px; font-weight: bold; color: #FF1493; margin: 0; letter-spacing: 6px;">
+                ${verificationCode}
+              </p>
+              <p style="color: #999; margin: 15px 0 0 0; font-size: 13px;">Masukkan kode ini di aplikasi</p>
+            </div>
+
+            <!-- Instructions -->
+            <div style="background: linear-gradient(135deg, rgba(255, 20, 147, 0.05) 0%, rgba(255, 105, 180, 0.05) 100%); border-radius: 8px; padding: 20px; margin: 25px 0; text-align: left;">
+              <p style="color: #333; margin: 0 0 10px 0; font-size: 14px;"><strong>Langkah-langkah:</strong></p>
+              <ol style="color: #666; margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.8;">
+                <li>Buka aplikasi Card Game Couple</li>
+                <li>Masukkan kode verifikasi di atas</li>
+                <li>Nikmati pengalaman bermain bersama pasanganmu!</li>
+              </ol>
+            </div>
+
+            <!-- CTA Button -->
+            <a href="${verificationLink}" style="display: inline-block; background: linear-gradient(135deg, #FF1493 0%, #FF69B4 100%); color: white; text-decoration: none; padding: 12px 30px; border-radius: 25px; font-weight: bold; margin: 20px 0; font-size: 16px; box-shadow: 0 4px 12px rgba(255, 20, 147, 0.3);">
+              Verifikasi Sekarang →
+            </a>
+
+            <!-- Additional Info -->
+            <p style="color: #999; font-size: 12px; margin-top: 25px;">Link dan kode ini berlaku selama <strong>24 jam</strong>.</p>
+            <p style="color: #999; font-size: 12px; margin: 5px 0;">Jika Anda tidak membuat akun ini, abaikan email ini.</p>
+          </div>
+
+          <!-- Footer -->
+          <div style="background: #2d2d2d; color: #fff; padding: 20px; text-align: center; border-radius: 0 0 10px 10px; font-size: 12px;">
+            <p style="margin: 0 0 10px 0;">Card Game Couple Team ❤️</p>
+            <p style="margin: 0; color: #999;">Nikmati momen spesial bersama pasanganmu</p>
+          </div>
         </div>
-        
-        <p>Masukkan kode di atas di aplikasi untuk memverifikasi email Anda.</p>
-        <p style="color: #666; font-size: 12px;">Atau klik link ini jika lebih mudah: <a href="${verificationLink}">${verificationLink}</a></p>
-        
-        <p style="color: #999; font-size: 12px;">Link dan kode ini berlaku selama 24 jam.</p>
-        <p style="color: #999; font-size: 12px;">Jika Anda tidak membuat akun ini, abaikan email ini.</p>
       `;
 
       const result = await transporter.sendMail({
@@ -200,11 +225,48 @@ export class EmailNotificationService {
       if (!transporter || !SMTP_USER) return false;
 
       const htmlBody = `
-        <h2>⏰ Kartu Partnermu Kadaluarsa</h2>
-        <p>Halo!</p>
-        <p>Durasi kartu yang digunakan partnermu telah habis.</p>
-        <p>Buka aplikasi untuk melihat kartu aktif terbaru!</p>
-        <p>Card Game Couple Team ❤️</p>
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto;">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); padding: 30px 20px; text-align: center; border-radius: 10px 10px 0 0;">
+            <span style="font-size: 48px; margin-right: 10px;">⏰</span>
+            <h1 style="color: white; margin: 10px 0; font-size: 28px;">Kartu Kadaluarsa</h1>
+          </div>
+
+          <!-- Main Content -->
+          <div style="background: #f8f9fa; padding: 30px 20px; text-align: center;">
+            <p style="color: #666; margin: 0 0 20px 0; font-size: 16px;">Halo, Sayang! 💕</p>
+            
+            <p style="color: #333; margin: 0 0 25px 0; font-size: 18px;">
+              Durasi kartu yang digunakan partnermu telah <strong>habis</strong>.
+            </p>
+
+            <!-- Information Box -->
+            <div style="background: white; border-left: 5px solid #FFA500; border-radius: 8px; padding: 20px; margin: 25px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: left;">
+              <p style="color: #666; margin: 0; font-size: 15px; line-height: 1.6;">
+                Efek kartu spesial dari partnermu sudah berakhir. Manisnya momen hanya akan tinggal kenangan manis dalam hatimu ✨
+              </p>
+            </div>
+
+            <!-- What's Next -->
+            <div style="background: linear-gradient(135deg, rgba(255, 165, 0, 0.1) 0%, rgba(255, 140, 0, 0.1) 100%); border-radius: 8px; padding: 20px; margin: 25px 0;">
+              <p style="color: #333; margin: 0 0 15px 0; font-size: 16px; font-weight: bold;">✨ Apa Selanjutnya?</p>
+              <p style="color: #666; margin: 0; font-size: 14px; line-height: 1.6;">
+                Buka aplikasi untuk melihat kartu aktif terbaru atau menunggu partnermu menggunakan kartu lagi!
+              </p>
+            </div>
+
+            <!-- CTA Button -->
+            <a href="${VERIFICATION_URL}/active" style="display: inline-block; background: linear-gradient(135deg, #FFA500 0%, #FF8C00 100%); color: white; text-decoration: none; padding: 12px 30px; border-radius: 25px; font-weight: bold; margin: 20px 0; font-size: 16px; box-shadow: 0 4px 12px rgba(255, 165, 0, 0.3);">
+              Buka Aplikasi →
+            </a>
+          </div>
+
+          <!-- Footer -->
+          <div style="background: #2d2d2d; color: #fff; padding: 20px; text-align: center; border-radius: 0 0 10px 10px; font-size: 12px;">
+            <p style="margin: 0 0 10px 0;">Card Game Couple Team ❤️</p>
+            <p style="margin: 0; color: #999;">Nikmati momen spesial bersama pasanganmu</p>
+          </div>
+        </div>
       `;
 
       await transporter.sendMail({
@@ -230,19 +292,77 @@ export class EmailNotificationService {
       const transporter = getTransporter();
       if (!transporter || !SMTP_USER) return false;
 
+      // Color for tier
+      const tierColors: Record<string, string> = {
+        'SSR': '#FFD700',
+        'Rare': '#FF69B4',
+        'Common': '#87CEEB'
+      };
+      const tierColor = tierColors[cardTier] || '#87CEEB';
+
+      // Tier emoji
+      const tierEmojis: Record<string, string> = {
+        'SSR': '👑',
+        'Rare': '💎',
+        'Common': '✨'
+      };
+      const tierEmoji = tierEmojis[cardTier] || '✨';
+
       const htmlBody = `
-        <h2>🎁 Partnermu Mendapat Kartu Baru!</h2>
-        <p>Halo!</p>
-        <p><strong>${partnerName}</strong> baru saja mendapatkan kartu <strong>${cardTier}</strong>!</p>
-        <p>Selamat untuk partnermu! ✨</p>
-        <p>Buka aplikasi untuk melihat kartu spesial ini!</p>
-        <p>Card Game Couple Team ❤️</p>
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto;">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%); padding: 30px 20px; text-align: center; border-radius: 10px 10px 0 0;">
+            <span style="font-size: 48px; margin-right: 10px;">🎁</span>
+            <h1 style="color: white; margin: 10px 0; font-size: 28px;">Kartu Baru!</h1>
+          </div>
+
+          <!-- Main Content -->
+          <div style="background: #f8f9fa; padding: 30px 20px; text-align: center;">
+            <p style="color: #666; margin: 0 0 10px 0; font-size: 16px;">Hebat! 🎉</p>
+            
+            <p style="color: #333; margin: 0 0 25px 0; font-size: 18px;">
+              <strong>${partnerName}</strong> baru saja mendapatkan kartu spesial!
+            </p>
+
+            <!-- Card Tier Box -->
+            <div style="background: white; border-left: 5px solid ${tierColor}; border-radius: 8px; padding: 25px; margin: 25px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+              <p style="color: #999; margin: 0 0 10px 0; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">Rarity</p>
+              <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 15px;">
+                <span style="font-size: 32px;">${tierEmoji}</span>
+                <span style="display: inline-block; background-color: ${tierColor}; color: ${tierColor === '#FFD700' ? '#333' : 'white'}; padding: 8px 20px; border-radius: 20px; font-size: 16px; font-weight: bold;">
+                  ${cardTier}
+                </span>
+              </div>
+              <p style="color: #666; margin: 0; font-size: 14px; line-height: 1.6;">
+                Selamat untuk partnermu! Ini adalah pencapaian spesial dalam hubungan kalian ❤️
+              </p>
+            </div>
+
+            <!-- Motivation -->
+            <div style="background: linear-gradient(135deg, rgba(155, 89, 182, 0.1) 0%, rgba(142, 68, 173, 0.1) 100%); border-radius: 8px; padding: 20px; margin: 25px 0;">
+              <p style="color: #333; margin: 0; font-size: 15px; line-height: 1.6;">
+                💕 Semakin banyak interaksi dan momen bermain bersama, semakin besar kesempatan mendapat kartu yang lebih langka!
+              </p>
+            </div>
+
+            <!-- CTA Button -->
+            <a href="${VERIFICATION_URL}/cards" style="display: inline-block; background: linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%); color: white; text-decoration: none; padding: 12px 30px; border-radius: 25px; font-weight: bold; margin: 20px 0; font-size: 16px; box-shadow: 0 4px 12px rgba(155, 89, 182, 0.3);">
+              Lihat Koleksi Kartu →
+            </a>
+          </div>
+
+          <!-- Footer -->
+          <div style="background: #2d2d2d; color: #fff; padding: 20px; text-align: center; border-radius: 0 0 10px 10px; font-size: 12px;">
+            <p style="margin: 0 0 10px 0;">Card Game Couple Team ❤️</p>
+            <p style="margin: 0; color: #999;">Nikmati momen spesial bersama pasanganmu</p>
+          </div>
+        </div>
       `;
 
       await transporter.sendMail({
         from: FROM_EMAIL,
         to: recipientEmail,
-        subject: `🎁 ${partnerName} mendapat kartu ${cardTier}!`,
+        subject: `🎁 ${partnerName} mendapat kartu ${cardTier}! ${tierEmoji}`,
         html: htmlBody,
       });
 

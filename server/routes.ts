@@ -2,7 +2,6 @@ import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
 import { api, WS_EVENTS } from "@shared/routes";
-import { pushNotificationService } from "./push-notifications";
 import { emailNotificationService } from "./email-notifications";
 import { z } from "zod";
 import { WebSocketServer, WebSocket } from "ws";
@@ -49,11 +48,23 @@ export async function registerRoutes(
       if (existing) {
         return res.status(409).json({ message: "Username sudah digunakan" });
       }
+      
+      // Check if email is pre-verified from registration flow
+      const emailVerified = input.email ? storage.isEmailPreVerified(input.email) : false;
+      
       const newUser = await storage.createUser({
         username: input.username,
         pin: input.pin,
         gender: input.gender || 'other',
+        email: input.email,
+        emailVerified: emailVerified,
       });
+      
+      // Clean up pre-verified email
+      if (input.email && emailVerified) {
+        storage.clearPreVerifiedEmail(input.email);
+      }
+      
       res.status(200).json(newUser);
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -217,6 +228,24 @@ export async function registerRoutes(
       const { token } = api.auth.verifyEmail.input.parse(req.body);
       
       console.log('[Email] verifyEmail called with token:', token);
+      
+      // Check if it's a temporary email token (pre-registration)
+      const tempEmailData = storage.getTempEmailToken(token);
+      if (tempEmailData) {
+        // Store the verified email in a session or return it for the register form
+        console.log('[Email] Temp email token verified for:', tempEmailData.email);
+        // Mark as pre-verified so register endpoint knows it's verified
+        storage.markEmailAsPreVerified(tempEmailData.email);
+        storage.clearTempEmailToken(token);
+        return res.status(200).json({ 
+          success: true, 
+          message: "Email berhasil diverifikasi",
+          email: tempEmailData.email,
+          isPreRegistration: true
+        });
+      }
+
+      // Check if it's a registered user's email verification token
       const verifiedUser = await storage.verifyEmail(token);
       
       console.log('[Email] verifyEmail result:', verifiedUser ? { id: verifiedUser.id, username: verifiedUser.username, email: verifiedUser.email, emailVerified: verifiedUser.emailVerified } : null);
@@ -235,6 +264,122 @@ export async function registerRoutes(
         return res.status(400).json({ message: err.errors[0].message });
       }
       res.status(500).json({ message: "Gagal memverifikasi email" });
+    }
+  });
+
+  app.post(api.auth.sendRegistrationEmail.path, async (req, res) => {
+    try {
+      console.log('[Email] sendRegistrationEmail called with body:', req.body);
+      const { email } = api.auth.sendRegistrationEmail.input.parse(req.body);
+      console.log('[Email] Email parsed:', email);
+      
+      // Check if email already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        console.log('[Email] Email already registered:', email);
+        return res.status(409).json({ message: "Email sudah terdaftar" });
+      }
+
+      // Generate verification token
+      console.log('[Email] Generating temp token for:', email);
+      const { token } = await storage.setTempEmailVerificationToken(email);
+      console.log('[Email] Token generated:', token.substring(0, 10) + '...');
+      
+      // Send verification email
+      console.log('[Email] Sending verification email to:', email);
+      const sent = await emailNotificationService.sendVerificationEmail(0, email, token);
+      console.log('[Email] Email sent result:', sent);
+      
+      if (sent) {
+        res.status(200).json({ 
+          success: true, 
+          message: "Email verifikasi telah dikirim. Silakan cek inbox Anda." 
+        });
+      } else {
+        res.status(200).json({ 
+          success: false, 
+          message: "Gagal mengirim email verifikasi. Coba lagi nanti." 
+        });
+      }
+    } catch (err: any) {
+      console.error('[Email] Send registration email error:', err);
+      console.error('[Email] Error stack:', err.stack);
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(500).json({ message: "Gagal mengirim email verifikasi: " + (err.message || "Unknown error") });
+    }
+  });
+
+  app.post(api.auth.pairPartner.path, async (req, res) => {
+    try {
+      const input = api.auth.pairPartner.input.parse(req.body);
+      const pairedUser = await storage.pairPartner(input.userId, input.partnerId);
+      res.status(200).json({ success: true, message: "Partner berhasil dipasangkan", user: pairedUser });
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      if (err.message.includes("tidak ditemukan")) {
+        return res.status(404).json({ message: err.message });
+      }
+      res.status(400).json({ message: err.message || "Gagal pasang partner" });
+    }
+  });
+
+  app.get(api.auth.getPartner.path, async (req, res) => {
+    try {
+      const userId = Number(req.params.userId);
+      const partner = await storage.getPartner(userId);
+      res.status(200).json(partner || null);
+    } catch (err: any) {
+      res.status(500).json({ message: "Gagal mengambil data partner" });
+    }
+  });
+
+  app.get(api.auth.getUserInfo.path, async (req, res) => {
+    try {
+      const userId = Number(req.params.id);
+      const userInfo = await storage.getPublicUserInfo(userId);
+      res.status(200).json(userInfo || null);
+    } catch (err: any) {
+      res.status(500).json({ message: "Gagal mengambil data user" });
+    }
+  });
+
+  app.post(api.auth.sendPartnershipRequest.path, async (req, res) => {
+    try {
+      const { userId, partnerId } = api.auth.sendPartnershipRequest.input.parse(req.body);
+      const request = await storage.sendPartnershipRequest(userId, partnerId);
+      res.status(200).json({ success: true, message: "Permintaan partnership terkirim" });
+    } catch (err: any) {
+      if (err.message.includes("sudah")) {
+        return res.status(409).json({ message: err.message });
+      }
+      res.status(400).json({ message: err.message || "Gagal mengirim permintaan partnership" });
+    }
+  });
+
+  app.get(api.auth.getPendingRequests.path, async (req, res) => {
+    try {
+      const userId = Number(req.params.userId);
+      const requests = await storage.getPendingPartnershipRequests(userId);
+      res.status(200).json(requests);
+    } catch (err: any) {
+      res.status(500).json({ message: "Gagal mengambil data permintaan" });
+    }
+  });
+
+  app.post(api.auth.respondToPartnershipRequest.path, async (req, res) => {
+    try {
+      const { requestId, accept } = api.auth.respondToPartnershipRequest.input.parse(req.body);
+      const result = await storage.respondToPartnershipRequest(requestId, accept);
+      res.status(200).json({ 
+        success: true, 
+        message: accept ? "Partnership diterima" : "Partnership ditolak"
+      });
+    } catch (err: any) {
+      res.status(400).json({ message: err.message || "Gagal memproses permintaan" });
     }
   });
 
@@ -280,50 +425,19 @@ export async function registerRoutes(
       await storage.addGachaLog(input.userId);
       const userCard = await storage.addCardToInventory(input.userId, pulledCard.id);
       
-      // Send gacha pull notification to user
-      const userPayload = {
-        title: '🎉 Kartu Baru!',
-        body: `Selamat! Anda mendapat kartu "${pulledCard.name}" tier ${pulledCard.tier}`,
-        tag: 'gacha_pull',
-        icon: '/pwa-icon-192.svg',
-        badge: '/pwa-icon-192.svg',
-        data: {
-          type: 'gacha_pull',
-          cardId: pulledCard.id,
-          cardName: pulledCard.name,
-          cardTier: pulledCard.tier,
-          url: '/inventory',
-        },
-      };
-      
-      await pushNotificationService.notifyUser(input.userId, userPayload).catch(err => {
-        console.error('[Push] Failed to send gacha notification:', err);
-      });
-      
-      // Notify partner about new card
+      // Notify partner about new card via email
       try {
-        const allUsers = await storage.getAllUsers();
-        const partnerIds = allUsers
-          .filter(u => u.id !== input.userId)
-          .map(u => u.id);
+        const partner = await storage.getPartner(input.userId);
         
-        if (partnerIds.length > 0) {
-          // Send push notification
-          await pushNotificationService.notifyNewCard(partnerIds[0], pulledCard.tier).catch(err => {
-            console.error('[Push] Failed to send new card notification to partner:', err);
+        if (partner && partner.email && partner.emailVerified) {
+          const user = await storage.getUser(input.userId);
+          await emailNotificationService.notifyNewCardEmail(
+            partner.email,
+            user?.username || 'Partner',
+            pulledCard.tier
+          ).catch(err => {
+            console.error('[Email] Failed to send new card notification:', err);
           });
-          
-          // Send email notification to partner
-          const partnerUser = allUsers.find(u => u.id === partnerIds[0]);
-          if (partnerUser?.email && partnerUser.emailVerified) {
-            await emailNotificationService.notifyNewCardEmail(
-              partnerUser.email,
-              user?.username || 'Partner',
-              pulledCard.tier
-            ).catch(err => {
-              console.error('[Email] Failed to send new card notification:', err);
-            });
-          }
         }
       } catch (error) {
         console.error('[Notifications] Error notifying partner:', error);
@@ -356,47 +470,24 @@ export async function registerRoutes(
         userName: usedCard.user.username
       });
 
-      // Send notification to other users about card being used
+      // Send email notification to partner about card being used
       try {
-        const allUsers = await storage.getAllUsers();
-        const otherUserIds = allUsers
-          .filter(u => u.id !== usedCard.userId)
-          .map(u => u.id);
+        const partner = await storage.getPartner(usedCard.userId);
         
-        console.log(`[Push] Notifying other users about card used. Total users: ${allUsers.length}, Notifying: ${otherUserIds.length}`);
-        
-        if (otherUserIds.length > 0) {
-          // Send push notification
-          await pushNotificationService.notifyCardUsed(
-            usedCard.userId,
+        if (partner && partner.email && partner.emailVerified) {
+          await emailNotificationService.notifyCardUsedEmail(
+            partner.email,
             usedCard.user.username,
             usedCard.card.name,
+            usedCard.card.description,
             usedCard.card.tier,
-            60, // default 60 minutes
-            otherUserIds
+            usedCard.card.durationMinutes
           ).catch(err => {
-            console.error('[Push] Failed to send card used notification:', err);
+            console.error('[Email] Failed to send card used notification to partner:', err);
           });
-          
-          // Send email notification to partners
-          for (const partnerUserId of otherUserIds) {
-            const partnerUser = allUsers.find(u => u.id === partnerUserId);
-            if (partnerUser?.email && partnerUser.emailVerified) {
-              await emailNotificationService.notifyCardUsedEmail(
-                partnerUser.email,
-                usedCard.user.username,
-                usedCard.card.name,
-                usedCard.card.description,
-                usedCard.card.tier,
-                usedCard.card.durationMinutes
-              ).catch(err => {
-                console.error('[Email] Failed to send card used notification:', err);
-              });
-            }
-          }
         }
       } catch (error) {
-        console.error('[Notifications] Error sending card used notifications:', error);
+        console.error('[Notifications] Error sending card used email notifications:', error);
       }
 
       res.status(200).json(usedCard);
@@ -407,12 +498,46 @@ export async function registerRoutes(
 
   app.get(api.activeCards.list.path, async (req, res) => {
     try {
-      const items = await storage.getActiveCards();
-      res.json(items);
+      const userId = Number(req.params.userId);
+      
+      console.log(`[Active Cards] User ${userId} requesting active cards`);
+      
+      // Verify user has a partner (requirement to enable this feature)
+      const partner = await storage.getPartner(userId);
+      
+      if (!partner) {
+        console.log(`[Active Cards] User ${userId} has no partner, returning 403`);
+        return res.status(403).json({ message: "Anda harus memiliki partner untuk menggunakan fitur kartu aktif" });
+      }
+      
+      console.log(`[Active Cards] User ${userId} is partnered with ${partner.id} (${partner.username})`);
+      
+      // Get ALL active cards (both user's and partner's)
+      const allActiveCards = await storage.getActiveCards();
+      console.log(`[Active Cards] Got ${allActiveCards.length} total active cards from storage`);
+      
+      // Filter to include both user's own cards AND partner's cards
+      const relevantCards = allActiveCards.filter(card => {
+        const isUserCard = card.userId === userId;
+        const isPartnerCard = card.userId === partner.id;
+        const isRelevant = isUserCard || isPartnerCard;
+        console.log(`[Active Cards] Card ${card.id} (${card.card.name}): userId=${card.userId}, user=${userId}, partner=${partner.id}, include=${isRelevant}`);
+        return isRelevant;
+      });
+      
+      console.log(`[Active Cards] User ${userId} has ${relevantCards.length} relevant active cards (including partner's)`);
+      res.json(relevantCards);
     } catch (err) {
       console.error('[Active Cards] Error:', err);
       res.status(500).json({ message: 'Failed to fetch active cards' });
     }
+  });
+
+  // Legacy redirect for old endpoint (without userId)
+  app.get('/api/active-cards', (req, res) => {
+    res.status(400).json({ 
+      message: 'Missing userId parameter. Use /api/active-cards/:userId instead' 
+    });
   });
 
   // Check for expired cards and send notifications
@@ -430,18 +555,7 @@ export async function registerRoutes(
         return minutesUntilExpiry > 0 && minutesUntilExpiry <= 5;
       });
 
-      // Send expiry warning notifications
-      for (const card of expiringCards) {
-        if (card.expiresAt) {
-          await pushNotificationService.notifyCardExpiring(
-            card.userId,
-            card.card.name,
-            card.expiresAt
-          ).catch(err => {
-            console.error('[Push] Failed to send expiry warning:', err);
-          });
-        }
-      }
+      // Note: Expiry warnings are now sent via email only
 
       res.json({ 
         checked: activeCards.length, 
@@ -458,33 +572,18 @@ export async function registerRoutes(
     try {
       const expiredCards = await storage.handleExpiredCards();
 
-      // Send expiry notifications for each expired card to partner
+      // Send email notifications for expired cards to partners
       for (const card of expiredCards) {
-        // Notify all other users that partner's card has expired
         try {
-          const allUsers = await storage.getAllUsers();
-          const otherUserIds = allUsers
-            .filter(u => u.id !== card.userId)
-            .map(u => u.id);
+          const partner = await storage.getPartner(card.userId);
           
-          if (otherUserIds.length > 0) {
-            for (const partnerUserId of otherUserIds) {
-              // Send push notification
-              await pushNotificationService.notifyCardExpiredNotif(partnerUserId).catch(err => {
-                console.error('[Push] Failed to send card expired notification:', err);
-              });
-              
-              // Send email notification
-              const partnerUser = allUsers.find(u => u.id === partnerUserId);
-              if (partnerUser?.email && partnerUser.emailVerified) {
-                await emailNotificationService.notifyCardExpiredEmail(partnerUser.email).catch(err => {
-                  console.error('[Email] Failed to send card expired notification:', err);
-                });
-              }
-            }
+          if (partner && partner.email && partner.emailVerified) {
+            await emailNotificationService.notifyCardExpiredEmail(partner.email).catch(err => {
+              console.error('[Email] Failed to send card expired notification to partner:', err);
+            });
           }
         } catch (error) {
-          console.error('[Notifications] Error sending card expired notifications:', error);
+          console.error('[Notifications] Error sending card expired email notifications:', error);
         }
       }
 
@@ -498,94 +597,8 @@ export async function registerRoutes(
     }
   });
 
-  // Push Notifications Routes
-  app.get('/api/notifications/vapid-key', (req, res) => {
-    res.json({ vapidPublicKey: pushNotificationService.getVapidPublicKey() });
-  });
-
-  app.post(api.notifications.subscribe.path, async (req, res) => {
-    try {
-      const { userId, subscription } = req.body;
-      
-      if (!userId || !subscription) {
-        return res.status(400).json({ message: 'Missing required fields' });
-      }
-
-      // Get platform from user agent
-      const userAgent = req.headers['user-agent'] || '';
-      let platform = 'web';
-      if (userAgent.includes('Android')) platform = 'android';
-      else if (userAgent.includes('iPhone') || userAgent.includes('iPad')) platform = 'ios';
-
-      await storage.subscribeToPushNotifications(userId, subscription, platform);
-      
-      res.json({ success: true, message: 'Subscribed to push notifications' });
-    } catch (err: any) {
-      console.error('[Push] Subscribe error:', err);
-      res.status(500).json({ message: err.message || 'Failed to subscribe' });
-    }
-  });
-
-  app.post(api.notifications.unsubscribe.path, async (req, res) => {
-    try {
-      const { userId, endpoint } = req.body;
-      
-      if (!userId || !endpoint) {
-        return res.status(400).json({ message: 'Missing required fields' });
-      }
-
-      const success = await storage.unsubscribeFromPushNotifications(userId, endpoint);
-      
-      res.json({ success });
-    } catch (err: any) {
-      console.error('[Push] Unsubscribe error:', err);
-      res.status(500).json({ message: err.message || 'Failed to unsubscribe' });
-    }
-  });
-
-  app.get(api.notifications.preferences.path, async (req, res) => {
-    try {
-      const userId = Number(req.params.userId);
-      
-      const prefs = await storage.getNotificationPreferences(userId);
-      
-      if (!prefs) {
-        return res.json({
-          cardUsed: true,
-          cardExpired: true,
-          cardDropped: true,
-          promotions: false,
-        });
-      }
-
-      res.json({
-        cardUsed: prefs.cardUsed,
-        cardExpired: prefs.cardExpired,
-        cardDropped: prefs.cardDropped,
-        promotions: prefs.promotions,
-      });
-    } catch (err: any) {
-      console.error('[Push] Get preferences error:', err);
-      res.status(500).json({ message: err.message || 'Failed to get preferences' });
-    }
-  });
-
-  app.patch(api.notifications.updatePreferences.path, async (req, res) => {
-    try {
-      const { userId, ...preferences } = req.body;
-      
-      if (!userId) {
-        return res.status(400).json({ message: 'Missing userId' });
-      }
-
-      await storage.updateNotificationPreferences(userId, preferences);
-      
-      res.json({ success: true });
-    } catch (err: any) {
-      console.error('[Push] Update preferences error:', err);
-      res.status(500).json({ message: err.message || 'Failed to update preferences' });
-    }
-  });
+  // Email Notifications Only
+  // Push notifications have been deprecated in favor of reliable email notifications
 
   // Seed Data Trigger
   try {
