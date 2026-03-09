@@ -17,6 +17,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return parsed;
   });
 
+  // Force reload from localStorage on mount to handle HMR scenarios
+  useEffect(() => {
+    const saved = localStorage.getItem("gacha_ldr_user");
+    const parsed = saved ? JSON.parse(saved) : null;
+    if (parsed?.id !== user?.id) {
+      console.log('[Auth] HMR detected - reloading from localStorage:', { newUserId: parsed?.id, oldUserId: user?.id });
+      setUser(parsed);
+    }
+  }, []); // Only run once on mount
+
   const login = (userData: User) => {
     setUser(userData);
     localStorage.setItem("gacha_ldr_user", JSON.stringify(userData));

@@ -24,11 +24,13 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   const { user } = useAuth();
   const [, setLocation] = useLocation();
 
+  console.log('[ProtectedRoute] Render with user:', { userId: user?.id, hasUser: !!user });
+
   useEffect(() => {
     // Give it a brief moment for user to load from localStorage
     const timer = setTimeout(() => {
       if (!user) {
-        console.log('[Auth] User not found after delay, redirecting to login');
+        console.log('[ProtectedRoute] User not found after delay, redirecting to login');
         setLocation("/");
       }
     }, 100);
