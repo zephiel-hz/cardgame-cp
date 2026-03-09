@@ -499,7 +499,6 @@ export async function registerRoutes(
 
   // Push Notifications Routes
   app.get('/api/notifications/vapid-key', (req, res) => {
-    const { pushNotificationService } = require('./push-notifications');
     res.json({ vapidPublicKey: pushNotificationService.getVapidPublicKey() });
   });
 
