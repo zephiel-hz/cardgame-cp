@@ -216,13 +216,13 @@ export async function registerRoutes(
     try {
       const { token } = api.auth.verifyEmail.input.parse(req.body);
       
-      const verified = await storage.verifyEmail(token);
+      console.log('[Email] verifyEmail called with token:', token);
+      const verifiedUser = await storage.verifyEmail(token);
       
-      if (verified) {
-        res.status(200).json({ 
-          success: true, 
-          message: "Email berhasil diverifikasi!" 
-        });
+      console.log('[Email] verifyEmail result:', verifiedUser ? { id: verifiedUser.id, username: verifiedUser.username, email: verifiedUser.email, emailVerified: verifiedUser.emailVerified } : null);
+      
+      if (verifiedUser) {
+        res.status(200).json(verifiedUser);
       } else {
         res.status(400).json({ 
           success: false, 
@@ -382,12 +382,13 @@ export async function registerRoutes(
           for (const partnerUserId of otherUserIds) {
             const partnerUser = allUsers.find(u => u.id === partnerUserId);
             if (partnerUser?.email && partnerUser.emailVerified) {
-              const durationText = '60 menit';
               await emailNotificationService.notifyCardUsedEmail(
                 partnerUser.email,
                 usedCard.user.username,
+                usedCard.card.name,
+                usedCard.card.description,
                 usedCard.card.tier,
-                durationText
+                usedCard.card.durationMinutes
               ).catch(err => {
                 console.error('[Email] Failed to send card used notification:', err);
               });

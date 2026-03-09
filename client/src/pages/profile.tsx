@@ -32,13 +32,14 @@ export default function Profile() {
 
   // Detect component mount - run ONCE on every mount
   useEffect(() => {
-    console.log('[Profile] Component mounted successfully');
+    console.log('[Profile] Component mounted successfully, user:', user);
     return () => console.log('[Profile] Component unmounting');
   }, []);
 
   // Sync state when user changes - IMPORTANT for consistency after refresh/HMR
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && user?.username) {
+      console.log('[Profile] Syncing user state:', { id: user.id, username: user.username });
       setUsername(user.username || "");
       setBaseAvatarUrl(user.avatarUrl || "");
       setDisplayAvatarUrl(user.avatarUrl ? `${user.avatarUrl}?t=${Date.now()}` : "");
@@ -107,20 +108,33 @@ export default function Profile() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token }),
       });
-      if (!res.ok) throw new Error("Kode verifikasi tidak valid atau sudah kadaluarsa");
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Kode verifikasi tidak valid atau sudah kadaluarsa");
+      }
       return res.json();
     },
     onSuccess: (updatedUser) => {
-      login(updatedUser);
-      setShowVerificationInput(false);
-      setVerificationCode("");
-      queryClient.invalidateQueries({ queryKey: [api.activeCards.list.path] });
-      toast({ 
-        title: "Berhasil", 
-        description: "Email berhasil diverifikasi!" 
-      });
+      console.log('[Profile] verifyEmailMutation onSuccess, updatedUser:', updatedUser);
+      console.log('[Profile] updatedUser fields:', updatedUser ? Object.keys(updatedUser) : 'null');
+      
+      // Ensure updatedUser has required fields before login
+      if (updatedUser?.id && updatedUser?.username) {
+        console.log('[Profile] Calling login with valid user:', { id: updatedUser.id, username: updatedUser.username });
+        login(updatedUser);
+        setShowVerificationInput(false);
+        setVerificationCode("");
+        queryClient.invalidateQueries({ queryKey: [api.activeCards.list.path] });
+        toast({ 
+          title: "Berhasil", 
+          description: "Email berhasil diverifikasi!" 
+        });
+      } else {
+        throw new Error(`Data user tidak lengkap dari server: id=${updatedUser?.id}, username=${updatedUser?.username}`);
+      }
     },
     onError: (error: any) => {
+      console.error('[Profile] verifyEmailMutation error:', error);
       toast({ variant: "destructive", title: "Gagal", description: error.message });
     },
   });
@@ -229,7 +243,7 @@ export default function Profile() {
               <Avatar className="w-24 h-24 border-4 border-primary/20 shadow-xl">
                 <AvatarImage src={displayAvatarUrl} />
                 <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">
-                  {user?.username?.charAt(0)?.toUpperCase() || 'U'}
+                  {(user?.username && String(user.username).charAt(0).toUpperCase()) || 'U'}
                 </AvatarFallback>
               </Avatar>
               <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">

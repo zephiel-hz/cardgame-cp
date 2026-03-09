@@ -17,7 +17,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   ];
 
   // If not logged in, don't show the nav
-  if (!user) {
+  if (!user || !user.username) {
     return <div className="min-h-screen w-full bg-background flex flex-col">{children}</div>;
   }
 
@@ -30,7 +30,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             {user.avatarUrl ? (
               <img src={user.avatarUrl} alt={user.username} className="w-full h-full object-cover" />
             ) : (
-              user.username.charAt(0).toUpperCase()
+              String(user.username).charAt(0).toUpperCase()
             )}
           </div>
           <div>
