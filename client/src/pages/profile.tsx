@@ -30,6 +30,16 @@ export default function Profile() {
   const [verificationCode, setVerificationCode] = useState("");
   const [showVerificationInput, setShowVerificationInput] = useState(false);
 
+  // Sync state when user changes
+  useEffect(() => {
+    if (user) {
+      setUsername(user.username || "");
+      setBaseAvatarUrl(user.avatarUrl || "");
+      setDisplayAvatarUrl(user.avatarUrl ? `${user.avatarUrl}?t=${Date.now()}` : "");
+      setGender((user.gender as any) || "other");
+    }
+  }, [user?.id]); // Only resync when user ID changes
+
   // Sync avatar URL when user updates, with cache-busting
   useEffect(() => {
     if (user?.avatarUrl) {
@@ -274,89 +284,87 @@ export default function Profile() {
               <p className="text-[10px] text-muted-foreground">PIN harus berupa 4 digit angka.</p>
             </div>
 
-            {user ? (
-              <div className="space-y-2">
-                <Label htmlFor="newEmail" className="flex items-center gap-2">
-                  <Mail size={16} className="text-primary" /> Email untuk Notifikasi
-                </Label>
-                <div className="bg-primary/5 rounded-lg p-3 border border-primary/10 space-y-3">
-                  {user?.email && user?.emailVerified ? (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="text-green-500" size={16} />
-                        <span className="text-sm font-medium">{user.email}</span>
-                      </div>
-                      <span className="text-xs bg-green-500/20 text-green-700 px-2 py-1 rounded">Terverifikasi</span>
+            <div className="space-y-2">
+              <Label htmlFor="newEmail" className="flex items-center gap-2">
+                <Mail size={16} className="text-primary" /> Email untuk Notifikasi
+              </Label>
+              <div className="bg-primary/5 rounded-lg p-3 border border-primary/10 space-y-3">
+                {user?.email && user?.emailVerified ? (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="text-green-500" size={16} />
+                      <span className="text-sm font-medium">{user.email}</span>
                     </div>
-                  ) : user?.email ? (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <RefreshCw className="text-yellow-500" size={16} />
-                        <span className="text-sm">{user.email}</span>
-                      </div>
-                      <span className="text-xs bg-yellow-500/20 text-yellow-700 px-2 py-1 rounded">Menunggu verifikasi</span>
+                    <span className="text-xs bg-green-500/20 text-green-700 px-2 py-1 rounded">Terverifikasi</span>
+                  </div>
+                ) : user?.email ? (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <RefreshCw className="text-yellow-500" size={16} />
+                      <span className="text-sm">{user.email}</span>
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Belum ada email</p>
-                  )}
-                </div>
-
-                {showVerificationInput ? (
-                  <div className="space-y-2">
-                    <label htmlFor="verificationCode" className="text-sm text-muted-foreground">Masukkan kode verifikasi dari email</label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="verificationCode"
-                        name="verificationCode"
-                        type="text"
-                        autoComplete="off"
-                        value={verificationCode}
-                        onChange={(e) => setVerificationCode(e.target.value)}
-                        className="rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20"
-                        placeholder="Kode verifikasi"
-                      />
-                      <Button
-                        type="button"
-                        onClick={() => verifyEmailMutation.mutate(verificationCode)}
-                        disabled={verifyEmailMutation.isPending || !verificationCode}
-                        className="rounded-xl px-6"
-                      >
-                        {verifyEmailMutation.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          "Verifikasi"
-                        )}
-                      </Button>
-                    </div>
+                    <span className="text-xs bg-yellow-500/20 text-yellow-700 px-2 py-1 rounded">Menunggu verifikasi</span>
                   </div>
                 ) : (
+                  <p className="text-sm text-muted-foreground">Belum ada email</p>
+                )}
+              </div>
+
+              {showVerificationInput ? (
+                <div className="space-y-2">
+                  <label htmlFor="verificationCode" className="text-sm text-muted-foreground">Masukkan kode verifikasi dari email</label>
                   <div className="flex gap-2">
                     <Input
-                      id="newEmail"
-                      name="newEmail"
-                      type="email"
-                      autoComplete="email"
-                      value={newEmail}
-                      onChange={(e) => setNewEmail(e.target.value)}
+                      id="verificationCode"
+                      name="verificationCode"
+                      type="text"
+                      autoComplete="off"
+                      value={verificationCode}
+                      onChange={(e) => setVerificationCode(e.target.value)}
                       className="rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20"
-                      placeholder="Masukkan email baru"
+                      placeholder="Kode verifikasi"
                     />
                     <Button
                       type="button"
-                      onClick={() => updateEmailMutation.mutate(newEmail)}
-                      disabled={updateEmailMutation.isPending || !newEmail}
+                      onClick={() => user?.id && verifyEmailMutation.mutate(verificationCode)}
+                      disabled={verifyEmailMutation.isPending || !verificationCode || !user?.id}
                       className="rounded-xl px-6"
                     >
-                      {updateEmailMutation.isPending ? (
+                      {verifyEmailMutation.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        "Daftarkan"
+                        "Verifikasi"
                       )}
                     </Button>
                   </div>
-                )}
-              </div>
-            ) : null}
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    id="newEmail"
+                    name="newEmail"
+                    type="email"
+                    autoComplete="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    className="rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20"
+                    placeholder="Masukkan email baru"
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => user?.id && updateEmailMutation.mutate(newEmail)}
+                    disabled={updateEmailMutation.isPending || !newEmail || !user?.id}
+                    className="rounded-xl px-6"
+                  >
+                    {updateEmailMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      "Daftarkan"
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="gender">Jenis Kelamin</Label>
