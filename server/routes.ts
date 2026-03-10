@@ -177,7 +177,7 @@ export async function registerRoutes(
       const avatarBuffer = Buffer.from(user.avatarData, 'base64');
 
       res.set('Content-Type', 'image/jpeg');
-      res.set('Content-Length', avatarBuffer.length);
+      res.set('Content-Length', String(avatarBuffer.length));
       res.set('Cache-Control', 'public, max-age=2592000'); // Cache for 30 days
       res.send(avatarBuffer);
     } catch (err) {
@@ -670,7 +670,7 @@ async function seedDatabase() {
         const rareCards = await db.select().from(cardsSchema).where(eq(cardsSchema.tier, "Rare"));
         
         console.log("[SEED] Distributing cards to users...");
-        const userCardsToInsert = [];
+        const userCardsToInsert: (typeof userCards.$inferInsert)[] = [];
         
         allUsers.forEach((user, userIndex) => {
           // Add 5 common cards (rotated)
