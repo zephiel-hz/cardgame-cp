@@ -1,10 +1,18 @@
 import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Inbox, Search, X, Filter, Sparkles } from "lucide-react";
+import { Inbox, Search, X, Filter, Sparkles, Clock } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useInventory, useUseCard } from "@/hooks/use-cards";
 import { CardDisplay } from "@/components/card-display";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { formatDuration } from "@/lib/utils";
 
 interface GroupedCard {
   card: any;
@@ -22,6 +30,7 @@ export default function Inventory() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"name" | "tier-desc" | "tier-asc" | "duration">("name");
+  const [selectedCardForDetail, setSelectedCardForDetail] = useState<any>(null);
 
   const handleUseCard = async (userCardId: number, cardName: string) => {
     try {
@@ -148,7 +157,7 @@ export default function Inventory() {
       <div className="mb-8 px-2">
         <div className="flex justify-between items-start">
           <div>
-            <h2 className="text-2xl font-bold text-foreground mb-1">Koleksi Kartamu</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-1">Koleksi Kartumu</h2>
             <p className="text-muted-foreground text-sm font-medium">
               Gunakan kartu ini untuk meminta sesuatu dari pasanganmu!
             </p>
@@ -284,7 +293,7 @@ export default function Inventory() {
                         </div>
                       )}
                       
-                      <CardDisplay card={grouped.card} className="h-full">
+                      <CardDisplay card={grouped.card} className="h-full" onClick={() => setSelectedCardForDetail(grouped.card)}>
                         <button
                           onClick={() => handleUseCard(grouped.firstUserCardId, grouped.card.name)}
                           disabled={useCard.isPending}
@@ -301,6 +310,50 @@ export default function Inventory() {
           )}
         </>
       )}
+
+      {/* Card Detail Modal */}
+      <Dialog open={!!selectedCardForDetail} onOpenChange={(open) => !open && setSelectedCardForDetail(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{selectedCardForDetail?.name}</DialogTitle>
+            <DialogDescription className="text-base font-medium">
+              <div className="flex items-center gap-2 mt-2">
+                <span className="inline-block px-3 py-1 bg-pink-500/10 border border-pink-500/30 text-pink-600 dark:text-pink-400 rounded-full text-sm font-bold uppercase">
+                  {selectedCardForDetail?.tier}
+                </span>
+                <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 rounded-full text-sm font-medium">
+                  <Clock className="w-4 h-4" />
+                  {selectedCardForDetail && formatDuration(selectedCardForDetail.durationMinutes)}
+                </span>
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div>
+              <h4 className="text-sm font-semibold text-muted-foreground mb-2">Deskripsi</h4>
+              <p className="text-base text-foreground leading-relaxed">
+                {selectedCardForDetail?.description}
+              </p>
+            </div>
+
+            <div className="bg-secondary/50 rounded-lg p-3">
+              <p className="text-xs text-muted-foreground">
+                💡 Kartu ini dapat digunakan untuk meminta sesuatu dari pasanganmu. Durasi aktif adalah {selectedCardForDetail && formatDuration(selectedCardForDetail.durationMinutes)}.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              setSelectedCardForDetail(null);
+            }}
+            className="w-full bg-gradient-to-r from-pink-500 to-pink-400 hover:from-pink-400 hover:to-pink-300 text-white font-bold py-2 rounded-lg shadow-lg shadow-pink-500/30 transition-transform active:scale-95"
+          >
+            Tutup
+          </button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -7,20 +7,70 @@ const SMTP_USER = process.env.SMTP_USER || '';
 const SMTP_PASS = process.env.SMTP_PASS || '';
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@cardgame.local';
 const VERIFICATION_URL = process.env.VERIFICATION_URL || 'http://localhost:5173';
+const SMTP_TIMEOUT = parseInt(process.env.SMTP_TIMEOUT || '30000'); // 30 seconds default
 
 let transporter: nodemailer.Transporter | null = null;
+
+// Helper function to wrap promises with timeout
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, operationName: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`${operationName} timeout after ${timeoutMs}ms`)),
+        timeoutMs
+      )
+    ),
+  ]);
+}
 
 // Initialize email transporter
 function getTransporter() {
   if (!transporter && SMTP_USER && SMTP_PASS) {
+    const isOutlook = SMTP_HOST.includes('outlook') || SMTP_HOST.includes('hotmail');
+    
     transporter = nodemailer.createTransport({
       host: SMTP_HOST,
       port: SMTP_PORT,
-      secure: SMTP_PORT === 465,
+      secure: SMTP_PORT === 465, // true for 465, false for 587
+      requireTLS: SMTP_PORT === 587, // Explicitly require TLS for port 587 (STARTTLS)
       auth: {
         user: SMTP_USER,
         pass: SMTP_PASS,
       },
+      // TLS configuration for better compatibility
+      tls: {
+        // For Outlook: allow self-signed certificates to avoid connection issues
+        rejectUnauthorized: isOutlook ? false : true,
+        minVersion: 'TLSv1.2',
+        // Outlook specific settings
+        ...(isOutlook && {
+          ciphers: 'DEFAULT:!DH', // Ensure compatible ciphers for Outlook
+        }),
+      },
+      // Connection settings
+      connectionTimeout: 15000, // 15 seconds to connect
+      socketTimeout: 45000, // 45 seconds for socket operations
+      greetingTimeout: 15000, // 15 seconds for SMTP greeting
+      // Connection pool for better performance
+      pool: {
+        maxConnections: 3, // Reduced for Outlook rate limiting
+        maxMessages: 50,
+        rateDelta: 2000, // Slower rate for Outlook
+        rateLimit: 5,
+      },
+      // Additional settings
+      authMethod: 'LOGIN', // Explicitly use LOGIN for Outlook
+      // Additional logging for debugging
+      logger: process.env.DEBUG_EMAIL === 'true',
+      debug: process.env.DEBUG_EMAIL === 'true',
+    });
+    
+    // Handle transporter errors
+    transporter.on('error', (err) => {
+      console.error('[Email] Transporter error:', err);
+      // Reset transporter if there's an error
+      transporter = null;
     });
   }
   return transporter;
@@ -97,12 +147,16 @@ export class EmailNotificationService {
         </div>
       `;
 
-      const result = await transporter.sendMail({
-        from: FROM_EMAIL,
-        to: email,
-        subject: 'Verifikasi Email Card Game Couple',
-        html: htmlBody,
-      });
+      const result = await withTimeout(
+        transporter.sendMail({
+          from: FROM_EMAIL,
+          to: email,
+          subject: 'Verifikasi Email Card Game Couple',
+          html: htmlBody,
+        }),
+        SMTP_TIMEOUT,
+        'Send verification email'
+      );
 
       console.log('[Email] Verification email sent to', email);
       return true;
@@ -201,12 +255,16 @@ export class EmailNotificationService {
         </div>
       `;
 
-      await transporter.sendMail({
-        from: FROM_EMAIL,
-        to: recipientEmail,
-        subject: `🎴 ${partnerName} menggunakan kartu: ${cardName}`,
-        html: htmlBody,
-      });
+      await withTimeout(
+        transporter.sendMail({
+          from: FROM_EMAIL,
+          to: recipientEmail,
+          subject: `🎴 ${partnerName} menggunakan kartu: ${cardName}`,
+          html: htmlBody,
+        }),
+        SMTP_TIMEOUT,
+        'Send card used notification'
+      );
 
       console.log('[Email] Card used notification sent to', recipientEmail, 'for card:', cardName);
       return true;
@@ -269,12 +327,16 @@ export class EmailNotificationService {
         </div>
       `;
 
-      await transporter.sendMail({
-        from: FROM_EMAIL,
-        to: recipientEmail,
-        subject: '⏰ Kartu Partnermu Kadaluarsa',
-        html: htmlBody,
-      });
+      await withTimeout(
+        transporter.sendMail({
+          from: FROM_EMAIL,
+          to: recipientEmail,
+          subject: '⏰ Kartu Partnermu Kadaluarsa',
+          html: htmlBody,
+        }),
+        SMTP_TIMEOUT,
+        'Send card expired notification'
+      );
 
       console.log('[Email] Card expired notification sent to', recipientEmail);
       return true;
@@ -359,17 +421,83 @@ export class EmailNotificationService {
         </div>
       `;
 
-      await transporter.sendMail({
-        from: FROM_EMAIL,
-        to: recipientEmail,
-        subject: `🎁 ${partnerName} mendapat kartu ${cardTier}! ${tierEmoji}`,
-        html: htmlBody,
-      });
+      await withTimeout(
+        transporter.sendMail({
+          from: FROM_EMAIL,
+          to: recipientEmail,
+          subject: `🎁 ${partnerName} mendapat kartu ${cardTier}! ${tierEmoji}`,
+          html: htmlBody,
+        }),
+        SMTP_TIMEOUT,
+        'Send new card notification'
+      );
 
       console.log('[Email] New card notification sent to', recipientEmail);
       return true;
     } catch (error) {
       console.error('[Email] Failed to send new card notification:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Send test email (for debugging SMTP configuration)
+   */
+  async sendTestEmail(recipientEmail: string, subject: string = "Test Email", message: string = "Test"): Promise<boolean> {
+    try {
+      const transporter = getTransporter();
+      if (!transporter || !SMTP_USER) {
+        console.log('[Email] Email service not configured');
+        return false;
+      }
+
+      const htmlBody = `
+        <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); padding: 30px 20px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">✓ Test Email</h1>
+          </div>
+          <div style="background: #f8f9fa; padding: 30px 20px; text-align: center;">
+            <p style="color: #333; margin: 0 0 20px 0; font-size: 16px;">
+              <strong>SMTP Configuration is working!</strong>
+            </p>
+            <div style="background: white; border-left: 5px solid #4CAF50; border-radius: 8px; padding: 20px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+              <p style="color: #666; margin: 0; font-size: 14px; line-height: 1.6;">
+                ${message}
+              </p>
+            </div>
+            <div style="background: #f0f0f0; padding: 15px; border-radius: 8px; font-size: 12px; color: #666; margin-top: 20px;">
+              <p style="margin: 5px 0;">
+                <strong>SMTP Host:</strong> ${SMTP_HOST}:${SMTP_PORT}
+              </p>
+              <p style="margin: 5px 0;">
+                <strong>TLS:</strong> ${SMTP_PORT === 587 ? 'STARTTLS (Port 587)' : SMTP_PORT === 465 ? 'SSL/TLS (Port 465)' : 'Unknown'}
+              </p>
+              <p style="margin: 5px 0;">
+                <strong>Time:</strong> ${new Date().toISOString()}
+              </p>
+            </div>
+          </div>
+          <div style="background: #2d2d2d; color: #fff; padding: 20px; text-align: center; border-radius: 0 0 10px 10px; font-size: 12px;">
+            <p style="margin: 0;">Card Game Couple - SMTP Test ✓</p>
+          </div>
+        </div>
+      `;
+
+      await withTimeout(
+        transporter.sendMail({
+          from: FROM_EMAIL,
+          to: recipientEmail,
+          subject: `[TEST] ${subject}`,
+          html: htmlBody,
+        }),
+        SMTP_TIMEOUT,
+        'Send test email'
+      );
+
+      console.log('[Email] Test email sent successfully to', recipientEmail);
+      return true;
+    } catch (error) {
+      console.error('[Email] Failed to send test email:', error);
       return false;
     }
   }

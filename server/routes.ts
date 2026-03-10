@@ -413,9 +413,10 @@ export async function registerRoutes(
 
       const r = Math.random() * 100;
       let targetTier = 'Common';
-      if (r < 10) targetTier = 'SSR';
-      else if (r < 40) targetTier = 'Rare'; // 10% to 40% = 30%
-      // else 60% Common
+      if (r < 10) targetTier = 'SSR';       // 0-10% = 10%
+      else if (r < 25) targetTier = 'Epic'; // 10-25% = 15%
+      else if (r < 50) targetTier = 'Rare'; // 25-50% = 25%
+      // else 50% Common
 
       let tierCards = allCards.filter(c => c.tier === targetTier);
       if (tierCards.length === 0) tierCards = allCards; // fallback
@@ -425,23 +426,46 @@ export async function registerRoutes(
       await storage.addGachaLog(input.userId);
       const userCard = await storage.addCardToInventory(input.userId, pulledCard.id);
       
-      // Notify partner about new card via email
-      try {
-        const partner = await storage.getPartner(input.userId);
-        
-        if (partner && partner.email && partner.emailVerified) {
-          const user = await storage.getUser(input.userId);
-          await emailNotificationService.notifyNewCardEmail(
-            partner.email,
-            user?.username || 'Partner',
-            pulledCard.tier
-          ).catch(err => {
-            console.error('[Email] Failed to send new card notification:', err);
-          });
+      // Notify partner about new card via email (non-blocking with retry logic)
+      // Fire and forget with retry mechanism
+      (async () => {
+        try {
+          const partner = await storage.getPartner(input.userId);
+          
+          if (partner && partner.email && partner.emailVerified) {
+            const user = await storage.getUser(input.userId);
+            
+            let retries = 3;
+            let lastError: Error | null = null;
+            
+            while (retries > 0) {
+              try {
+                await emailNotificationService.notifyNewCardEmail(
+                  partner.email,
+                  user?.username || 'Partner',
+                  pulledCard.tier
+                );
+                console.log('[Email] New card notification sent successfully');
+                break;
+              } catch (err) {
+                lastError = err instanceof Error ? err : new Error(String(err));
+                retries--;
+                if (retries > 0) {
+                  // Wait before retrying (exponential backoff: 1s, 2s, 4s)
+                  await new Promise(resolve => setTimeout(resolve, Math.pow(2, 3 - retries) * 1000));
+                  console.log(`[Email] Retrying notification (${retries} attempts remaining)...`);
+                }
+              }
+            }
+            
+            if (lastError) {
+              console.error('[Email] Failed to send new card notification after retries:', lastError);
+            }
+          }
+        } catch (error) {
+          console.error('[Notifications] Error in background notification task:', error);
         }
-      } catch (error) {
-        console.error('[Notifications] Error notifying partner:', error);
-      }
+      })(); // IIFE executed immediately without awaiting
 
       res.status(200).json({ success: true, card: userCard, remainingPulls: 2 - (count + 1) });
     } catch (err: any) {
@@ -470,25 +494,45 @@ export async function registerRoutes(
         userName: usedCard.user.username
       });
 
-      // Send email notification to partner about card being used
-      try {
-        const partner = await storage.getPartner(usedCard.userId);
-        
-        if (partner && partner.email && partner.emailVerified) {
-          await emailNotificationService.notifyCardUsedEmail(
-            partner.email,
-            usedCard.user.username,
-            usedCard.card.name,
-            usedCard.card.description,
-            usedCard.card.tier,
-            usedCard.card.durationMinutes
-          ).catch(err => {
-            console.error('[Email] Failed to send card used notification to partner:', err);
-          });
+      // Send email notification to partner about card being used (non-blocking with retry)
+      (async () => {
+        try {
+          const partner = await storage.getPartner(usedCard.userId);
+          
+          if (partner && partner.email && partner.emailVerified) {
+            let retries = 3;
+            let lastError: Error | null = null;
+            
+            while (retries > 0) {
+              try {
+                await emailNotificationService.notifyCardUsedEmail(
+                  partner.email,
+                  usedCard.user.username,
+                  usedCard.card.name,
+                  usedCard.card.description,
+                  usedCard.card.tier,
+                  usedCard.card.durationMinutes
+                );
+                console.log('[Email] Card used notification sent successfully');
+                break;
+              } catch (err) {
+                lastError = err instanceof Error ? err : new Error(String(err));
+                retries--;
+                if (retries > 0) {
+                  await new Promise(resolve => setTimeout(resolve, Math.pow(2, 3 - retries) * 1000));
+                  console.log(`[Email] Retrying card used notification (${retries} attempts remaining)...`);
+                }
+              }
+            }
+            
+            if (lastError) {
+              console.error('[Email] Failed to send card used notification after retries:', lastError);
+            }
+          }
+        } catch (error) {
+          console.error('[Notifications] Error in card used notification task:', error);
         }
-      } catch (error) {
-        console.error('[Notifications] Error sending card used email notifications:', error);
-      }
+      })();
 
       res.status(200).json(usedCard);
     } catch (err) {
@@ -572,19 +616,39 @@ export async function registerRoutes(
     try {
       const expiredCards = await storage.handleExpiredCards();
 
-      // Send email notifications for expired cards to partners
+      // Send email notifications for expired cards to partners (non-blocking with retry)
       for (const card of expiredCards) {
-        try {
-          const partner = await storage.getPartner(card.userId);
-          
-          if (partner && partner.email && partner.emailVerified) {
-            await emailNotificationService.notifyCardExpiredEmail(partner.email).catch(err => {
-              console.error('[Email] Failed to send card expired notification to partner:', err);
-            });
+        (async () => {
+          try {
+            const partner = await storage.getPartner(card.userId);
+            
+            if (partner && partner.email && partner.emailVerified) {
+              let retries = 3;
+              let lastError: Error | null = null;
+              
+              while (retries > 0) {
+                try {
+                  await emailNotificationService.notifyCardExpiredEmail(partner.email);
+                  console.log('[Email] Card expired notification sent successfully');
+                  break;
+                } catch (err) {
+                  lastError = err instanceof Error ? err : new Error(String(err));
+                  retries--;
+                  if (retries > 0) {
+                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, 3 - retries) * 1000));
+                    console.log(`[Email] Retrying card expired notification (${retries} attempts remaining)...`);
+                  }
+                }
+              }
+              
+              if (lastError) {
+                console.error('[Email] Failed to send card expired notification after retries:', lastError);
+              }
+            }
+          } catch (error) {
+            console.error('[Notifications] Error in card expired notification task:', error);
           }
-        } catch (error) {
-          console.error('[Notifications] Error sending card expired email notifications:', error);
-        }
+        })();
       }
 
       res.json({ 
@@ -604,6 +668,50 @@ export async function registerRoutes(
     console.log("[ROUTES] seedDatabase completed");
   } catch (err) {
     console.error("[ROUTES] seedDatabase error:", err);
+  }
+
+  // Test Email Endpoint (Development only)
+  if (process.env.NODE_ENV === "development") {
+    app.post("/api/test-email", async (req, res) => {
+      try {
+        const { email, subject, message } = req.body;
+        
+        if (!email) {
+          return res.status(400).json({ error: "Email address required" });
+        }
+
+        console.log(`[Email Test] Sending test email to ${email}...`);
+        
+        const result = await emailNotificationService.sendTestEmail(
+          email,
+          subject || "Test Email",
+          message || "This is a test email from Card Game APP"
+        );
+
+        if (result) {
+          return res.status(200).json({ 
+            success: true, 
+            message: `Test email sent to ${email}` 
+          });
+        } else {
+          return res.status(500).json({ 
+            error: "Email service not configured",
+            smtp: {
+              host: process.env.SMTP_HOST,
+              port: process.env.SMTP_PORT,
+              user: process.env.SMTP_USER ? "✓ Set" : "✗ Not set",
+            }
+          });
+        }
+      } catch (err) {
+        console.error("[Email Test] Error:", err);
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        return res.status(500).json({ 
+          error: "Failed to send test email",
+          details: errorMsg
+        });
+      }
+    });
   }
 
   return httpServer;
@@ -654,6 +762,12 @@ async function seedDatabase() {
         { name: "Kartu Aku Bosnya", tier: "Rare", durationMinutes: 30, description: "Selama 30 menit, target wajib panggil dengan sebutan 'Paduka/Bos'." },
         { name: "Kartu Ketik Pakai Hidung", tier: "Rare", durationMinutes: 5, description: "Target wajib ngetik 'Aku sayang banget sama kamu' pakai hidung tanpa hapus typo." },
         { name: "Kartu Pantun Maksa", tier: "Rare", durationMinutes: 30, description: "Untuk 5 chat ke depan (selama aktif), balas pesan pakai pantun." },
+        
+        // Epic
+        { name: "Kartu Photo Challenge Ekstrem", tier: "Epic", durationMinutes: 120, description: "Target wajib kirim 10 foto pose kocak dalam 2 jam dengan caption lucu." },
+        { name: "Kartu Panggilan Romantis Paksa", tier: "Epic", durationMinutes: 60, description: "Target harus dengarkan panggilan suara 1 jam penuh, boleh obrolan biasa." },
+        { name: "Kartu Curhat Wajib Dengar", tier: "Epic", durationMinutes: 90, description: "Curhat sesuka hati selama 90 menit, target harus dengarkan dan membalas serius." },
+        { name: "Kartu Surprise Date Plan", tier: "Epic", durationMinutes: 1440, description: "Rancang surprise date untuk 2 minggu, target gak perlu belanja tapi harus datang." },
         
         // SSR
         { name: "Kartu Pause Ngambek", tier: "SSR", durationMinutes: 5, description: "Target wajib langsung kirim foto senyum dan batal ngambek detik itu juga." },

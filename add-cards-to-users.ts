@@ -16,9 +16,11 @@ async function addCardsToUsers() {
     // Get all common and rare cards
     const commonCards = await db.select().from(cards).where(eq(cards.tier, "Common"));
     const rareCards = await db.select().from(cards).where(eq(cards.tier, "Rare"));
+    const epicCards = await db.select().from(cards).where(eq(cards.tier, "Epic"));
     
     console.log("[AddCards] Common cards available:", commonCards.length);
     console.log("[AddCards] Rare cards available:", rareCards.length);
+    console.log("[AddCards] Epic cards available:", epicCards.length);
     
     if (commonCards.length < 5 || rareCards.length < 3) {
       console.warn("[AddCards] ⚠️ Not enough cards! Need 5 common and 3 rare, but have", commonCards.length, "common and", rareCards.length, "rare");
@@ -51,6 +53,19 @@ async function addCardsToUsers() {
           status: "inventory"
         });
         console.log(`  - Rare: ${rareCards[cardIndex].name}`);
+      }
+      
+      // Add 2 epic cards (rotated for each user)
+      if (epicCards.length > 0) {
+        for (let i = 0; i < 2; i++) {
+          const cardIndex = (userIndex * 2 + i) % epicCards.length;
+          userCardsToInsert.push({
+            userId: user.id,
+            cardId: epicCards[cardIndex].id,
+            status: "inventory"
+          });
+          console.log(`  - Epic: ${epicCards[cardIndex].name}`);
+        }
       }
     });
     
