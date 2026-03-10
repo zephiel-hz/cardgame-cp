@@ -1,1 +1,117 @@
-if(!self.define){let e,n={};const s=(s,i)=>(s=new URL(s+".js",i).href,n[s]||new Promise(n=>{if("document"in self){const e=document.createElement("script");e.src=s,e.onload=n,document.head.appendChild(e)}else e=s,importScripts(s),n()}).then(()=>{let e=n[s];if(!e)throw new Error(`Module ${s} didn’t register its module`);return e}));self.define=(i,r)=>{const t=e||("document"in self?document.currentScript.src:"")||location.href;if(n[t])return;let c={};const o=e=>s(e,t),d={module:{uri:t},exports:c,require:o};n[t]=Promise.all(i.map(e=>d[e]||o(e))).then(e=>(r(...e),c))}}define(["./workbox-354287e6"],function(e){"use strict";self.skipWaiting(),e.clientsClaim(),e.precacheAndRoute([{url:"registerSW.js",revision:"1872c500de691dce40960bb85481de07"},{url:"pwa-icon-192.svg",revision:"facfe1cd8fc8bb1b47935c288f6f1a2a"},{url:"favicon.png",revision:"ed6740d90cd839744d48523d4991a6f7"},{url:"assets/index-DpLr_qRr.js",revision:null},{url:"assets/index-B9_SYFqo.css",revision:null},{url:"favicon.png",revision:"ed6740d90cd839744d48523d4991a6f7"},{url:"manifest.webmanifest",revision:"4d20b13327f457a19cacd7c342ab1876"}],{}),e.cleanupOutdatedCaches(),e.registerRoute(new e.NavigationRoute(e.createHandlerBoundToURL("index.html"),{denylist:[/^\/api\//]})),e.registerRoute(/index\.html$/,new e.NetworkFirst({cacheName:"html-cache",networkTimeoutSeconds:3,plugins:[new e.ExpirationPlugin({maxEntries:5,maxAgeSeconds:60})]}),"GET"),e.registerRoute(/^\/assets\//,new e.CacheFirst({cacheName:"assets-cache",plugins:[new e.ExpirationPlugin({maxEntries:50,maxAgeSeconds:31536e3})]}),"GET")});
+// Service Worker for Push Notifications
+const CACHE_NAME = 'cardgame-v1';
+
+self.addEventListener('install', (event) => {
+  console.log('[SW] Installing service worker');
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  console.log('[SW] Activating service worker');
+  event.waitUntil(clients.claim());
+});
+
+self.addEventListener('push', (event) => {
+  console.log('[SW] Push notification received');
+  
+  if (!event.data) {
+    console.warn('[SW] No data in push event');
+    return;
+  }
+
+  try {
+    const data = event.data.json();
+    console.log('[SW] Push data:', data);
+    
+    // Use provided icon/badge or fallback to defaults
+    const options = {
+      body: data.body || 'Notifikasi dari Card Game',
+      icon: data.icon || '/pwa-icon-192.svg',
+      badge: data.badge || '/pwa-icon-192.svg',
+      tag: data.tag || 'cardgame-notification',
+      requireInteraction: data.requireInteraction || false,
+      data: data.data || {},
+      actions: data.actions || [],
+      vibrate: [200, 100, 200],
+    };
+
+    const title = data.title || 'Card Game Couple ❤️';
+    console.log('[SW] Showing notification - Title:', title, 'Body:', options.body);
+    
+    event.waitUntil(self.registration.showNotification(title, options));
+  } catch (err) {
+    console.error('[SW] Error parsing push data:', err);
+    // Fallback notification
+    try {
+      event.waitUntil(self.registration.showNotification('Card Game Couple ❤️', {
+        body: 'Ada notifikasi baru untuk Anda',
+        icon: '/pwa-icon-192.svg',
+        tag: 'fallback-notification',
+      }));
+    } catch (fallbackErr) {
+      console.error('[SW] Even fallback notification failed:', fallbackErr);
+    }
+  }
+});
+
+self.addEventListener('notificationclick', (event) => {
+  console.log('[SW] Notification clicked:', event.notification.tag);
+  event.notification.close();
+
+  const data = event.notification.data;
+  const urlToOpen = data.url || '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Check if target URL is already open
+      for (let i = 0; i < clientList.length; i++) {
+        const client = clientList[i];
+        if (client.url === urlToOpen && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // If not open, open new window
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
+  );
+});
+
+self.addEventListener('notificationclose', (event) => {
+  console.log('[SW] Notification closed:', event.notification.tag);
+});
+
+// Fetch event - caching strategy for offline support
+self.addEventListener('fetch', (event) => {
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  // Skip API calls
+  if (event.request.url.includes('/api/')) {
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request).then((response) => {
+      if (response) {
+        return response;
+      }
+
+      return fetch(event.request).then((response) => {
+        if (!response || response.status !== 200 || response.type !== 'basic') {
+          return response;
+        }
+
+        const responseToCache = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseToCache);
+        });
+
+        return response;
+      });
+    })
+  );
+});
