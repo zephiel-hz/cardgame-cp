@@ -13,8 +13,8 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       workbox: {
-        // Don't precache HTML - let it be fetched fresh every time
-        globPatterns: ["**/*.{js,css,ico,png,svg,woff,woff2,ttf,eot}"],
+        // Don't precache anything - let network serve fresh assets
+        globPatterns: [],
         // Network-first for HTML documents to ensure fresh page load on refresh
         navigateFallbackDenylist: [/^\/api\//],
         // Runtime caching rules
@@ -33,14 +33,15 @@ export default defineConfig({
             }
           },
           {
-            // Assets - cache first since they have hash in filename
+            // Assets - network first for production to get latest CSS/JS
             urlPattern: /^\/assets\//,
-            handler: 'CacheFirst',
+            handler: 'NetworkFirst',
             options: {
               cacheName: 'assets-cache',
+              networkTimeoutSeconds: 3,
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                maxAgeSeconds: 60 * 60 // 1 hour only
               }
             }
           }
