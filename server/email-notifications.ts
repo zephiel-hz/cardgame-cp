@@ -132,8 +132,17 @@ export class EmailNotificationService {
    */
   async sendVerificationEmail(userId: number, email: string, verificationToken: string): Promise<boolean> {
     try {
+      console.log('[Email] Attempting to send verification email to:', email);
       const transporter = getTransporter();
-      if (!transporter || !SMTP_USER) {
+      
+      if (!transporter) {
+        console.error('[Email] ✗ Transporter is null! SMTP_USER:', SMTP_USER ? 'SET' : 'NOT SET', 'SMTP_PASS:', SMTP_PASS ? 'SET' : 'NOT SET');
+        console.log('[Email] Email service not configured');
+        return false;
+      }
+      
+      if (!SMTP_USER) {
+        console.error('[Email] ✗ SMTP_USER is empty!');
         console.log('[Email] Email service not configured');
         return false;
       }
@@ -202,10 +211,12 @@ export class EmailNotificationService {
         'Send verification email'
       );
 
-      console.log('[Email] Verification email sent to', email);
+      console.log('[Email] ✓ Verification email sent to', email, '- Response:', result);
       return true;
     } catch (error) {
-      console.error('[Email] Failed to send verification email:', error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('[Email] ✗ Failed to send verification email to', email, ':', errorMsg);
+      console.error('[Email] Full error:', error);
       return false;
     }
   }
@@ -222,8 +233,18 @@ export class EmailNotificationService {
     durationMinutes: number
   ): Promise<boolean> {
     try {
+      console.log('[Email] Attempting to send card used notification to:', recipientEmail);
       const transporter = getTransporter();
-      if (!transporter || !SMTP_USER) return false;
+      
+      if (!transporter) {
+        console.error('[Email] ✗ Transporter is null! Cannot send card used email to', recipientEmail);
+        return false;
+      }
+      
+      if (!SMTP_USER) {
+        console.error('[Email] ✗ SMTP_USER is empty! Cannot send card used email to', recipientEmail);
+        return false;
+      }
 
       // Format duration
       const hours = Math.floor(durationMinutes / 60);
@@ -310,10 +331,12 @@ export class EmailNotificationService {
         'Send card used notification'
       );
 
-      console.log('[Email] Card used notification sent to', recipientEmail, 'for card:', cardName);
+      console.log('[Email] ✓ Card used notification sent to', recipientEmail, 'for card:', cardName);
       return true;
     } catch (error) {
-      console.error('[Email] Failed to send card used notification:', error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('[Email] ✗ Failed to send card used notification to', recipientEmail, ':', errorMsg);
+      console.error('[Email] Full error:', error);
       return false;
     }
   }
@@ -323,8 +346,18 @@ export class EmailNotificationService {
    */
   async notifyCardExpiredEmail(recipientEmail: string): Promise<boolean> {
     try {
+      console.log('[Email] Attempting to send card expired notification to:', recipientEmail);
       const transporter = getTransporter();
-      if (!transporter || !SMTP_USER) return false;
+      
+      if (!transporter) {
+        console.error('[Email] ✗ Transporter is null! Cannot send card expired email to', recipientEmail);
+        return false;
+      }
+      
+      if (!SMTP_USER) {
+        console.error('[Email] ✗ SMTP_USER is empty! Cannot send card expired email to', recipientEmail);
+        return false;
+      }
 
       const htmlBody = `
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -382,10 +415,12 @@ export class EmailNotificationService {
         'Send card expired notification'
       );
 
-      console.log('[Email] Card expired notification sent to', recipientEmail);
+      console.log('[Email] ✓ Card expired notification sent to', recipientEmail);
       return true;
     } catch (error) {
-      console.error('[Email] Failed to send card expired notification:', error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('[Email] ✗ Failed to send card expired notification to', recipientEmail, ':', errorMsg);
+      console.error('[Email] Full error:', error);
       return false;
     }
   }
@@ -395,8 +430,18 @@ export class EmailNotificationService {
    */
   async notifyNewCardEmail(recipientEmail: string, partnerName: string, cardTier: string): Promise<boolean> {
     try {
+      console.log('[Email] Attempting to send new card notification to:', recipientEmail);
       const transporter = getTransporter();
-      if (!transporter || !SMTP_USER) return false;
+      
+      if (!transporter) {
+        console.error('[Email] ✗ Transporter is null! Cannot send new card email to', recipientEmail);
+        return false;
+      }
+      
+      if (!SMTP_USER) {
+        console.error('[Email] ✗ SMTP_USER is empty! Cannot send new card email to', recipientEmail);
+        return false;
+      }
 
       // Color for tier
       const tierColors: Record<string, string> = {
@@ -476,10 +521,12 @@ export class EmailNotificationService {
         'Send new card notification'
       );
 
-      console.log('[Email] New card notification sent to', recipientEmail);
+      console.log('[Email] ✓ New card notification sent to', recipientEmail);
       return true;
     } catch (error) {
-      console.error('[Email] Failed to send new card notification:', error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('[Email] ✗ Failed to send new card notification to', recipientEmail, ':', errorMsg);
+      console.error('[Email] Full error:', error);
       return false;
     }
   }
@@ -489,8 +536,17 @@ export class EmailNotificationService {
    */
   async sendTestEmail(recipientEmail: string, subject: string = "Test Email", message: string = "Test"): Promise<boolean> {
     try {
+      console.log('[Email] Attempting to send test email to:', recipientEmail);
       const transporter = getTransporter();
-      if (!transporter || !SMTP_USER) {
+      
+      if (!transporter) {
+        console.error('[Email] ✗ Transporter is null! Cannot send test email to', recipientEmail);
+        console.log('[Email] Email service not configured');
+        return false;
+      }
+      
+      if (!SMTP_USER) {
+        console.error('[Email] ✗ SMTP_USER is empty! Cannot send test email to', recipientEmail);
         console.log('[Email] Email service not configured');
         return false;
       }
@@ -538,10 +594,12 @@ export class EmailNotificationService {
         'Send test email'
       );
 
-      console.log('[Email] Test email sent successfully to', recipientEmail);
+      console.log('[Email] ✓ Test email sent successfully to', recipientEmail);
       return true;
     } catch (error) {
-      console.error('[Email] Failed to send test email:', error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('[Email] ✗ Failed to send test email to', recipientEmail, ':', errorMsg);
+      console.error('[Email] Full error:', error);
       return false;
     }
   }
