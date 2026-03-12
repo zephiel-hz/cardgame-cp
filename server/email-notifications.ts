@@ -11,6 +11,16 @@ const SMTP_TIMEOUT = parseInt(process.env.SMTP_TIMEOUT || '30000'); // 30 second
 
 let transporter: nodemailer.Transporter | null = null;
 
+// Log email configuration at startup (for debugging)
+console.log('[Email] Configuration:');
+console.log('[Email] - SMTP_HOST:', SMTP_HOST);
+console.log('[Email] - SMTP_PORT:', SMTP_PORT);
+console.log('[Email] - SMTP_USER:', SMTP_USER ? '***set***' : 'NOT SET');
+console.log('[Email] - SMTP_PASS:', SMTP_PASS ? '***set***' : 'NOT SET');
+console.log('[Email] - FROM_EMAIL:', FROM_EMAIL);
+console.log('[Email] - VERIFICATION_URL:', VERIFICATION_URL);
+console.log('[Email] - SMTP_TIMEOUT:', SMTP_TIMEOUT);
+
 // Helper function to wrap promises with timeout
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, operationName: string): Promise<T> {
   return Promise.race([
@@ -27,6 +37,7 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, operationName: s
 // Initialize email transporter
 function getTransporter() {
   if (!transporter && SMTP_USER && SMTP_PASS) {
+    console.log('[Email] Creating transporter...');
     const isOutlook = SMTP_HOST.includes('outlook') || SMTP_HOST.includes('hotmail');
     
     transporter = nodemailer.createTransport({
@@ -66,13 +77,20 @@ function getTransporter() {
       debug: process.env.DEBUG_EMAIL === 'true',
     });
     
+    console.log('[Email] ✓ Transporter created successfully');
+    
     // Handle transporter errors
     transporter.on('error', (err) => {
       console.error('[Email] Transporter error:', err);
       // Reset transporter if there's an error
       transporter = null;
     });
+  } else if (!transporter && (!SMTP_USER || !SMTP_PASS)) {
+    console.warn('[Email] Cannot create transporter - SMTP credentials not configured');
+  } else {
+    console.log('[Email] Using existing transporter');
   }
+  
   return transporter;
 }
 
@@ -84,8 +102,32 @@ export interface EmailNotificationPayload {
 
 export class EmailNotificationService {
   /**
-   * Send verification email
+   * Initialize email service and verify configuration
    */
+  async initialize(): Promise<void> {
+    console.log('[Email] Initializing email service...');
+    
+    if (!SMTP_USER || !SMTP_PASS) {
+      console.warn('[Email] ⚠️  WARNING: Email service not fully configured!');
+      console.warn('[Email] SMTP_USER or SMTP_PASS is missing');
+      console.warn('[Email] Email notifications will not work');
+      return;
+    }
+
+    try {
+      const transporter = getTransporter();
+      if (transporter) {
+        console.log('[Email] Verifying SMTP connection...');
+        await transporter.verify();
+        console.log('[Email] ✓ SMTP connection verified successfully');
+      }
+    } catch (error) {
+      console.error('[Email] ✗ Failed to verify SMTP connection:', error);
+      throw error;
+    }
+  }
+
+  /**
   async sendVerificationEmail(userId: number, email: string, verificationToken: string): Promise<boolean> {
     try {
       const transporter = getTransporter();

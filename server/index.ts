@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
+import { emailNotificationService } from "./email-notifications";
 import { createServer } from "http";
 import path from "path";
 import fs from "fs";
@@ -38,6 +39,18 @@ export function log(message: string, source = "express") {
 
 // Initialize server middleware and routes
 async function initializeServer() {
+  console.log("[init] Starting server initialization...");
+  
+  // Initialize email service
+  console.log("[init] Setting up email notifications service...");
+  try {
+    await emailNotificationService.initialize();
+    console.log("[init] ✓ Email notifications service initialized");
+  } catch (error) {
+    console.error("[init] ⚠️  Email notifications service failed to initialize:", error);
+    console.log("[init] Continuing without email notifications...");
+  }
+
   app.use((req, res, next) => {
     const start = Date.now();
     const path = req.path;
