@@ -38,7 +38,17 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, operationName: s
 function getTransporter() {
   if (!transporter && SMTP_USER && SMTP_PASS) {
     console.log('[Email] Creating transporter...');
+    console.log('[Email] Environment:', process.env.NODE_ENV);
     const isOutlook = SMTP_HOST.includes('outlook') || SMTP_HOST.includes('hotmail');
+    
+    // Use longer timeouts in production environments (Railway, Vercel)
+    // to account for slower network connectivity
+    const isProduction = process.env.NODE_ENV === 'production';
+    const connectionTimeout = isProduction ? 60000 : 15000; // 60s for prod, 15s for dev
+    const socketTimeout = isProduction ? 90000 : 45000;      // 90s for prod, 45s for dev
+    const greetingTimeout = isProduction ? 30000 : 15000;    // 30s for prod, 15s for dev
+    
+    console.log('[Email] Connection timeouts:', { connectionTimeout, socketTimeout, greetingTimeout });
     
     transporter = nodemailer.createTransport({
       host: SMTP_HOST,
@@ -59,10 +69,10 @@ function getTransporter() {
           ciphers: 'DEFAULT:!DH', // Ensure compatible ciphers for Outlook
         }),
       },
-      // Connection settings
-      connectionTimeout: 15000, // 15 seconds to connect
-      socketTimeout: 45000, // 45 seconds for socket operations
-      greetingTimeout: 15000, // 15 seconds for SMTP greeting
+      // Connection settings - increased for production networks
+      connectionTimeout: connectionTimeout,
+      socketTimeout: socketTimeout,
+      greetingTimeout: greetingTimeout,
       // Connection pool for better performance
       pool: {
         maxConnections: 3, // Reduced for Outlook rate limiting
@@ -77,7 +87,7 @@ function getTransporter() {
       debug: process.env.DEBUG_EMAIL === 'true',
     } as any);
     
-    console.log('[Email] ✓ Transporter created successfully');
+    console.log('[Email] ✓ Transporter created successfully with extended timeouts for production');
     
     // Handle transporter errors
     transporter.on('error', (err) => {
@@ -215,7 +225,23 @@ export class EmailNotificationService {
       return true;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error('[Email] ✗ Failed to send verification email to', email, ':', errorMsg);
+      
+      // Provide more specific debugging for common errors
+      let debugInfo = '';
+      if (error instanceof Error) {
+        if ('code' in error) {
+          const errCode = (error as any).code;
+          if (errCode === 'ETIMEDOUT') {
+            debugInfo = ` [NETWORK TIMEOUT - Check if Railway can connect to ${SMTP_HOST}:${SMTP_PORT}]`;
+          } else if (errCode === 'ECONNREFUSED') {
+            debugInfo = ` [CONNECTION REFUSED - SMTP server not responding]`;
+          } else if (errCode === 'ENOTFOUND') {
+            debugInfo = ` [HOST NOT FOUND - DNS issue with ${SMTP_HOST}]`;
+          }
+        }
+      }
+      
+      console.error('[Email] ✗ Failed to send verification email to', email, ':', errorMsg + debugInfo);
       console.error('[Email] Full error:', error);
       return false;
     }
@@ -335,7 +361,16 @@ export class EmailNotificationService {
       return true;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error('[Email] ✗ Failed to send card used notification to', recipientEmail, ':', errorMsg);
+      
+      let debugInfo = '';
+      if (error instanceof Error && 'code' in error) {
+        const errCode = (error as any).code;
+        if (errCode === 'ETIMEDOUT') debugInfo = ` [NETWORK TIMEOUT]`;
+        else if (errCode === 'ECONNREFUSED') debugInfo = ` [CONNECTION REFUSED]`;
+        else if (errCode === 'ENOTFOUND') debugInfo = ` [HOST NOT FOUND: ${SMTP_HOST}]`;
+      }
+      
+      console.error('[Email] ✗ Failed to send card used notification to', recipientEmail, ':', errorMsg + debugInfo);
       console.error('[Email] Full error:', error);
       return false;
     }
@@ -419,7 +454,16 @@ export class EmailNotificationService {
       return true;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error('[Email] ✗ Failed to send card expired notification to', recipientEmail, ':', errorMsg);
+      
+      let debugInfo = '';
+      if (error instanceof Error && 'code' in error) {
+        const errCode = (error as any).code;
+        if (errCode === 'ETIMEDOUT') debugInfo = ` [NETWORK TIMEOUT]`;
+        else if (errCode === 'ECONNREFUSED') debugInfo = ` [CONNECTION REFUSED]`;
+        else if (errCode === 'ENOTFOUND') debugInfo = ` [HOST NOT FOUND: ${SMTP_HOST}]`;
+      }
+      
+      console.error('[Email] ✗ Failed to send card expired notification to', recipientEmail, ':', errorMsg + debugInfo);
       console.error('[Email] Full error:', error);
       return false;
     }
@@ -525,7 +569,16 @@ export class EmailNotificationService {
       return true;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error('[Email] ✗ Failed to send new card notification to', recipientEmail, ':', errorMsg);
+      
+      let debugInfo = '';
+      if (error instanceof Error && 'code' in error) {
+        const errCode = (error as any).code;
+        if (errCode === 'ETIMEDOUT') debugInfo = ` [NETWORK TIMEOUT]`;
+        else if (errCode === 'ECONNREFUSED') debugInfo = ` [CONNECTION REFUSED]`;
+        else if (errCode === 'ENOTFOUND') debugInfo = ` [HOST NOT FOUND: ${SMTP_HOST}]`;
+      }
+      
+      console.error('[Email] ✗ Failed to send new card notification to', recipientEmail, ':', errorMsg + debugInfo);
       console.error('[Email] Full error:', error);
       return false;
     }
@@ -598,7 +651,16 @@ export class EmailNotificationService {
       return true;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error('[Email] ✗ Failed to send test email to', recipientEmail, ':', errorMsg);
+      
+      let debugInfo = '';
+      if (error instanceof Error && 'code' in error) {
+        const errCode = (error as any).code;
+        if (errCode === 'ETIMEDOUT') debugInfo = ` [NETWORK TIMEOUT]`;
+        else if (errCode === 'ECONNREFUSED') debugInfo = ` [CONNECTION REFUSED]`;
+        else if (errCode === 'ENOTFOUND') debugInfo = ` [HOST NOT FOUND: ${SMTP_HOST}]`;
+      }
+      
+      console.error('[Email] ✗ Failed to send test email to', recipientEmail, ':', errorMsg + debugInfo);
       console.error('[Email] Full error:', error);
       return false;
     }
