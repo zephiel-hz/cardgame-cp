@@ -7,7 +7,13 @@ const SMTP_USER = process.env.SMTP_USER || '';
 const SMTP_PASS = process.env.SMTP_PASS || '';
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@cardgame.local';
 const VERIFICATION_URL = process.env.VERIFICATION_URL || 'http://localhost:5173';
-const SMTP_TIMEOUT = parseInt(process.env.SMTP_TIMEOUT || '30000'); // 30 seconds default
+const SMTP_TIMEOUT = parseInt(process.env.SMTP_TIMEOUT || '45000'); // 45 seconds default
+
+// Helper to get production-aware send timeout
+function getSendTimeout(): number {
+  // Production networks are slower, allow extra time
+  return process.env.NODE_ENV === 'production' ? 120000 : SMTP_TIMEOUT;
+}
 
 let transporter: nodemailer.Transporter | null = null;
 
@@ -23,12 +29,14 @@ console.log('[Email] - SMTP_TIMEOUT:', SMTP_TIMEOUT);
 
 // Helper function to wrap promises with timeout
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, operationName: string): Promise<T> {
+  // Double the timeout for production to account for network latency
+  const finalTimeout = process.env.NODE_ENV === 'production' ? timeoutMs * 2 : timeoutMs;
   return Promise.race([
     promise,
     new Promise<T>((_, reject) =>
       setTimeout(
-        () => reject(new Error(`${operationName} timeout after ${timeoutMs}ms`)),
-        timeoutMs
+        () => reject(new Error(`${operationName} timeout after ${finalTimeout}ms`)),
+        finalTimeout
       )
     ),
   ]);
@@ -127,9 +135,15 @@ export class EmailNotificationService {
     try {
       const transporter = getTransporter();
       if (transporter) {
-        console.log('[Email] Verifying SMTP connection...');
-        await transporter.verify();
-        console.log('[Email] ✓ SMTP connection verified successfully');
+        console.log('[Email] Verifying SMTP connection (timeout: 150 seconds for production network latency)...');
+        const startTime = Date.now();
+        
+        // Use extended timeout for verification - production networks may be slow
+        const verifyTimeout = process.env.NODE_ENV === 'production' ? 150000 : 30000; // 150s for prod, 30s for dev
+        await withTimeout(transporter.verify(), verifyTimeout, 'SMTP verification');
+        
+        const elapsed = Date.now() - startTime;
+        console.log(`[Email] ✓ SMTP connection verified successfully in ${elapsed}ms`);
       }
     } catch (error) {
       console.error('[Email] ✗ Failed to verify SMTP connection:', error);
@@ -217,7 +231,7 @@ export class EmailNotificationService {
           subject: 'Verifikasi Email Card Game Couple',
           html: htmlBody,
         }),
-        SMTP_TIMEOUT,
+        getSendTimeout(),
         'Send verification email'
       );
 
@@ -353,7 +367,7 @@ export class EmailNotificationService {
           subject: `🎴 ${partnerName} menggunakan kartu: ${cardName}`,
           html: htmlBody,
         }),
-        SMTP_TIMEOUT,
+        getSendTimeout(),
         'Send card used notification'
       );
 
@@ -446,7 +460,7 @@ export class EmailNotificationService {
           subject: '⏰ Kartu Partnermu Kadaluarsa',
           html: htmlBody,
         }),
-        SMTP_TIMEOUT,
+        getSendTimeout(),
         'Send card expired notification'
       );
 
@@ -561,7 +575,7 @@ export class EmailNotificationService {
           subject: `🎁 ${partnerName} mendapat kartu ${cardTier}! ${tierEmoji}`,
           html: htmlBody,
         }),
-        SMTP_TIMEOUT,
+        getSendTimeout(),
         'Send new card notification'
       );
 
@@ -643,7 +657,7 @@ export class EmailNotificationService {
           subject: `[TEST] ${subject}`,
           html: htmlBody,
         }),
-        SMTP_TIMEOUT,
+        getSendTimeout(),
         'Send test email'
       );
 
