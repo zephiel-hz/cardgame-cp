@@ -53,7 +53,7 @@ function getTransporter() {
       tls: {
         // For Outlook: allow self-signed certificates to avoid connection issues
         rejectUnauthorized: isOutlook ? false : true,
-        minVersion: 'TLSv1.2',
+        minVersion: 'TLSv1.2' as any,
         // Outlook specific settings
         ...(isOutlook && {
           ciphers: 'DEFAULT:!DH', // Ensure compatible ciphers for Outlook
@@ -75,7 +75,7 @@ function getTransporter() {
       // Additional logging for debugging
       logger: process.env.DEBUG_EMAIL === 'true',
       debug: process.env.DEBUG_EMAIL === 'true',
-    });
+    } as any);
     
     console.log('[Email] ✓ Transporter created successfully');
     
@@ -128,6 +128,8 @@ export class EmailNotificationService {
   }
 
   /**
+   * Send verification email
+   */
   async sendVerificationEmail(userId: number, email: string, verificationToken: string): Promise<boolean> {
     try {
       const transporter = getTransporter();
