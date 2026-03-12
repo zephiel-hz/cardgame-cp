@@ -57,27 +57,10 @@ app.use((req, res, next) => {
 
       log(logLine);
     }
-  });
-
-  next();
-});
-
-// Create and initialize the server
-async function initializeServer() {
-  // Request tracing middleware - FIRST
-  app.use((req, res, next) => {
-    console.log(`[TRACE] ${req.method} ${req.path}`);
-    next();
-  });
-
-  // IMPORTANT: Setup static file serving FIRST before Vite and API routes
-  // This ensures static files (public/, avatars) are matched before catch-all handlers
-  if (process.env.NODE_ENV === "production") {
-    serveStatic(app);
-    log("Static file serving configured for production");
-  } else {
-    // In development, serve public directory to handle registerSW.js, sw.js, etc.
-    app.use(express.static(path.join(process.cwd(), "public")));
+      // Log all asset requests
+      if (path.startsWith("/assets") || path.endsWith(".js") || path.endsWith(".css")) {
+        log(`${req.method} ${path} ${res.statusCode} (MIME: ${res.getHeader("content-type")}) in ${duration}ms`);
+      }
     log("Public directory served for development");
   }
 
@@ -92,10 +75,50 @@ async function initializeServer() {
     await setupVite(httpServer, app);
   }
 
+  // In production, explicitly serve dist/public/assets for built assets
+  if (process.env.NODE_ENV === "production") {
+    const assetsDir = path.resolve(process.cwd(), "dist", "public", "assets");
+    console.log("[init] Production assets directory:", assetsDir);
+    console.log("[init] Assets dir exists:", fs.existsSync(assetsDir));
+    
+    if (fs.existsSync(assetsDir)) {
+      app.use("/assets", express.static(assetsDir, {
+        maxAge: "1y",
+        immutable: true,
+        setHeaders: (res, file) => {
+          // Set correct MIME types for assets
+          const ext = path.extname(file).toLowerCase();
+          const mimeMap: Record<string, string> = {
+            ".js": "application/javascript; charset=utf-8",
+            ".css": "text/css; charset=utf-8",
+            ".map": "application/json",
+            ".png": "image/png",
+            ".jpg": "image/jpeg",
+            ".jpeg": "image/jpeg",
+            ".svg": "image/svg+xml",
+            ".webp": "image/webp",
+          };
+          const mime = mimeMap[ext] || "application/octet-stream";
+          res.setHeader("Content-Type", mime);
+          console.log(`[assets] Serving ${file.split("/").pop()} as ${mime}`);
+        }
+      }));
+      console.log("[init] ✓ Assets middleware registered for /assets");
+    } else {
+      console.warn("[init] ⚠ Assets directory not found at:", assetsDir);
+    }
+  }
+
   // SPA fallback for all environments (serve index.html for routes without extensions)
   app.use(async (req, res, next) => {
     // Skip API and WebSocket requests
     if (req.path.startsWith("/api") || req.path.startsWith("/ws")) {
+      return next();
+    }
+    
+    // Skip assets folder explicitly
+    if (req.path.startsWith("/assets/")) {
+      console.log(`[SPA] Skipping asset request: ${req.path}`);
       return next();
     }
     
@@ -107,8 +130,11 @@ async function initializeServer() {
     // Skip static assets with file extensions
     const ext = path.extname(req.path);
     if (ext) {
+      console.log(`[SPA] Skipping request with extension: ${req.path} (ext: ${ext})`);
       return next();
     }
+    
+    console.log(`[SPA] Serving HTML fallback for: ${req.path}`);
     
     // For paths without extension, serve index.html (SPA fallback)
     try {
