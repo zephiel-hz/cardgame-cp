@@ -92,6 +92,50 @@ async function initializeServer() {
     await setupVite(httpServer, app);
   }
 
+  // SPA fallback for all environments (serve index.html for routes without extensions)
+  app.use(async (req, res, next) => {
+    // Skip API and WebSocket requests
+    if (req.path.startsWith("/api") || req.path.startsWith("/ws")) {
+      return next();
+    }
+    
+    // Skip virtual modules (@vite/*, @react-refresh, etc)
+    if (req.path.startsWith("/@")) {
+      return next();
+    }
+    
+    // Skip static assets with file extensions
+    const ext = path.extname(req.path);
+    if (ext) {
+      return next();
+    }
+    
+    // For paths without extension, serve index.html (SPA fallback)
+    try {
+      let indexPath: string;
+      
+      if (process.env.NODE_ENV === "production") {
+        // In production, serve the built index.html
+        indexPath = path.resolve(process.cwd(), "dist", "public", "index.html");
+      } else {
+        // In development, serve the source index.html
+        indexPath = path.resolve(process.cwd(), "client", "index.html");
+      }
+      
+      const template = await fs.promises.readFile(indexPath, "utf-8");
+      res.status(200).set({ "Content-Type": "text/html" }).end(template);
+    } catch (e) {
+      console.error(`[spa] Error serving HTML fallback:`, e);
+      next(e);
+    }
+  });
+  
+  if (process.env.NODE_ENV !== "production") {
+    log("SPA HTML fallback handler registered (dev mode)");
+  } else {
+    log("SPA HTML fallback handler registered (production mode)");
+  }
+
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -115,43 +159,6 @@ async function initializeServer() {
     log(`avatar directory: ${avatarDir}`);
   } else {
     log(`avatar directory not found at ${avatarDir}, uploads will be cached in memory`);
-  }
-
-  // SPA fallback for route without extension - MUST come LAST, after all other handlers
-  if (process.env.NODE_ENV !== "production") {
-    const { setupVite: setupViteForFallback } = await import("./vite");
-    // Note: We already set up Vite earlier, but we need access to vite instance for transformIndexHtml
-    // For now, we'll serve index.html without Vite transform to keep things simple
-    app.use(async (req, res, next) => {
-      // Skip API and WebSocket requests
-      if (req.path.startsWith("/api") || req.path.startsWith("/ws")) {
-        return next();
-      }
-      
-      // Skip virtual modules (@vite/*, @react-refresh, etc)
-      if (req.path.startsWith("/@")) {
-        return next();
-      }
-      
-      // Skip static assets with file extensions
-      const ext = path.extname(req.path);
-      if (ext) {
-        return next();
-      }
-      
-      // For paths without extension, serve index.html (SPA fallback)
-      try {
-        const baseDir = process.cwd();
-        const clientTemplate = path.resolve(baseDir, "client", "index.html");
-        let template = await fs.promises.readFile(clientTemplate, "utf-8");
-        
-        res.status(200).set({ "Content-Type": "text/html" }).end(template);
-      } catch (e) {
-        console.error(`[spa] Error serving HTML fallback:`, e);
-        next(e);
-      }
-    });
-    log("SPA HTML fallback handler registered");
   }
 }
 
