@@ -1,115 +1,23 @@
-import nodemailer from 'nodemailer';
+import sgMail from '@sendgrid/mail';
 import { storage } from './storage';
 
-const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
-const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587');
-const SMTP_USER = process.env.SMTP_USER || '';
-const SMTP_PASS = process.env.SMTP_PASS || '';
+const SENDGRID_API_KEY = process.env.SMTP_PASS || ''; // SMTP_PASS holds the SendGrid API key
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@cardgame.local';
 const VERIFICATION_URL = process.env.VERIFICATION_URL || 'http://localhost:5173';
-const SMTP_TIMEOUT = parseInt(process.env.SMTP_TIMEOUT || '45000'); // 45 seconds default
-
-// Helper to get production-aware send timeout
-function getSendTimeout(): number {
-  // Production networks are slower, allow extra time
-  return process.env.NODE_ENV === 'production' ? 120000 : SMTP_TIMEOUT;
-}
-
-let transporter: nodemailer.Transporter | null = null;
 
 // Log email configuration at startup (for debugging)
 console.log('[Email] Configuration:');
-console.log('[Email] - SMTP_HOST:', SMTP_HOST);
-console.log('[Email] - SMTP_PORT:', SMTP_PORT);
-console.log('[Email] - SMTP_USER:', SMTP_USER ? '***set***' : 'NOT SET');
-console.log('[Email] - SMTP_PASS:', SMTP_PASS ? '***set***' : 'NOT SET');
+console.log('[Email] - Email Provider: SendGrid API (HTTPS)');
+console.log('[Email] - SENDGRID_API_KEY:', SENDGRID_API_KEY ? '***set***' : 'NOT SET');
 console.log('[Email] - FROM_EMAIL:', FROM_EMAIL);
 console.log('[Email] - VERIFICATION_URL:', VERIFICATION_URL);
-console.log('[Email] - SMTP_TIMEOUT:', SMTP_TIMEOUT);
 
-// Helper function to wrap promises with timeout
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, operationName: string): Promise<T> {
-  // Double the timeout for production to account for network latency
-  const finalTimeout = process.env.NODE_ENV === 'production' ? timeoutMs * 2 : timeoutMs;
-  return Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(
-        () => reject(new Error(`${operationName} timeout after ${finalTimeout}ms`)),
-        finalTimeout
-      )
-    ),
-  ]);
-}
-
-// Initialize email transporter
-function getTransporter() {
-  if (!transporter && SMTP_USER && SMTP_PASS) {
-    console.log('[Email] Creating transporter...');
-    console.log('[Email] Environment:', process.env.NODE_ENV);
-    const isOutlook = SMTP_HOST.includes('outlook') || SMTP_HOST.includes('hotmail');
-    
-    // Use longer timeouts in production environments (Railway, Vercel)
-    // to account for slower network connectivity
-    const isProduction = process.env.NODE_ENV === 'production';
-    const connectionTimeout = isProduction ? 60000 : 15000; // 60s for prod, 15s for dev
-    const socketTimeout = isProduction ? 90000 : 45000;      // 90s for prod, 45s for dev
-    const greetingTimeout = isProduction ? 30000 : 15000;    // 30s for prod, 15s for dev
-    
-    console.log('[Email] Connection timeouts:', { connectionTimeout, socketTimeout, greetingTimeout });
-    
-    transporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      secure: SMTP_PORT === 465, // true for 465, false for 587
-      requireTLS: SMTP_PORT === 587, // Explicitly require TLS for port 587 (STARTTLS)
-      auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
-      },
-      // TLS configuration for better compatibility
-      tls: {
-        // For Outlook: allow self-signed certificates to avoid connection issues
-        rejectUnauthorized: isOutlook ? false : true,
-        minVersion: 'TLSv1.2' as any,
-        // Outlook specific settings
-        ...(isOutlook && {
-          ciphers: 'DEFAULT:!DH', // Ensure compatible ciphers for Outlook
-        }),
-      },
-      // Connection settings - increased for production networks
-      connectionTimeout: connectionTimeout,
-      socketTimeout: socketTimeout,
-      greetingTimeout: greetingTimeout,
-      // Connection pool for better performance
-      pool: {
-        maxConnections: 3, // Reduced for Outlook rate limiting
-        maxMessages: 50,
-        rateDelta: 2000, // Slower rate for Outlook
-        rateLimit: 5,
-      },
-      // Additional settings
-      authMethod: 'LOGIN', // Explicitly use LOGIN for Outlook
-      // Additional logging for debugging
-      logger: process.env.DEBUG_EMAIL === 'true',
-      debug: process.env.DEBUG_EMAIL === 'true',
-    } as any);
-    
-    console.log('[Email] ✓ Transporter created successfully with extended timeouts for production');
-    
-    // Handle transporter errors
-    transporter.on('error', (err) => {
-      console.error('[Email] Transporter error:', err);
-      // Reset transporter if there's an error
-      transporter = null;
-    });
-  } else if (!transporter && (!SMTP_USER || !SMTP_PASS)) {
-    console.warn('[Email] Cannot create transporter - SMTP credentials not configured');
-  } else {
-    console.log('[Email] Using existing transporter');
-  }
-  
-  return transporter;
+// Initialize SendGrid client
+if (SENDGRID_API_KEY) {
+  sgMail.setApiKey(SENDGRID_API_KEY);
+  console.log('[Email] ✓ SendGrid API client initialized');
+} else {
+  console.warn('[Email] ⚠️  WARNING: SENDGRID_API_KEY not set - email will not work');
 }
 
 export interface EmailNotificationPayload {
@@ -125,36 +33,19 @@ export class EmailNotificationService {
   async initialize(): Promise<void> {
     console.log('[Email] Initializing email service...');
     
-    if (!SMTP_USER || !SMTP_PASS) {
+    if (!SENDGRID_API_KEY) {
       console.warn('[Email] ⚠️  WARNING: Email service not fully configured!');
-      console.warn('[Email] SMTP_USER or SMTP_PASS is missing');
+      console.warn('[Email] SENDGRID_API_KEY is missing');
       console.warn('[Email] Email notifications will not work');
       return;
     }
 
     try {
-      const transporter = getTransporter();
-      if (transporter) {
-        console.log('[Email] Testing SMTP connection with quick timeout (5 seconds)...');
-        const startTime = Date.now();
-        
-        // Use quick timeout for startup verification - fail fast if connection is blocked
-        // Don't block entire server initialization on email connectivity
-        const quickVerifyTimeout = 5000; // 5 seconds - quick check only
-        try {
-          await withTimeout(transporter.verify(), quickVerifyTimeout, 'SMTP quick verify');
-          const elapsed = Date.now() - startTime;
-          console.log(`[Email] ✓ SMTP connection verified in ${elapsed}ms`);
-        } catch (verifyError) {
-          const elapsed = Date.now() - startTime;
-          console.warn(`[Email] ⚠️  SMTP verification failed (${elapsed}ms) - server will continue, but email may not work`);
-          console.warn('[Email] This is normal if Railway is unable to reach Gmail servers');
-          // Don't throw - allow server to continue even if email verification fails
-          // Email sends will fail gracefully with proper error messages
-        }
-      }
+      // SendGrid API is always ready (no verification needed for API keys)
+      console.log('[Email] ✓ SendGrid API configured and ready');
+      console.log('[Email] Note: SendGrid uses HTTPS (port 443), which works with Railway networks');
     } catch (error) {
-      console.error('[Email] ✗ Unexpected error during initialization:', error);
+      console.error('[Email] ✗ Error during initialization:', error);
       // Don't throw - allow server to continue
     }
   }
@@ -165,21 +56,14 @@ export class EmailNotificationService {
   async sendVerificationEmail(userId: number, email: string, verificationToken: string): Promise<boolean> {
     try {
       console.log('[Email] Attempting to send verification email to:', email);
-      const transporter = getTransporter();
       
-      if (!transporter) {
-        console.error('[Email] ✗ Transporter is null! SMTP_USER:', SMTP_USER ? 'SET' : 'NOT SET', 'SMTP_PASS:', SMTP_PASS ? 'SET' : 'NOT SET');
-        console.log('[Email] Email service not configured');
-        return false;
-      }
-      
-      if (!SMTP_USER) {
-        console.error('[Email] ✗ SMTP_USER is empty!');
+      if (!SENDGRID_API_KEY) {
+        console.error('[Email] ✗ SENDGRID_API_KEY is empty!');
         console.log('[Email] Email service not configured');
         return false;
       }
 
-      const verificationCode = verificationToken; // This is now a 6-digit code
+      const verificationCode = verificationToken;
       const verificationLink = `${VERIFICATION_URL}/verify-email?token=${verificationCode}&userId=${userId}`;
       
       const htmlBody = `
@@ -232,38 +116,19 @@ export class EmailNotificationService {
         </div>
       `;
 
-      const result = await withTimeout(
-        transporter.sendMail({
-          from: FROM_EMAIL,
-          to: email,
-          subject: 'Verifikasi Email Card Game Couple',
-          html: htmlBody,
-        }),
-        getSendTimeout(),
-        'Send verification email'
-      );
+      const msg = {
+        to: email,
+        from: FROM_EMAIL,
+        subject: 'Verifikasi Email Card Game Couple',
+        html: htmlBody,
+      };
 
-      console.log('[Email] ✓ Verification email sent to', email, '- Response:', result);
+      await sgMail.send(msg);
+      console.log('[Email] ✓ Verification email sent to', email);
       return true;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      
-      // Provide more specific debugging for common errors
-      let debugInfo = '';
-      if (error instanceof Error) {
-        if ('code' in error) {
-          const errCode = (error as any).code;
-          if (errCode === 'ETIMEDOUT') {
-            debugInfo = ` [NETWORK TIMEOUT - Check if Railway can connect to ${SMTP_HOST}:${SMTP_PORT}]`;
-          } else if (errCode === 'ECONNREFUSED') {
-            debugInfo = ` [CONNECTION REFUSED - SMTP server not responding]`;
-          } else if (errCode === 'ENOTFOUND') {
-            debugInfo = ` [HOST NOT FOUND - DNS issue with ${SMTP_HOST}]`;
-          }
-        }
-      }
-      
-      console.error('[Email] ✗ Failed to send verification email to', email, ':', errorMsg + debugInfo);
+      console.error('[Email] ✗ Failed to send verification email to', email, ':', errorMsg);
       console.error('[Email] Full error:', error);
       return false;
     }
@@ -282,15 +147,9 @@ export class EmailNotificationService {
   ): Promise<boolean> {
     try {
       console.log('[Email] Attempting to send card used notification to:', recipientEmail);
-      const transporter = getTransporter();
       
-      if (!transporter) {
-        console.error('[Email] ✗ Transporter is null! Cannot send card used email to', recipientEmail);
-        return false;
-      }
-      
-      if (!SMTP_USER) {
-        console.error('[Email] ✗ SMTP_USER is empty! Cannot send card used email to', recipientEmail);
+      if (!SENDGRID_API_KEY) {
+        console.error('[Email] ✗ SENDGRID_API_KEY is empty!');
         return false;
       }
 
@@ -368,31 +227,19 @@ export class EmailNotificationService {
         </div>
       `;
 
-      await withTimeout(
-        transporter.sendMail({
-          from: FROM_EMAIL,
-          to: recipientEmail,
-          subject: `🎴 ${partnerName} menggunakan kartu: ${cardName}`,
-          html: htmlBody,
-        }),
-        getSendTimeout(),
-        'Send card used notification'
-      );
+      const msg = {
+        to: recipientEmail,
+        from: FROM_EMAIL,
+        subject: `🎴 ${partnerName} menggunakan kartu: ${cardName}`,
+        html: htmlBody,
+      };
 
+      await sgMail.send(msg);
       console.log('[Email] ✓ Card used notification sent to', recipientEmail, 'for card:', cardName);
       return true;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      
-      let debugInfo = '';
-      if (error instanceof Error && 'code' in error) {
-        const errCode = (error as any).code;
-        if (errCode === 'ETIMEDOUT') debugInfo = ` [NETWORK TIMEOUT]`;
-        else if (errCode === 'ECONNREFUSED') debugInfo = ` [CONNECTION REFUSED]`;
-        else if (errCode === 'ENOTFOUND') debugInfo = ` [HOST NOT FOUND: ${SMTP_HOST}]`;
-      }
-      
-      console.error('[Email] ✗ Failed to send card used notification to', recipientEmail, ':', errorMsg + debugInfo);
+      console.error('[Email] ✗ Failed to send card used notification to', recipientEmail, ':', errorMsg);
       console.error('[Email] Full error:', error);
       return false;
     }
@@ -404,15 +251,9 @@ export class EmailNotificationService {
   async notifyCardExpiredEmail(recipientEmail: string): Promise<boolean> {
     try {
       console.log('[Email] Attempting to send card expired notification to:', recipientEmail);
-      const transporter = getTransporter();
       
-      if (!transporter) {
-        console.error('[Email] ✗ Transporter is null! Cannot send card expired email to', recipientEmail);
-        return false;
-      }
-      
-      if (!SMTP_USER) {
-        console.error('[Email] ✗ SMTP_USER is empty! Cannot send card expired email to', recipientEmail);
+      if (!SENDGRID_API_KEY) {
+        console.error('[Email] ✗ SENDGRID_API_KEY is empty!');
         return false;
       }
 
@@ -461,31 +302,19 @@ export class EmailNotificationService {
         </div>
       `;
 
-      await withTimeout(
-        transporter.sendMail({
-          from: FROM_EMAIL,
-          to: recipientEmail,
-          subject: '⏰ Kartu Partnermu Kadaluarsa',
-          html: htmlBody,
-        }),
-        getSendTimeout(),
-        'Send card expired notification'
-      );
+      const msg = {
+        to: recipientEmail,
+        from: FROM_EMAIL,
+        subject: '⏰ Kartu Partnermu Kadaluarsa',
+        html: htmlBody,
+      };
 
+      await sgMail.send(msg);
       console.log('[Email] ✓ Card expired notification sent to', recipientEmail);
       return true;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      
-      let debugInfo = '';
-      if (error instanceof Error && 'code' in error) {
-        const errCode = (error as any).code;
-        if (errCode === 'ETIMEDOUT') debugInfo = ` [NETWORK TIMEOUT]`;
-        else if (errCode === 'ECONNREFUSED') debugInfo = ` [CONNECTION REFUSED]`;
-        else if (errCode === 'ENOTFOUND') debugInfo = ` [HOST NOT FOUND: ${SMTP_HOST}]`;
-      }
-      
-      console.error('[Email] ✗ Failed to send card expired notification to', recipientEmail, ':', errorMsg + debugInfo);
+      console.error('[Email] ✗ Failed to send card expired notification to', recipientEmail, ':', errorMsg);
       console.error('[Email] Full error:', error);
       return false;
     }
@@ -497,15 +326,9 @@ export class EmailNotificationService {
   async notifyNewCardEmail(recipientEmail: string, partnerName: string, cardTier: string): Promise<boolean> {
     try {
       console.log('[Email] Attempting to send new card notification to:', recipientEmail);
-      const transporter = getTransporter();
       
-      if (!transporter) {
-        console.error('[Email] ✗ Transporter is null! Cannot send new card email to', recipientEmail);
-        return false;
-      }
-      
-      if (!SMTP_USER) {
-        console.error('[Email] ✗ SMTP_USER is empty! Cannot send new card email to', recipientEmail);
+      if (!SENDGRID_API_KEY) {
+        console.error('[Email] ✗ SENDGRID_API_KEY is empty!');
         return false;
       }
 
@@ -576,52 +399,33 @@ export class EmailNotificationService {
         </div>
       `;
 
-      await withTimeout(
-        transporter.sendMail({
-          from: FROM_EMAIL,
-          to: recipientEmail,
-          subject: `🎁 ${partnerName} mendapat kartu ${cardTier}! ${tierEmoji}`,
-          html: htmlBody,
-        }),
-        getSendTimeout(),
-        'Send new card notification'
-      );
+      const msg = {
+        to: recipientEmail,
+        from: FROM_EMAIL,
+        subject: `🎁 ${partnerName} mendapat kartu ${cardTier}! ${tierEmoji}`,
+        html: htmlBody,
+      };
 
+      await sgMail.send(msg);
       console.log('[Email] ✓ New card notification sent to', recipientEmail);
       return true;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      
-      let debugInfo = '';
-      if (error instanceof Error && 'code' in error) {
-        const errCode = (error as any).code;
-        if (errCode === 'ETIMEDOUT') debugInfo = ` [NETWORK TIMEOUT]`;
-        else if (errCode === 'ECONNREFUSED') debugInfo = ` [CONNECTION REFUSED]`;
-        else if (errCode === 'ENOTFOUND') debugInfo = ` [HOST NOT FOUND: ${SMTP_HOST}]`;
-      }
-      
-      console.error('[Email] ✗ Failed to send new card notification to', recipientEmail, ':', errorMsg + debugInfo);
+      console.error('[Email] ✗ Failed to send new card notification to', recipientEmail, ':', errorMsg);
       console.error('[Email] Full error:', error);
       return false;
     }
   }
 
   /**
-   * Send test email (for debugging SMTP configuration)
+   * Send test email (for debugging SendGrid configuration)
    */
   async sendTestEmail(recipientEmail: string, subject: string = "Test Email", message: string = "Test"): Promise<boolean> {
     try {
       console.log('[Email] Attempting to send test email to:', recipientEmail);
-      const transporter = getTransporter();
       
-      if (!transporter) {
-        console.error('[Email] ✗ Transporter is null! Cannot send test email to', recipientEmail);
-        console.log('[Email] Email service not configured');
-        return false;
-      }
-      
-      if (!SMTP_USER) {
-        console.error('[Email] ✗ SMTP_USER is empty! Cannot send test email to', recipientEmail);
+      if (!SENDGRID_API_KEY) {
+        console.error('[Email] ✗ SENDGRID_API_KEY is empty!');
         console.log('[Email] Email service not configured');
         return false;
       }
@@ -633,7 +437,7 @@ export class EmailNotificationService {
           </div>
           <div style="background: #f8f9fa; padding: 30px 20px; text-align: center;">
             <p style="color: #333; margin: 0 0 20px 0; font-size: 16px;">
-              <strong>SMTP Configuration is working!</strong>
+              <strong>SendGrid API is working!</strong>
             </p>
             <div style="background: white; border-left: 5px solid #4CAF50; border-radius: 8px; padding: 20px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
               <p style="color: #666; margin: 0; font-size: 14px; line-height: 1.6;">
@@ -642,10 +446,10 @@ export class EmailNotificationService {
             </div>
             <div style="background: #f0f0f0; padding: 15px; border-radius: 8px; font-size: 12px; color: #666; margin-top: 20px;">
               <p style="margin: 5px 0;">
-                <strong>SMTP Host:</strong> ${SMTP_HOST}:${SMTP_PORT}
+                <strong>Email Provider:</strong> SendGrid (HTTPS API)
               </p>
               <p style="margin: 5px 0;">
-                <strong>TLS:</strong> ${SMTP_PORT === 587 ? 'STARTTLS (Port 587)' : SMTP_PORT === 465 ? 'SSL/TLS (Port 465)' : 'Unknown'}
+                <strong>Protocol:</strong> HTTPS (Port 443) - No firewall blocking
               </p>
               <p style="margin: 5px 0;">
                 <strong>Time:</strong> ${new Date().toISOString()}
@@ -653,36 +457,24 @@ export class EmailNotificationService {
             </div>
           </div>
           <div style="background: #2d2d2d; color: #fff; padding: 20px; text-align: center; border-radius: 0 0 10px 10px; font-size: 12px;">
-            <p style="margin: 0;">Card Game Couple - SMTP Test ✓</p>
+            <p style="margin: 0;">Card Game Couple - SendGrid API Test ✓</p>
           </div>
         </div>
       `;
 
-      await withTimeout(
-        transporter.sendMail({
-          from: FROM_EMAIL,
-          to: recipientEmail,
-          subject: `[TEST] ${subject}`,
-          html: htmlBody,
-        }),
-        getSendTimeout(),
-        'Send test email'
-      );
+      const msg = {
+        to: recipientEmail,
+        from: FROM_EMAIL,
+        subject: `[TEST] ${subject}`,
+        html: htmlBody,
+      };
 
+      await sgMail.send(msg);
       console.log('[Email] ✓ Test email sent successfully to', recipientEmail);
       return true;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      
-      let debugInfo = '';
-      if (error instanceof Error && 'code' in error) {
-        const errCode = (error as any).code;
-        if (errCode === 'ETIMEDOUT') debugInfo = ` [NETWORK TIMEOUT]`;
-        else if (errCode === 'ECONNREFUSED') debugInfo = ` [CONNECTION REFUSED]`;
-        else if (errCode === 'ENOTFOUND') debugInfo = ` [HOST NOT FOUND: ${SMTP_HOST}]`;
-      }
-      
-      console.error('[Email] ✗ Failed to send test email to', recipientEmail, ':', errorMsg + debugInfo);
+      console.error('[Email] ✗ Failed to send test email to', recipientEmail, ':', errorMsg);
       console.error('[Email] Full error:', error);
       return false;
     }
@@ -692,7 +484,7 @@ export class EmailNotificationService {
    * Check if email service is configured
    */
   isConfigured(): boolean {
-    return !!(SMTP_USER && SMTP_PASS);
+    return !!SENDGRID_API_KEY;
   }
 }
 
