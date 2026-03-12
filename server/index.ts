@@ -64,6 +64,12 @@ app.use((req, res, next) => {
 
 // Create and initialize the server
 async function initializeServer() {
+  // Request tracing middleware - FIRST
+  app.use((req, res, next) => {
+    console.log(`[TRACE] ${req.method} ${req.path}`);
+    next();
+  });
+
   // IMPORTANT: Setup static file serving FIRST before Vite and API routes
   // This ensures static files (public/, avatars) are matched before catch-all handlers
   if (process.env.NODE_ENV === "production") {
@@ -75,15 +81,16 @@ async function initializeServer() {
     log("Public directory served for development");
   }
 
-  // Setup Vite in development AFTER static files but BEFORE API routes
-  // This ensures Vite middlewares can transform source files
+  // Register API routes FIRST, before Vite
+  // This ensures /api/* routes have priority over Vite middleware
+  await registerRoutes(httpServer, app);
+  
+  // Setup Vite in development AFTER API routes
+  // This ensures Vite middlewares don't interfere with API routing
   if (process.env.NODE_ENV !== "production") {
     const { setupVite } = await import("./vite");
     await setupVite(httpServer, app);
   }
-
-  // Register API routes AFTER static/Vite setup so they take precedence
-  await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -108,6 +115,43 @@ async function initializeServer() {
     log(`avatar directory: ${avatarDir}`);
   } else {
     log(`avatar directory not found at ${avatarDir}, uploads will be cached in memory`);
+  }
+
+  // SPA fallback for route without extension - MUST come LAST, after all other handlers
+  if (process.env.NODE_ENV !== "production") {
+    const { setupVite: setupViteForFallback } = await import("./vite");
+    // Note: We already set up Vite earlier, but we need access to vite instance for transformIndexHtml
+    // For now, we'll serve index.html without Vite transform to keep things simple
+    app.use(async (req, res, next) => {
+      // Skip API and WebSocket requests
+      if (req.path.startsWith("/api") || req.path.startsWith("/ws")) {
+        return next();
+      }
+      
+      // Skip virtual modules (@vite/*, @react-refresh, etc)
+      if (req.path.startsWith("/@")) {
+        return next();
+      }
+      
+      // Skip static assets with file extensions
+      const ext = path.extname(req.path);
+      if (ext) {
+        return next();
+      }
+      
+      // For paths without extension, serve index.html (SPA fallback)
+      try {
+        const baseDir = process.cwd();
+        const clientTemplate = path.resolve(baseDir, "client", "index.html");
+        let template = await fs.promises.readFile(clientTemplate, "utf-8");
+        
+        res.status(200).set({ "Content-Type": "text/html" }).end(template);
+      } catch (e) {
+        console.error(`[spa] Error serving HTML fallback:`, e);
+        next(e);
+      }
+    });
+    log("SPA HTML fallback handler registered");
   }
 }
 

@@ -8,6 +8,8 @@ import { WebSocketServer, WebSocket } from "ws";
 import fs from "fs";
 import path from "path";
 
+let registerRoutesCallCount = 0;
+
 // Use /tmp for avatar storage in Vercel serverless (read-only filesystem)
 // Use public/avatars for local development
 const uploadDir = process.env.NODE_ENV === "production" 
@@ -29,6 +31,9 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  registerRoutesCallCount++;
+  console.log(`[registerRoutes] Initializing routes (call #${registerRoutesCallCount})`);
+  
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
   // Broadcast helper
@@ -41,6 +46,10 @@ export async function registerRoutes(
     });
   };
 
+  console.log("[registerRoutes] Starting to register routes...");
+  console.log("[registerRoutes] api.auth.login.path:", api.auth.login.path);
+
+  console.log("[registerRoutes] About to register POST /api/auth/register...");
   app.post(api.auth.register.path, async (req, res) => {
     try {
       const input = api.auth.register.input.parse(req.body);
@@ -73,9 +82,12 @@ export async function registerRoutes(
       res.status(500).json({ message: "Internal server error" });
     }
   });
+  console.log("[registerRoutes] Registered POST /api/auth/register");
 
+  console.log("[registerRoutes] About to register POST /api/auth/login...");
   app.post(api.auth.login.path, async (req, res) => {
     try {
+      console.log("[DEBUG:login] Login request received:", req.body);
       const input = api.auth.login.input.parse(req.body);
       let user = await storage.getUserByUsername(input.username);
       if (!user) {
@@ -92,6 +104,7 @@ export async function registerRoutes(
       res.status(500).json({ message: "Internal server error" });
     }
   });
+  console.log("[registerRoutes] Registered POST /api/auth/login");
 
   app.patch(api.auth.updateProfile.path, async (req, res) => {
     try {
@@ -661,14 +674,12 @@ export async function registerRoutes(
     }
   });
 
-  // Seed Data Trigger
-  try {
-    console.log("[ROUTES] About to call seedDatabase...");
-    await seedDatabase();
-    console.log("[ROUTES] seedDatabase completed");
-  } catch (err) {
-    console.error("[ROUTES] seedDatabase error:", err);
-  }
+  // Seed database in background (don't block route registration)
+  // Fire and forget with error logging
+  // DISABLED temporarily - causing connection timeout
+  // seedDatabase()
+  //   .then(() => console.log("[ROUTES] seedDatabase completed"))
+  //   .catch(err => console.error("[ROUTES] seedDatabase error:", err));
 
   // Test Email Endpoint (Development only)
   if (process.env.NODE_ENV === "development") {
@@ -714,6 +725,8 @@ export async function registerRoutes(
     });
   }
 
+  console.log("[registerRoutes] Routes registered successfully");
+  
   return httpServer;
 }
 
@@ -736,7 +749,7 @@ async function seedDatabase() {
         if (userCount.length === 0) {
           console.log("[SEED] Inserting 2 users...");
           await db.insert(users).values([
-            { username: 'kwahsotoo', pin: '1234' },
+            { username: 'kwahsotoo', pin: '1010' },
             { username: 'visimisi', pin: '5678' }
           ]);
           

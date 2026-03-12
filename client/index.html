@@ -2,15 +2,22 @@
 <html lang="en">
   <head>
     <script>
-      // Initialize theme before React renders to prevent flash
-      (function() {
+      // Wait for stylesheets to load before initializing theme
+      function initializeTheme() {
         const saved = localStorage.getItem('app_theme');
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         const theme = saved || (prefersDark ? 'dark' : 'light');
         if (theme === 'dark') {
           document.documentElement.classList.add('dark');
         }
-      })();
+      }
+      
+      // Run immediately but safely
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeTheme);
+      } else {
+        initializeTheme();
+      }
       
       // Suppress Vite HMR errors - HMR disabled in middleware mode
       window.__vite_is_modern__ = true;

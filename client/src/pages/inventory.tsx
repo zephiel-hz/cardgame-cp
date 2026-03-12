@@ -316,18 +316,20 @@ export default function Inventory() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-2xl">{selectedCardForDetail?.name}</DialogTitle>
-            <DialogDescription className="text-base font-medium">
-              <div className="flex items-center gap-2 mt-2">
-                <span className="inline-block px-3 py-1 bg-pink-500/10 border border-pink-500/30 text-pink-600 dark:text-pink-400 rounded-full text-sm font-bold uppercase">
-                  {selectedCardForDetail?.tier}
-                </span>
-                <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 rounded-full text-sm font-medium">
-                  <Clock className="w-4 h-4" />
-                  {selectedCardForDetail && formatDuration(selectedCardForDetail.durationMinutes)}
-                </span>
-              </div>
+            <DialogDescription>
+              Tier: {selectedCardForDetail?.tier} • Durasi: {selectedCardForDetail && formatDuration(selectedCardForDetail.durationMinutes)}
             </DialogDescription>
           </DialogHeader>
+          
+          <div className="flex items-center gap-2">
+            <span className="inline-block px-3 py-1 bg-pink-500/10 border border-pink-500/30 text-pink-600 dark:text-pink-400 rounded-full text-sm font-bold uppercase">
+              {selectedCardForDetail?.tier}
+            </span>
+            <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 rounded-full text-sm font-medium">
+              <Clock className="w-4 h-4" />
+              {selectedCardForDetail && formatDuration(selectedCardForDetail.durationMinutes)}
+            </span>
+          </div>
           
           <div className="space-y-4 py-4">
             <div>

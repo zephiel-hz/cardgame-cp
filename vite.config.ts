@@ -25,6 +25,5 @@ export default defineConfig({
       deny: ["**/.*"],
     },
     middlewareMode: true,
-    hmr: false,
   },
 });
