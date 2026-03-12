@@ -104,10 +104,57 @@ export default function Login() {
     }
   };
 
-  const handleSavedAccountLogin = async (account: SavedAccount) => {
+  const handleSavedAccountLogin = (account: SavedAccount) => {
     setSelectedAccount(account);
-    setLoginUsername(account.username);
+    setLoginPin("");
     setShowSavedAccounts(false);
+  };
+
+  const handlePinOnlyLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAccount || !loginPin.trim()) {
+      toast({
+        title: "Error",
+        description: "Masukkan PIN",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(api.auth.login.path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          username: selectedAccount.username,
+          pin: loginPin.trim(),
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        login(data);
+        setLocation("/");
+      } else {
+        const error = await response.json();
+        toast({
+          title: "Login Gagal",
+          description: error.message || "PIN salah",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      toast({
+        title: "Error",
+        description: "Gagal login. Coba lagi.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSendVerificationCode = async (e: React.FormEvent) => {
@@ -437,6 +484,20 @@ export default function Login() {
               whileTap={{ scale: 0.98 }}
               onClick={() => {
                 setShowSavedAccounts(false);
+                setIsRegisterMode(false);
+                setSelectedAccount(null);
+                setLoginUsername("");
+              }}
+              className="w-full p-4 rounded-2xl border-2 border-primary/30 text-primary font-bold hover:bg-primary/5 transition-all"
+            >
+              Masuk ke Akun Lain
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                setShowSavedAccounts(false);
                 setIsRegisterMode(true);
               }}
               className="w-full p-4 rounded-2xl border-2 border-primary/30 text-primary font-bold hover:bg-primary/5 transition-all"
@@ -445,6 +506,70 @@ export default function Login() {
               Daftar Akun Baru
             </motion.button>
           </motion.div>
+        ) : selectedAccount && !isRegisterMode ? (
+          /* PIN-Only Login Form for Saved Account */
+          <motion.form
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            onSubmit={handlePinOnlyLogin}
+            className="bg-white dark:bg-gradient-to-br dark:from-purple-900/95 dark:to-purple-800/95 backdrop-blur-md p-8 rounded-[2.5rem] shadow-2xl dark:border dark:border-pink-400/20 space-y-6"
+          >
+            <div className="text-center space-y-2">
+              <h2 className="text-xl font-bold text-foreground flex items-center justify-center gap-2">
+                {getGenderEmoji(selectedAccount.gender)}
+              </h2>
+              <p className="text-lg font-semibold text-foreground">
+                Masuk {selectedAccount.username}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Masukkan PIN kamu untuk login
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="pin-only" className="text-xs font-semibold">
+                PIN (4 Digit)
+              </Label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40 w-5 h-5" />
+                <Input
+                  id="pin-only"
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  autoFocus
+                  value={loginPin}
+                  onChange={(e) => setLoginPin(e.target.value.replace(/\D/g, ""))}
+                  placeholder="PIN"
+                  className="pl-12 h-14 text-center text-2xl tracking-[1em] font-bold rounded-2xl border-primary/20 focus:border-primary focus:ring-primary/20"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                type="submit"
+                disabled={isLoading || loginPin.length < 4}
+                className="w-full py-4 rounded-2xl font-bold text-white shadow-lg bg-gradient-to-r from-primary to-rose-500 hover:shadow-primary/40 active:scale-95 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none transition-all"
+              >
+                {isLoading ? "Memverifikasi..." : "Masuk Sekarang"}
+              </button>
+
+              <div className="space-y-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedAccount(null);
+                    setLoginPin("");
+                    setShowSavedAccounts(true);
+                  }}
+                  className="w-full text-sm font-semibold text-primary hover:bg-primary/5 transition-all py-2 rounded-lg border-2 border-primary/30"
+                >
+                  ← Kembali ke Akun Tersimpan
+                </button>
+              </div>
+            </div>
+          </motion.form>
         ) : !isRegisterMode ? (
           /* Login Form */
           <motion.form
@@ -523,7 +648,12 @@ export default function Login() {
                 {savedAccounts.length > 0 && (
                   <button
                     type="button"
-                    onClick={() => setShowSavedAccounts(true)}
+                    onClick={() => {
+                      setShowSavedAccounts(true);
+                      setSelectedAccount(null);
+                      setLoginUsername("");
+                      setLoginPin("");
+                    }}
                     className="w-full text-sm font-semibold text-primary hover:bg-primary/5 transition-all py-2 rounded-lg border-2 border-primary/30"
                   >
                     ← Kembali ke Akun Tersimpan

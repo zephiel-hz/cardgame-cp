@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
-import { Sparkles, PackageOpen } from "lucide-react";
+import { Sparkles, PackageOpen, Clock, Gift, Info } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useGachaStatus, usePullGacha } from "@/hooks/use-gacha";
+import { useCountdown } from "@/hooks/use-countdown";
 import { CardDisplay } from "@/components/card-display";
 import type { UserCardWithDetails } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +14,7 @@ export default function Gacha() {
   const { toast } = useToast();
   const { data: status, isLoading: statusLoading } = useGachaStatus(user?.id);
   const pullGacha = usePullGacha();
+  const countdown = useCountdown(status?.nextResetTime);
   
   const [pulledCard, setPulledCard] = useState<UserCardWithDetails | null>(null);
   const [isFlipping, setIsFlipping] = useState(false);
@@ -74,6 +76,47 @@ export default function Gacha() {
         </p>
       </div>
 
+      {/* Status Cards */}
+      <div className="w-full max-w-md mb-8 px-4">
+        <div className="grid grid-cols-2 gap-4">
+          {/* Remaining Pulls */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-gradient-to-br from-pink-100 to-pink-50 dark:from-pink-950/50 dark:to-pink-900/30 rounded-xl p-4 border border-pink-300 dark:border-pink-400/30"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Gift className="w-5 h-5 text-pink-600 dark:text-pink-400" />
+              <span className="text-xs font-semibold text-pink-900 dark:text-pink-200">Sisa Tarikan</span>
+            </div>
+            <div className="text-2xl font-bold text-pink-600 dark:text-pink-400">
+              {statusLoading ? "-" : status?.remainingPulls ?? 0}/2
+            </div>
+          </motion.div>
+
+          {/* Time to Reset */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-gradient-to-br from-purple-100 to-purple-50 dark:from-purple-950/50 dark:to-purple-900/30 rounded-xl p-4 border border-purple-300 dark:border-purple-400/30"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              <span className="text-xs font-semibold text-purple-900 dark:text-purple-200">Reset Dalam</span>
+            </div>
+            {countdown && countdown.totalSeconds > 0 ? (
+              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 font-mono">
+                {String(countdown.hours).padStart(2, "0")}:{String(countdown.minutes).padStart(2, "0")}:{String(countdown.seconds).padStart(2, "0")}
+              </div>
+            ) : (
+              <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">--:--:--</div>
+            )}
+          </motion.div>
+        </div>
+      </div>
+
       <div className="w-full max-w-xs aspect-[3/4] perspective-1000 mb-10">
         <AnimatePresence mode="wait">
           {!pulledCard ? (
@@ -111,11 +154,6 @@ export default function Gacha() {
       </div>
 
       <div className="w-full max-w-xs space-y-4">
-        <div className="flex items-center justify-between px-6 py-3 bg-pink-100 dark:bg-gradient-to-r dark:from-purple-800/50 dark:to-purple-700/50 rounded-2xl shadow-sm border border-pink-300 dark:border-pink-400/30 backdrop-blur-sm">
-          <span className="font-semibold text-pink-900 dark:text-pink-200">Sisa Tarikan:</span>
-          <span className="font-bold text-xl text-pink-600 dark:text-pink-400">{statusLoading ? "-" : remaining}/2</span>
-        </div>
-
         <button
           onClick={handlePull}
           disabled={!canPull}
@@ -137,6 +175,37 @@ export default function Gacha() {
           </button>
         )}
       </div>
+
+      {/* Info Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="w-full max-w-md mt-8 px-4"
+      >
+        <div className="bg-blue-50 dark:bg-blue-950/30 rounded-xl p-4 border border-blue-300 dark:border-blue-700/50">
+          <div className="flex items-center gap-2 mb-3">
+            <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <h3 className="font-bold text-blue-900 dark:text-blue-100">Informasi Gacha</h3>
+          </div>
+          <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-2">
+            <li><span className="font-semibold">Reset Gacha:</span> Pukul 06:00 & 18:00 WIB</li>
+            <li><span className="font-semibold">Tarikan/Periode:</span> Maksimal 2x per periode</li>
+            <li className="pt-2 border-t border-blue-200 dark:border-blue-700">
+              <span className="font-semibold block mb-1">Komposisi Rate:</span>
+              <div className="ml-2 space-y-1">
+                <div>🌟 SSR: 10%</div>
+                <div>⚡ Epic: 15%</div>
+                <div>💙 Rare: 25%</div>
+                <div>⚪ Common: 50%</div>
+              </div>
+            </li>
+            <li className="pt-2 border-t border-blue-200 dark:border-blue-700">
+              <span className="font-semibold">SSR Notification:</span> Pasanganmu akan mendapat notifikasi jika kamu mendapatkan kartu SSR
+            </li>
+          </ul>
+        </div>
+      </motion.div>
     </div>
   );
 }

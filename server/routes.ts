@@ -400,7 +400,25 @@ export async function registerRoutes(
     const userId = Number(req.params.userId);
     const count = await storage.getTodayGachaCount(userId);
     const remainingPulls = Math.max(0, 2 - count);
-    res.status(200).json({ remainingPulls });
+    
+    // Calculate next reset time (6 AM or 6 PM WIB)
+    const now = new Date();
+    const wibTime = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+    const wibHour = wibTime.getUTCHours();
+    
+    const nextResetWib = new Date(wibTime);
+    nextResetWib.setUTCMinutes(0, 0, 0);
+    if (wibHour < 6) {
+      nextResetWib.setUTCHours(6);
+    } else if (wibHour < 18) {
+      nextResetWib.setUTCHours(18);
+    } else {
+      nextResetWib.setUTCDate(nextResetWib.getUTCDate() + 1);
+      nextResetWib.setUTCHours(6);
+    }
+    const nextResetTime = new Date(nextResetWib.getTime() - 7 * 60 * 60 * 1000);
+    
+    res.status(200).json({ remainingPulls, nextResetTime: nextResetTime.toISOString() });
   });
 
   app.post(api.gacha.pull.path, async (req, res) => {

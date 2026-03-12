@@ -31,6 +31,9 @@ export default function Inventory() {
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"name" | "tier-desc" | "tier-asc" | "duration">("name");
   const [selectedCardForDetail, setSelectedCardForDetail] = useState<any>(null);
+  const [selectedUserCardId, setSelectedUserCardId] = useState<number | null>(null);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmingUserCardId, setConfirmingUserCardId] = useState<number | null>(null);
 
   const handleUseCard = async (userCardId: number, cardName: string) => {
     try {
@@ -293,15 +296,12 @@ export default function Inventory() {
                         </div>
                       )}
                       
-                      <CardDisplay card={grouped.card} className="h-full" onClick={() => setSelectedCardForDetail(grouped.card)}>
-                        <button
-                          onClick={() => handleUseCard(grouped.firstUserCardId, grouped.card.name)}
-                          disabled={useCard.isPending}
-                          className="w-full bg-gradient-to-r from-pink-500 to-pink-400 hover:from-pink-400 hover:to-pink-300 text-white font-bold py-1.5 text-xs rounded-lg shadow-lg shadow-pink-500/30 transition-transform active:scale-95 border border-pink-300/50 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {useCard.isPending && useCard.variables === grouped.firstUserCardId ? "Diproses..." : "Gunakan"}
-                        </button>
-                      </CardDisplay>
+                      <CardDisplay card={grouped.card} className="h-full" onClick={() => {
+                      setSelectedCardForDetail(grouped.card);
+                      setSelectedUserCardId(grouped.firstUserCardId);
+                    }}>
+                      {/* Button removed - moved to detail modal */}
+                    </CardDisplay>
                     </div>
                   </div>
                 </motion.div>
@@ -348,7 +348,19 @@ export default function Inventory() {
 
           <button
             onClick={() => {
+              setShowConfirmDialog(true);
+              setConfirmingUserCardId(selectedUserCardId);
+            }}
+            disabled={useCard.isPending}
+            className="w-full bg-gradient-to-r from-pink-500 to-pink-400 hover:from-pink-400 hover:to-pink-300 text-white font-bold py-2 rounded-lg shadow-lg shadow-pink-500/30 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed mb-3"
+          >
+            {useCard.isPending && useCard.variables === selectedUserCardId ? "Diproses..." : "Gunakan"}
+          </button>
+
+          <button
+            onClick={() => {
               setSelectedCardForDetail(null);
+              setSelectedUserCardId(null);
             }}
             className="w-full bg-gradient-to-r from-pink-500 to-pink-400 hover:from-pink-400 hover:to-pink-300 text-white font-bold py-2 rounded-lg shadow-lg shadow-pink-500/30 transition-transform active:scale-95"
           >
@@ -356,6 +368,52 @@ export default function Inventory() {
           </button>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Konfirmasi Penggunaan Kartu</DialogTitle>
+            <DialogDescription>
+              Apakah kamu yakin ingin menggunakan kartu <span className="font-semibold text-foreground">"{selectedCardForDetail?.name}"</span>?
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-4">
+            <p className="text-sm text-yellow-700 dark:text-yellow-300">
+              ⚠️ Kartu akan aktif selama <span className="font-semibold">{selectedCardForDetail && formatDuration(selectedCardForDetail.durationMinutes)}</span> dan tidak dapat dibatalkan.
+            </p>
+          </div>
+          
+          <div className="flex gap-3">
+            <button
+              onClick={() => {
+                setShowConfirmDialog(false);
+                setConfirmingUserCardId(null);
+              }}
+              className="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-foreground font-bold py-2 rounded-lg transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              onClick={async () => {
+                if (confirmingUserCardId) {
+                  await handleUseCard(confirmingUserCardId, selectedCardForDetail?.name);
+                  setShowConfirmDialog(false);
+                  setConfirmingUserCardId(null);
+                  setSelectedCardForDetail(null);
+                  setSelectedUserCardId(null);
+                }
+              }}
+              disabled={useCard.isPending}
+              className="flex-1 bg-gradient-to-r from-pink-500 to-pink-400 hover:from-pink-400 hover:to-pink-300 text-white font-bold py-2 rounded-lg shadow-lg shadow-pink-500/30 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {useCard.isPending ? "Diproses..." : "Ya, Gunakan"}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

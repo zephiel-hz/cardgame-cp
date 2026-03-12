@@ -196,7 +196,7 @@ export const api = {
       method: 'GET' as const,
       path: '/api/gacha/status/:userId' as const,
       responses: {
-        200: z.object({ remainingPulls: z.number() })
+        200: z.object({ remainingPulls: z.number(), nextResetTime: z.string() })
       }
     }
   },
