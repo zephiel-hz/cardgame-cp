@@ -135,19 +135,27 @@ export class EmailNotificationService {
     try {
       const transporter = getTransporter();
       if (transporter) {
-        console.log('[Email] Verifying SMTP connection (timeout: 150 seconds for production network latency)...');
+        console.log('[Email] Testing SMTP connection with quick timeout (5 seconds)...');
         const startTime = Date.now();
         
-        // Use extended timeout for verification - production networks may be slow
-        const verifyTimeout = process.env.NODE_ENV === 'production' ? 150000 : 30000; // 150s for prod, 30s for dev
-        await withTimeout(transporter.verify(), verifyTimeout, 'SMTP verification');
-        
-        const elapsed = Date.now() - startTime;
-        console.log(`[Email] ✓ SMTP connection verified successfully in ${elapsed}ms`);
+        // Use quick timeout for startup verification - fail fast if connection is blocked
+        // Don't block entire server initialization on email connectivity
+        const quickVerifyTimeout = 5000; // 5 seconds - quick check only
+        try {
+          await withTimeout(transporter.verify(), quickVerifyTimeout, 'SMTP quick verify');
+          const elapsed = Date.now() - startTime;
+          console.log(`[Email] ✓ SMTP connection verified in ${elapsed}ms`);
+        } catch (verifyError) {
+          const elapsed = Date.now() - startTime;
+          console.warn(`[Email] ⚠️  SMTP verification failed (${elapsed}ms) - server will continue, but email may not work`);
+          console.warn('[Email] This is normal if Railway is unable to reach Gmail servers');
+          // Don't throw - allow server to continue even if email verification fails
+          // Email sends will fail gracefully with proper error messages
+        }
       }
     } catch (error) {
-      console.error('[Email] ✗ Failed to verify SMTP connection:', error);
-      throw error;
+      console.error('[Email] ✗ Unexpected error during initialization:', error);
+      // Don't throw - allow server to continue
     }
   }
 
