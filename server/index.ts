@@ -36,38 +36,42 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+// Initialize server middleware and routes
+async function initializeServer() {
+  app.use((req, res, next) => {
+    const start = Date.now();
+    const path = req.path;
+    let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
+    const originalResJson = res.json;
+    res.json = function (bodyJson, ...args) {
+      capturedJsonResponse = bodyJson;
+      return originalResJson.apply(res, [bodyJson, ...args]);
+    };
 
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+    res.on("finish", () => {
+      const duration = Date.now() - start;
+      if (path.startsWith("/api")) {
+        let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+        if (capturedJsonResponse) {
+          logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        }
+
+        log(logLine);
       }
-
-      log(logLine);
-    }
       // Log all asset requests
       if (path.startsWith("/assets") || path.endsWith(".js") || path.endsWith(".css")) {
         log(`${req.method} ${path} ${res.statusCode} (MIME: ${res.getHeader("content-type")}) in ${duration}ms`);
       }
-    log("Public directory served for development");
-  }
+    });
+
+    next();
+  });
 
   // Register API routes FIRST, before Vite
   // This ensures /api/* routes have priority over Vite middleware
   await registerRoutes(httpServer, app);
-  
+
   // Setup Vite in development AFTER API routes
   // This ensures Vite middlewares don't interfere with API routing
   if (process.env.NODE_ENV !== "production") {
@@ -155,7 +159,7 @@ app.use((req, res, next) => {
       next(e);
     }
   });
-  
+
   if (process.env.NODE_ENV !== "production") {
     log("SPA HTML fallback handler registered (dev mode)");
   } else {
