@@ -1,6 +1,6 @@
 // Service Worker for Push Notifications
-// ⚠️ Increment version number on every production deploy
-const CACHE_NAME = 'cardgame-v2';
+// Increment version on each deploy to force cache clear
+const CACHE_NAME = 'cardgame-v3';
 
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker');
@@ -24,6 +24,7 @@ self.addEventListener('activate', (event) => {
     })
   );
   
+  event.waitUntil(clients.claim());
   event.waitUntil(clients.claim());
 });
 
