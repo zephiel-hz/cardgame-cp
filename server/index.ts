@@ -92,6 +92,10 @@ async function initializeServer() {
     await setupVite(httpServer, app);
   }
 
+  // Serve static files (public folder, manifest.json, sw.js, etc)
+  // MUST be before SPA fallback so files are found before fallback serves index.html
+  serveStatic(app);
+
   // In production, explicitly serve dist/public/assets for built assets
   if (process.env.NODE_ENV === "production") {
     const assetsDir = path.resolve(process.cwd(), "dist", "public", "assets");
