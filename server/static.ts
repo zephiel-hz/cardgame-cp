@@ -1,32 +1,21 @@
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 export function serveStatic(app: Express) {
   console.log("[static] ===== STATIC FILE SERVING INIT =====");
   console.log("[static] NODE_ENV:", process.env.NODE_ENV);
   console.log("[static] process.cwd():", process.cwd());
-  console.log("[static] __dirname (may be stale):", __dirname);
   
-  // NOTE: __dirname is bundled value, NOT runtime value in Vercel
-  // So we cannot rely on __dirname. Use environment detection instead.
-
   let distPath: string = "";
   
   // Try multiple locations where static files might be
+  // NOTE: Use only process.cwd() based paths - __dirname is unreliable when bundled
   const possiblePaths = [
     "/var/task/public",                    // Standard Vercel /public (if committed to git)
     "/var/task/dist/public",               // Vite output (fallback location)
-    "/var/task/api/dist/public",           // Build artifact location
     path.resolve(process.cwd(), "public"),      // Generated /public folder
     path.resolve(process.cwd(), "dist", "public"),  // Local dev build
-    path.resolve(process.cwd(), "api", "dist", "public"),  // Build output fallback
-    path.resolve(__dirname, "public"),     // Relative to bundled server
-    path.resolve(__dirname, "..", "..", "api", "dist", "public"), // Bundled
   ];
   
   console.log(`[static] Checking ${possiblePaths.length} possible paths for static files...`);
