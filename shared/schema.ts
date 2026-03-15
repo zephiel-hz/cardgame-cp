@@ -74,6 +74,19 @@ export const partnershipRequests = pgTable("partnership_requests", {
   respondedAt: timestamp("responded_at"),
 });
 
+export const partnershipRemovalRequests = pgTable("partnership_removal_requests", {
+  id: serial("id").primaryKey(),
+  initiatorId: integer("initiator_id").references(() => users.id).notNull(), // User yang memulai penghapusan
+  partnerId: integer("partner_id").references(() => users.id).notNull(), // Partner mereka
+  initiatorAccepted: boolean("initiator_accepted").default(true).notNull(), // Initiator sudah setuju
+  partnerAccepted: boolean("partner_accepted").default(false), // Partner menerima/tolak
+  reason: text("reason").notNull(), // Alasan menghapus partnership (wajib diisi)
+  rejectionReason: text("rejection_reason"), // Alasan penolakan dari partner (jika ditolak)
+  status: text("status").notNull().default("pending"), // 'pending', 'completed', 'rejected', 'force_deleted'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  respondedAt: timestamp("responded_at"),
+});
+
 export const userCardsRelations = relations(userCards, ({ one }) => ({
   user: one(users, {
     fields: [userCards.userId],
@@ -92,6 +105,7 @@ export type GachaLog = typeof gachaLogs.$inferSelect;
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type NotificationPreference = typeof notificationPreferences.$inferSelect;
 export type PartnershipRequest = typeof partnershipRequests.$inferSelect;
+export type PartnershipRemovalRequest = typeof partnershipRemovalRequests.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
 export type UserCardWithDetails = UserCard & { card: Card; user: User };
@@ -103,3 +117,4 @@ export const insertGachaLogSchema = createInsertSchema(gachaLogs);
 export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions);
 export const insertNotificationPreferenceSchema = createInsertSchema(notificationPreferences);
 export const insertPartnershipRequestSchema = createInsertSchema(partnershipRequests);
+export const insertPartnershipRemovalRequestSchema = createInsertSchema(partnershipRemovalRequests);

@@ -25,9 +25,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 bg-background flex flex-col max-w-md mx-auto shadow-2xl overflow-hidden border-x border-border/10">
       {/* Header */}
-      <header className="px-6 py-4 flex items-center justify-between bg-pink-100 dark:bg-gradient-to-r dark:from-purple-600 dark:to-purple-500 backdrop-blur-md shrink-0 z-20 border-b border-pink-300 dark:border-pink-400/30">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-400 to-pink-300 flex items-center justify-center text-white font-bold text-lg shadow-md shadow-pink-600/40 overflow-hidden">
+      <header className="px-6 py-4 flex items-center justify-between bg-gradient-to-r from-pink-100 via-pink-50 to-pink-100 dark:bg-gradient-to-r dark:from-purple-600 dark:via-purple-500 dark:to-pink-500 backdrop-blur-md shrink-0 z-20 border-b border-pink-200 dark:border-pink-400/40 shadow-sm dark:shadow-lg">
+        <Link href="/profile" className="flex items-center gap-3 flex-1 hover:opacity-80 transition-opacity">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-500 dark:from-pink-400 dark:to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-pink-500/40 overflow-hidden border-2 border-white/50">
             {user.avatarUrl ? (
               <img src={user.avatarUrl} alt={user.username} className="w-full h-full object-cover" />
             ) : (
@@ -35,10 +35,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
             )}
           </div>
           <div>
-            <p className="text-xs text-pink-700 dark:text-pink-100 font-medium">Hai, Sayang!</p>
-            <p className="font-bold text-pink-900 dark:text-white leading-none">{user.username}</p>
+            <p className="text-xs text-pink-600 dark:text-pink-200 font-bold tracking-wide">✨ HAI SAYANG!</p>
+            <p className="font-bold text-pink-900 dark:text-white leading-none text-sm">{user.username}</p>
           </div>
-        </div>
+        </Link>
         <Button 
           variant="ghost" 
           size="icon" 
@@ -46,7 +46,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
             logout();
             setLocation("/");
           }}
-          className="rounded-full text-pink-700 dark:text-pink-100 hover:text-pink-900 dark:hover:text-pink-300 transition-colors"
+          className="rounded-full text-pink-600 dark:text-pink-200 hover:text-pink-800 dark:hover:text-pink-100 hover:bg-white/20 dark:hover:bg-black/20 transition-all"
+          title="Keluar"
         >
           <LogOut size={20} />
         </Button>

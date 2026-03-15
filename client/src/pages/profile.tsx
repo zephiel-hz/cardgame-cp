@@ -220,38 +220,46 @@ export default function Profile() {
   return !user ? (
     <div className="pb-10 space-y-6">
       <div className="px-2">
-        <h2 className="text-2xl font-bold text-foreground">Kustomisasi Profil</h2>
+        <h2 className="text-3xl font-black text-foreground">🎀 Profil Saya</h2>
         <p className="text-muted-foreground text-sm font-medium mt-1">Memuat data profil...</p>
       </div>
     </div>
   ) : (
     <div className="pb-10 space-y-6">
       <div className="px-2">
-        <h2 className="text-2xl font-bold text-foreground">Kustomisasi Profil</h2>
+        <h2 className="text-3xl font-black text-foreground">🎀 Profil Saya</h2>
         <p className="text-muted-foreground text-sm font-medium mt-1">
-          Ubah tampilan, keamanan, dan notifikasi profilmu
+          Atur tampilan, keamanan, dan semua tentang dirimu
         </p>
       </div>
 
-      <Card className="border-none shadow-xl bg-white dark:bg-gradient-to-br dark:from-purple-900/95 dark:to-purple-800/95 backdrop-blur-md rounded-3xl overflow-hidden dark:border-pink-400/20">
-        <CardHeader className="pb-2">
-          <div className="flex flex-col items-center gap-4">
+      {/* Avatar Section */}
+      <Card className="border-none shadow-2xl bg-gradient-to-br from-pink-50 to-pink-100/50 dark:bg-gradient-to-br dark:from-purple-900/80 dark:via-purple-800/80 dark:to-pink-900/80 backdrop-blur-md rounded-3xl overflow-hidden dark:border dark:border-pink-400/30">
+        <CardHeader className="pb-4 pt-6">
+          <div className="flex flex-col items-center gap-5">
             <div 
               className="relative group cursor-pointer"
               onClick={() => fileInputRef.current?.click()}
+              title="Klik untuk mengubah foto profil"
             >
-              <Avatar className="w-24 h-24 border-4 border-primary/20 shadow-xl">
+              <Avatar className="w-28 h-28 border-4 border-white dark:border-pink-300/50 shadow-2xl hover:shadow-pink-500/30 transition-all duration-300 ring-4 ring-pink-200/50 dark:ring-pink-500/30">
                 <AvatarImage src={displayAvatarUrl} />
-                <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">
+                <AvatarFallback className="bg-gradient-to-br from-pink-400 to-pink-600 text-white text-4xl font-bold">
                   {(user?.username && String(user.username).charAt(0).toUpperCase()) || 'U'}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-sm">
                 {isUploadingAvatar ? (
-                  <Loader2 className="text-white w-6 h-6 animate-spin" />
+                  <Loader2 className="text-white w-8 h-8 animate-spin" />
                 ) : (
-                  <Camera className="text-white w-6 h-6" />
+                  <div className="flex flex-col items-center gap-1">
+                    <Camera className="text-white w-7 h-7" />
+                    <span className="text-white text-xs font-bold">UBAH</span>
+                  </div>
                 )}
+              </div>
+              <div className="absolute -bottom-1 -right-1 bg-pink-500 dark:bg-pink-400 rounded-full p-2 shadow-lg border-2 border-white dark:border-purple-900">
+                <Camera className="w-5 h-5 text-white" />
               </div>
             </div>
             <input
@@ -262,16 +270,19 @@ export default function Profile() {
               className="hidden"
             />
             <div className="text-center">
-              <CardTitle className="text-xl">{user?.username || "Loading..."}</CardTitle>
-              <CardDescription>ID Pengguna: #{user?.id || "..."}</CardDescription>
+              <CardTitle className="text-2xl font-black text-foreground">{user?.username || "Loading..."}</CardTitle>
+              <CardDescription className="text-xs font-semibold text-muted-foreground mt-1">ID Pengguna: #{user?.id || "..."}</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="username" className="flex items-center gap-2">
-                <UserIcon size={16} className="text-primary" /> Nama Panggilan
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-3 pb-2 border-b border-pink-200/50 dark:border-pink-400/20">
+              <Label htmlFor="username" className="flex items-center gap-2 font-bold text-foreground">
+                <div className="bg-pink-200 dark:bg-pink-500/20 p-2 rounded-lg">
+                  <UserIcon size={18} className="text-pink-600 dark:text-pink-300" />
+                </div>
+                Nama Panggilan
               </Label>
               <Input
                 id="username"
@@ -279,23 +290,29 @@ export default function Profile() {
                 autoComplete="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20"
+                className="rounded-2xl border-pink-200/50 dark:border-pink-400/30 focus:border-pink-500 focus:ring-pink-500/20 shadow-sm"
                 placeholder="Masukkan nama baru"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Camera size={16} className="text-primary" /> Foto Profil
+            <div className="space-y-3 pb-2 border-b border-pink-200/50 dark:border-pink-400/20">
+              <Label className="flex items-center gap-2 font-bold text-foreground">
+                <div className="bg-pink-200 dark:bg-pink-500/20 p-2 rounded-lg">
+                  <Camera size={18} className="text-pink-600 dark:text-pink-300" />
+                </div>
+                Foto Profil
               </Label>
-              <div className="text-sm text-muted-foreground bg-primary/5 rounded-lg p-3 border border-primary/10">
-                Klik foto profil di atas untuk mengubah foto dari galeri atau penyimpanan file.
+              <div className="text-sm text-muted-foreground bg-pink-100/50 dark:bg-pink-500/10 rounded-xl p-4 border border-pink-200/50 dark:border-pink-400/30 font-medium">
+                📸 Klik foto profil di atas untuk mengubah foto dari galeri
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="pin" className="flex items-center gap-2">
-                <Lock size={16} className="text-primary" /> PIN Baru
+            <div className="space-y-3 pb-2 border-b border-pink-200/50 dark:border-pink-400/20">
+              <Label htmlFor="pin" className="flex items-center gap-2 font-bold text-foreground">
+                <div className="bg-pink-200 dark:bg-pink-500/20 p-2 rounded-lg">
+                  <Lock size={18} className="text-pink-600 dark:text-pink-300" />
+                </div>
+                PIN Keamanan
               </Label>
               <Input
                 id="pin"
@@ -305,41 +322,74 @@ export default function Profile() {
                 autoComplete="new-password"
                 value={pin}
                 onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-                className="rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20"
-                placeholder="Kosongkan jika tidak ingin diubah"
+                className="rounded-2xl border-pink-200/50 dark:border-pink-400/30 focus:border-pink-500 focus:ring-pink-500/20 shadow-sm tracking-widest"
+                placeholder="• • • •"
               />
-              <p className="text-[10px] text-muted-foreground">PIN harus berupa 4 digit angka.</p>
+              <p className="text-xs text-muted-foreground font-medium">🔐 PIN 4 digit angka • Kosongkan jika tidak ingin diubah</p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="newEmail" className="flex items-center gap-2">
-                <Mail size={16} className="text-primary" /> Email untuk Notifikasi
+            <div className="space-y-3 pb-2 border-b border-pink-200/50 dark:border-pink-400/20">
+              <Label htmlFor="gender" className="flex items-center gap-2 font-bold text-foreground">
+                <div className="bg-pink-200 dark:bg-pink-500/20 p-2 rounded-lg">
+                  <UserIcon size={18} className="text-pink-600 dark:text-pink-300" />
+                </div>
+                Jenis Kelamin
               </Label>
-              <div className="bg-primary/5 rounded-lg p-3 border border-primary/10 space-y-3">
+              <Select value={gender} onValueChange={setGender} name="gender">
+                <SelectTrigger id="gender" className="rounded-2xl border-pink-200/50 dark:border-pink-400/30 focus:border-pink-500 focus:ring-pink-500/20 shadow-sm font-medium">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl">
+                  <SelectItem value="male" className="font-medium">👦🏻 Laki-laki</SelectItem>
+                  <SelectItem value="female" className="font-medium">👧🏻 Perempuan</SelectItem>
+                  <SelectItem value="other" className="font-medium">🤷 Lainnya</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Email Section */}
+            <div className="space-y-3 pb-4 pt-2 border-b border-pink-200/50 dark:border-pink-400/20">
+              <Label htmlFor="newEmail" className="flex items-center gap-2 font-bold text-foreground">
+                <div className="bg-pink-200 dark:bg-pink-500/20 p-2 rounded-lg">
+                  <Mail size={18} className="text-pink-600 dark:text-pink-300" />
+                </div>
+                Email untuk Notifikasi
+              </Label>
+              <div className="bg-pink-100/50 dark:bg-pink-500/10 rounded-xl p-4 border border-pink-200/50 dark:border-pink-400/30 space-y-3">
                 {user?.email && user?.emailVerified ? (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="text-green-500" size={16} />
-                      <span className="text-sm font-medium">{user.email}</span>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-green-500/20 p-2 rounded-lg">
+                        <CheckCircle className="text-green-600 dark:text-green-400" size={18} />
+                      </div>
+                      <div>
+                        <span className="text-sm font-bold text-foreground block">{user.email}</span>
+                        <span className="text-xs text-muted-foreground">Email terverifikasi</span>
+                      </div>
                     </div>
-                    <span className="text-xs bg-green-500/20 text-green-700 px-2 py-1 rounded">Terverifikasi</span>
+                    <span className="text-xs bg-green-500/20 text-green-700 dark:text-green-400 px-3 py-1 rounded-lg font-bold">✓ Aktif</span>
                   </div>
                 ) : user?.email ? (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <RefreshCw className="text-yellow-500" size={16} />
-                      <span className="text-sm">{user.email}</span>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="bg-yellow-500/20 p-2 rounded-lg">
+                        <RefreshCw className="text-yellow-600 dark:text-yellow-400" size={18} />
+                      </div>
+                      <div>
+                        <span className="text-sm font-bold text-foreground block">{user.email}</span>
+                        <span className="text-xs text-muted-foreground">Menunggu verifikasi</span>
+                      </div>
                     </div>
-                    <span className="text-xs bg-yellow-500/20 text-yellow-700 px-2 py-1 rounded">Menunggu verifikasi</span>
+                    <span className="text-xs bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 px-3 py-1 rounded-lg font-bold">⏳ Pending</span>
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Belum ada email</p>
+                  <p className="text-sm text-muted-foreground font-medium">🔔 Belum ada email • Tambahkan email untuk notifikasi</p>
                 )}
               </div>
 
               {showVerificationInput ? (
-                <div className="space-y-2">
-                  <label htmlFor="verificationCode" className="text-sm text-muted-foreground">Masukkan kode verifikasi dari email</label>
+                <div className="space-y-2 pt-3">
+                  <label htmlFor="verificationCode" className="text-sm font-bold text-foreground block">Masukkan Kode Verifikasi</label>
                   <div className="flex gap-2">
                     <Input
                       id="verificationCode"
@@ -348,25 +398,25 @@ export default function Profile() {
                       autoComplete="off"
                       value={verificationCode}
                       onChange={(e) => setVerificationCode(e.target.value)}
-                      className="rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20"
-                      placeholder="Kode verifikasi"
+                      className="rounded-2xl border-pink-200/50 dark:border-pink-400/30 focus:border-pink-500 focus:ring-pink-500/20 shadow-sm"
+                      placeholder="Masukan 6 karakter dari email"
                     />
                     <Button
                       type="button"
                       onClick={() => user?.id && verifyEmailMutation.mutate(verificationCode)}
                       disabled={verifyEmailMutation.isPending || !verificationCode || !user?.id}
-                      className="rounded-xl px-6"
+                      className="rounded-2xl px-6 font-bold bg-green-600 hover:bg-green-700"
                     >
                       {verifyEmailMutation.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        "Verifikasi"
+                        "✓ Verifikasi"
                       )}
                     </Button>
                   </div>
                 </div>
               ) : (
-                <div className="flex gap-2">
+                <div className="flex gap-2 pt-3">
                   <Input
                     id="newEmail"
                     name="newEmail"
@@ -374,72 +424,63 @@ export default function Profile() {
                     autoComplete="email"
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
-                    className="rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20"
-                    placeholder="Masukkan email baru"
+                    className="rounded-2xl border-pink-200/50 dark:border-pink-400/30 focus:border-pink-500 focus:ring-pink-500/20 shadow-sm"
+                    placeholder="nama@example.com"
                   />
                   <Button
                     type="button"
                     onClick={() => user?.id && updateEmailMutation.mutate(newEmail)}
                     disabled={updateEmailMutation.isPending || !newEmail || !user?.id}
-                    className="rounded-xl px-6"
+                    className="rounded-2xl px-6 font-bold bg-blue-600 hover:bg-blue-700"
                   >
                     {updateEmailMutation.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      "Daftarkan"
+                      "📧 Daftarkan"
                     )}
                   </Button>
                 </div>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="gender">Jenis Kelamin</Label>
-              <Select value={gender} onValueChange={setGender} name="gender">
-                <SelectTrigger id="gender" className="rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="male">👦🏻 Laki-laki</SelectItem>
-                  <SelectItem value="female">👧🏻 Perempuan</SelectItem>
-                  <SelectItem value="other">🤷 Lainnya</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* Action Buttons */}
+            <div className="space-y-3 pt-4">
+              <Button
+                type="submit"
+                disabled={updateProfileMutation.isPending}
+                className="w-full rounded-2xl py-6 font-bold text-lg shadow-lg shadow-pink-500/20 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white transition-all"
+              >
+                {updateProfileMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    💾 Simpan Perubahan
+                  </>
+                )}
+              </Button>
+
+              <Button
+                type="button"
+                onClick={toggleTheme}
+                variant="outline"
+                className="w-full rounded-2xl py-6 font-bold text-lg border-pink-200 dark:border-pink-400/30 hover:bg-pink-50 dark:hover:bg-pink-500/10 transition-all"
+              >
+                {theme === "dark" ? (
+                  <>
+                    <Sun className="mr-2 h-5 w-5" />
+                    Ganti ke Mode Terang
+                  </>
+                ) : (
+                  <>
+                    <Moon className="mr-2 h-5 w-5" />
+                    Ganti ke Mode Gelap
+                  </>
+                )}
+              </Button>
             </div>
-
-            <Button
-              type="submit"
-              disabled={updateProfileMutation.isPending}
-              className="w-full rounded-2xl py-6 font-bold text-lg shadow-lg shadow-primary/20 mt-4"
-            >
-              {updateProfileMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Menyimpan...
-                </>
-              ) : (
-                "Simpan Perubahan"
-              )}
-            </Button>
-
-            <Button
-              type="button"
-              onClick={toggleTheme}
-              variant="outline"
-              className="w-full rounded-2xl py-6 font-bold text-lg border-border hover:bg-muted transition-all"
-            >
-              {theme === "dark" ? (
-                <>
-                  <Sun className="mr-2 h-5 w-5" />
-                  Ganti ke Mode Terang
-                </>
-              ) : (
-                <>
-                  <Moon className="mr-2 h-5 w-5" />
-                  Ganti ke Mode Gelap
-                </>
-              )}
-            </Button>
           </form>
         </CardContent>
       </Card>

@@ -36,7 +36,9 @@ export function useActiveCards(userId: number | undefined) {
       return parsed;
     },
     enabled: !!userId,
-    refetchInterval: 60000, // Refresh every minute just in case
+    staleTime: 0, // Data is always considered stale
+    refetchInterval: 5000, // Refresh every 5 seconds when stacking
+    gcTime: 1000 * 60 * 5, // Keep unused data for 5 minutes
   });
 }
 
@@ -59,11 +61,31 @@ export function useUseCard() {
       
       return api.inventory.use.responses[200].parse(await res.json());
     },
-    onSuccess: (data) => {
-      // Invalidate both inventory and ALL active cards queries
-      queryClient.invalidateQueries({ queryKey: [api.inventory.list.path, data.userId] });
-      // Use empty query key to invalidate ALL active cards regardless of userId
-      queryClient.invalidateQueries({ queryKey: [api.activeCards.list.path] });
+    onSuccess: async (data) => {
+      console.log('[useUseCard] onSuccess - card used, invalidating caches');
+      
+      // Invalidate inventory list for this user
+      await queryClient.invalidateQueries({ 
+        queryKey: [api.inventory.list.path, data.userId],
+        exact: false 
+      });
+      
+      // Invalidate ALL active cards queries to ensure any user's active cards are updated
+      // This includes both the user who used the card and their partner
+      await queryClient.invalidateQueries({ 
+        queryKey: [api.activeCards.list.path],
+        exact: false 
+      });
+      
+      console.log('[useUseCard] Caches invalidated, refetching active cards...');
+      
+      // Immediately refetch to ensure UI updates quickly
+      await queryClient.refetchQueries({ 
+        queryKey: [api.activeCards.list.path],
+        exact: false 
+      });
+      
+      console.log('[useUseCard] Active cards refetched');
     },
   });
 }

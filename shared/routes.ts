@@ -175,6 +175,65 @@ export const api = {
         400: z.object({ message: z.string() }),
         404: errorSchemas.notFound,
       }
+    },
+    initiateRemoval: {
+      method: 'POST' as const,
+      path: '/api/auth/remove-partnership' as const,
+      input: z.object({
+        userId: z.number(),
+        reason: z.string().min(1, "Alasan penghapusan partnership wajib diisi"),
+      }),
+      responses: {
+        200: z.object({ success: z.boolean(), message: z.string() }),
+        400: z.object({ message: z.string() }),
+        404: errorSchemas.notFound,
+      }
+    },
+    getPendingRemovals: {
+      method: 'GET' as const,
+      path: '/api/auth/pending-removal-requests/:userId' as const,
+      responses: {
+        200: z.array(z.object({
+          id: z.number(),
+          initiatorId: z.number(),
+          partnerId: z.number(),
+          initiatorAccepted: z.boolean(),
+          partnerAccepted: z.boolean().nullable(),
+          reason: z.string(),
+          rejectionReason: z.string().nullable(),
+          status: z.string(),
+          createdAt: z.instanceof(Date).nullable(),
+          respondedAt: z.instanceof(Date).nullable(),
+        })),
+      }
+    },
+    respondToRemoval: {
+      method: 'POST' as const,
+      path: '/api/auth/respond-removal-request' as const,
+      input: z.object({
+        requestId: z.number(),
+        accept: z.boolean(),
+        userId: z.number(),
+        rejectionReason: z.string().optional(), // Required if accept is false
+      }),
+      responses: {
+        200: z.object({ success: z.boolean(), message: z.string() }),
+        400: z.object({ message: z.string() }),
+        404: errorSchemas.notFound,
+      }
+    },
+    forceDeletePartnership: {
+      method: 'POST' as const,
+      path: '/api/auth/force-delete-partnership' as const,
+      input: z.object({
+        requestId: z.number(),
+        userId: z.number(),
+      }),
+      responses: {
+        200: z.object({ success: z.boolean(), message: z.string() }),
+        400: z.object({ message: z.string() }),
+        404: errorSchemas.notFound,
+      }
     }
   },
   gacha: {

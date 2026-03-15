@@ -93,7 +93,7 @@ export async function registerRoutes(
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      if (user.pin !== input.pin) {
+      if (!storage.verifyUserPin(user, input.pin)) {
         return res.status(401).json({ message: "Invalid PIN" });
       }
       res.status(200).json(user);
@@ -393,6 +393,86 @@ export async function registerRoutes(
       });
     } catch (err: any) {
       res.status(400).json({ message: err.message || "Gagal memproses permintaan" });
+    }
+  });
+
+  app.post(api.auth.initiateRemoval.path, async (req, res) => {
+    try {
+      console.log("📨 Remove partnership request body:", JSON.stringify(req.body, null, 2));
+      
+      const { userId, reason } = api.auth.initiateRemoval.input.parse(req.body);
+      
+      console.log("✅ Parsed input - userId:", userId, "reason:", reason, "reason type:", typeof reason);
+      console.log("✅ Reason is empty?", !reason, "Trimmed empty?", !reason?.trim());
+      
+      await storage.initiatePartnershipRemoval(userId, reason);
+      res.status(200).json({ 
+        success: true, 
+        message: "Permintaan penghapusan partnership telah dikirim ke partner Anda"
+      });
+    } catch (err: any) {
+      console.error("❌ Error in remove partnership:", err.message);
+      res.status(400).json({ message: err.message || "Gagal menginisiasi penghapusan partnership" });
+    }
+  });
+
+  app.get(api.auth.getPendingRemovals.path, async (req, res) => {
+    try {
+      const userId = Number(req.params.userId);
+      console.log("📥 Getting pending removal requests for user:", userId);
+      
+      const requests = await storage.getPendingRemovalRequests(userId);
+      
+      // Map snake_case to camelCase for API response
+      const mappedRequests = requests.map(req => ({
+        id: req.id,
+        initiatorId: req.initiatorId,
+        partnerId: req.partnerId,
+        initiatorAccepted: req.initiatorAccepted,
+        partnerAccepted: req.partnerAccepted,
+        reason: req.reason,
+        rejectionReason: req.rejectionReason, // Map rejection_reason -> rejectionReason
+        status: req.status,
+        createdAt: req.createdAt,
+        respondedAt: req.respondedAt,
+      }));
+      
+      console.log("📤 Sending removal requests:", JSON.stringify(mappedRequests, null, 2));
+      res.status(200).json(mappedRequests);
+    } catch (err: any) {
+      console.error("❌ Error fetching removal requests:", err.message);
+      res.status(400).json({ message: err.message || "Gagal mengambil data permintaan penghapusan" });
+    }
+  });
+
+  app.post(api.auth.respondToRemoval.path, async (req, res) => {
+    try {
+      const { requestId, accept, userId, rejectionReason } = api.auth.respondToRemoval.input.parse(req.body);
+      
+      if (!accept && (!rejectionReason || rejectionReason.trim().length === 0)) {
+        return res.status(400).json({ message: "Alasan penolakan wajib diisi" });
+      }
+      
+      await storage.respondToRemovalRequest(requestId, accept, userId, rejectionReason);
+      res.status(200).json({ 
+        success: true, 
+        message: accept ? "Partnership telah dihapus" : "Permintaan penghapusan partnership ditolak dengan alasan"
+      });
+    } catch (err: any) {
+      res.status(400).json({ message: err.message || "Gagal memproses permintaan penghapusan" });
+    }
+  });
+
+  app.post(api.auth.forceDeletePartnership.path, async (req, res) => {
+    try {
+      const { requestId, userId } = api.auth.forceDeletePartnership.input.parse(req.body);
+      await storage.forceDeletePartnership(requestId, userId);
+      res.status(200).json({ 
+        success: true, 
+        message: "Partnership telah dihapus tanpa persetujuan partner"
+      });
+    } catch (err: any) {
+      res.status(400).json({ message: err.message || "Gagal melakukan force delete" });
     }
   });
 
