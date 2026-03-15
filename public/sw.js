@@ -1,6 +1,5 @@
 // Service Worker for Push Notifications
-// Increment version on each deploy to force cache clear
-const CACHE_NAME = 'cardgame-v3';
+const CACHE_NAME = 'cardgame-v1';
 
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker');
@@ -9,22 +8,6 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating service worker');
-  
-  // Clear old cache versions when new version is activated
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('[SW] Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-  
-  event.waitUntil(clients.claim());
   event.waitUntil(clients.claim());
 });
 
@@ -99,40 +82,36 @@ self.addEventListener('notificationclose', (event) => {
   console.log('[SW] Notification closed:', event.notification.tag);
 });
 
-// Fetch event - network-first strategy for assets, offline fallback to cache
+// Fetch event - caching strategy for offline support
 self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (event.request.method !== 'GET') {
     return;
   }
 
-  // Skip API calls - always go to network
+  // Skip API calls
   if (event.request.url.includes('/api/')) {
     return;
   }
 
   event.respondWith(
-    // Network-first strategy: try server first, fallback to cache if offline
-    fetch(event.request)
-      .then((response) => {
-        // Only cache successful responses
+    caches.match(event.request).then((response) => {
+      if (response) {
+        return response;
+      }
+
+      return fetch(event.request).then((response) => {
         if (!response || response.status !== 200 || response.type !== 'basic') {
           return response;
         }
 
-        // Clone the response
         const responseToCache = response.clone();
-        
-        // Cache it for offline use
         caches.open(CACHE_NAME).then((cache) => {
           cache.put(event.request, responseToCache);
         });
 
         return response;
-      })
-      .catch(() => {
-        // If network fails, try cache as fallback
-        return caches.match(event.request);
-      })
+      });
+    })
   );
 });
