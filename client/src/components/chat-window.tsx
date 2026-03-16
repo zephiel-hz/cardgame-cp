@@ -407,7 +407,11 @@ export function ChatWindow({
                       {longPressedMessageId === msg.id && (
                         <div 
                           ref={longPressMenuRef}
-                          className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-white dark:bg-slate-800 rounded-full shadow-lg border border-gray-200 dark:border-slate-700 flex gap-1 p-2 animate-in fade-in-0 scale-In-95 duration-150 z-30 whitespace-nowrap max-w-fit"
+                          className={`absolute top-full mt-2 bg-white dark:bg-slate-800 rounded-full shadow-lg border border-gray-200 dark:border-slate-700 flex gap-1 p-2 animate-in fade-in-0 scale-In-95 duration-150 z-30 whitespace-nowrap max-w-fit ${
+                            msg.senderId === userId 
+                              ? "right-0" 
+                              : "left-0"
+                          }`}
                         >
                           {QUICK_REACTIONS.map((emoji) => (
                             <button
