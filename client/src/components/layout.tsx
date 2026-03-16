@@ -162,38 +162,40 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className="shrink-0 bg-pink-100 dark:bg-gradient-to-r dark:from-purple-900 dark:to-purple-800 backdrop-blur-xl border-t border-pink-300 dark:border-pink-400/20 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.2)] px-6 pt-3 pb-8 z-20 rounded-t-[2.5rem]">
-        <div className="flex justify-between items-center gap-1">
-          {tabs.map((tab) => {
-            const isActive = location === tab.href;
-            const Icon = tab.icon;
-            return (
-              <Link key={tab.href} href={tab.href} className="flex-1 flex flex-col items-center">
-                <div 
-                  className={cn(
-                    "flex flex-col items-center gap-1.5 transition-all duration-300",
-                    isActive ? "text-pink-600 dark:text-pink-400 scale-110" : "text-pink-600 dark:text-pink-200 hover:text-pink-700 dark:hover:text-pink-100 hover:scale-105"
-                  )}
-                >
-                  <div className={cn(
-                    "p-3 rounded-2xl transition-colors duration-300",
-                    isActive ? "bg-pink-200 dark:bg-pink-500/20 shadow-inner dark:shadow-inner dark:shadow-pink-500/30" : "bg-transparent"
-                  )}>
-                    <Icon className={cn("w-6 h-6", isActive ? "stroke-[2.5px]" : "stroke-2")} />
+      {/* Bottom Navigation - Hidden on chat page */}
+      {location !== "/chat" && (
+        <nav className="shrink-0 bg-pink-100 dark:bg-gradient-to-r dark:from-purple-900 dark:to-purple-800 backdrop-blur-xl border-t border-pink-300 dark:border-pink-400/20 shadow-[0_-10px_40px_rgba(0,0,0,0.05)] dark:shadow-[0_-10px_40px_rgba(0,0,0,0.2)] px-6 pt-3 pb-8 z-20 rounded-t-[2.5rem]">
+          <div className="flex justify-between items-center gap-1">
+            {tabs.map((tab) => {
+              const isActive = location === tab.href;
+              const Icon = tab.icon;
+              return (
+                <Link key={tab.href} href={tab.href} className="flex-1 flex flex-col items-center">
+                  <div 
+                    className={cn(
+                      "flex flex-col items-center gap-1.5 transition-all duration-300",
+                      isActive ? "text-pink-600 dark:text-pink-400 scale-110" : "text-pink-600 dark:text-pink-200 hover:text-pink-700 dark:hover:text-pink-100 hover:scale-105"
+                    )}
+                  >
+                    <div className={cn(
+                      "p-3 rounded-2xl transition-colors duration-300",
+                      isActive ? "bg-pink-200 dark:bg-pink-500/20 shadow-inner dark:shadow-inner dark:shadow-pink-500/30" : "bg-transparent"
+                    )}>
+                      <Icon className={cn("w-6 h-6", isActive ? "stroke-[2.5px]" : "stroke-2")} />
+                    </div>
+                    <span className={cn(
+                      "text-[10px] font-bold tracking-wide",
+                      isActive ? "opacity-100" : "opacity-70"
+                    )}>
+                      {tab.label}
+                    </span>
                   </div>
-                  <span className={cn(
-                    "text-[10px] font-bold tracking-wide",
-                    isActive ? "opacity-100" : "opacity-70"
-                  )}>
-                    {tab.label}
-                  </span>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      )}
     </div>
   );
 }

@@ -56,14 +56,17 @@ export default function Chat() {
   }
 
   return (
-    <div className="fixed inset-0 bg-white dark:bg-slate-950 overflow-hidden">
-      <ChatWindow
-        userId={user.id}
-        partnerId={partner.id}
-        partnerName={partner.username}
-        partnerData={partner}
-        onBack={() => setLocation('/')}
-      />
+    <div className="w-full h-dvh bg-white dark:bg-slate-950 flex flex-col md:items-center md:justify-center md:p-4 overflow-hidden">
+      {/* Mobile: fullscreen, Desktop: responsive max-height */}
+      <div className="w-full h-full md:h-auto md:max-w-2xl md:max-h-[80vh] md:rounded-xl md:overflow-hidden md:border md:border-gray-200 md:dark:border-slate-700 md:shadow-lg">
+        <ChatWindow
+          userId={user.id}
+          partnerId={partner.id}
+          partnerName={partner.username}
+          partnerData={partner}
+          onBack={() => setLocation('/')}
+        />
+      </div>
     </div>
   );
 }

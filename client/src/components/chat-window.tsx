@@ -241,7 +241,7 @@ export function ChatWindow({
   }
 
   return (
-    <div className="flex flex-col h-full w-full bg-white dark:bg-slate-950 overflow-hidden">
+    <div className="flex flex-col w-full h-full md:max-h-[80vh] bg-white dark:bg-slate-950 overflow-hidden">
       {/* Header - Instagram style */}
       <div className="bg-white dark:bg-slate-900/90 border-b border-gray-200 dark:border-slate-700 px-4 py-3 flex items-center justify-between sticky top-0 z-10 backdrop-blur">
         <div className="flex items-center gap-3">
