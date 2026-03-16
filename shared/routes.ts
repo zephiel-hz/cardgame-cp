@@ -287,6 +287,66 @@ export const api = {
         403: z.object({ message: z.string() }),
       }
     }
+  },
+  chat: {
+    sendMessage: {
+      method: 'POST' as const,
+      path: '/api/chat/send' as const,
+      input: z.object({ 
+        senderId: z.number(),
+        recipientId: z.number(),
+        content: z.string().min(1).max(1000),
+      }),
+      responses: {
+        200: z.object({ 
+          success: z.boolean(), 
+          message: z.object({
+            id: z.number(),
+            senderId: z.number(),
+            recipientId: z.number(),
+            content: z.string(),
+            isRead: z.boolean(),
+            createdAt: z.instanceof(Date),
+          })
+        }),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      }
+    },
+    getMessages: {
+      method: 'GET' as const,
+      path: '/api/chat/messages/:userId/:partnerId' as const,
+      responses: {
+        200: z.array(z.object({
+          id: z.number(),
+          senderId: z.number(),
+          recipientId: z.number(),
+          content: z.string(),
+          isRead: z.boolean(),
+          createdAt: z.instanceof(Date),
+          readAt: z.instanceof(Date).nullable(),
+        })),
+        404: errorSchemas.notFound,
+      }
+    },
+    markAsRead: {
+      method: 'POST' as const,
+      path: '/api/chat/mark-as-read' as const,
+      input: z.object({ 
+        messageId: z.number(),
+      }),
+      responses: {
+        200: z.object({ success: z.boolean() }),
+        404: errorSchemas.notFound,
+      }
+    },
+    getUnreadCount: {
+      method: 'GET' as const,
+      path: '/api/chat/unread-count/:userId' as const,
+      responses: {
+        200: z.object({ unreadCount: z.number() }),
+      }
+    }
   }
 };
 
@@ -304,9 +364,12 @@ export function buildUrl(path: string, params?: Record<string, string | number>)
 
 export const WS_EVENTS = {
   CARD_USED: 'card_used',
+  MESSAGE_SENT: 'message_sent',
+  MESSAGE_RECEIVED: 'message_received',
+  MESSAGE_READ: 'message_read',
 } as const;
 
 export interface WsMessage<T = unknown> {
-  type: keyof typeof WS_EVENTS;
+  type: typeof WS_EVENTS[keyof typeof WS_EVENTS];
   payload: T;
 }

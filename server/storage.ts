@@ -1,8 +1,8 @@
 import crypto from 'crypto';
 import { db } from "./db";
 import { pool } from "./db";
-import { users, cards, userCards, gachaLogs, pushSubscriptions, notificationPreferences, partnershipRequests, partnershipRemovalRequests } from "@shared/schema";
-import type { User, InsertUser, Card, UserCard, UserCardWithDetails, PushSubscription, NotificationPreference, PartnershipRequest, PartnershipRemovalRequest } from "@shared/schema";
+import { users, cards, userCards, gachaLogs, pushSubscriptions, notificationPreferences, partnershipRequests, partnershipRemovalRequests, messages } from "@shared/schema";
+import type { User, InsertUser, Card, UserCard, UserCardWithDetails, PushSubscription, NotificationPreference, PartnershipRequest, PartnershipRemovalRequest, Message } from "@shared/schema";
 import { eq, and, gte, or, ne } from "drizzle-orm";
 
 // Temporary in-memory storage for email verification tokens (pre-registration)
@@ -115,6 +115,11 @@ export interface IStorage {
   clearPreVerifiedEmail(email: string): void;
   verifyEmail(token: string): Promise<User | null>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  // Chat methods
+  sendMessage(senderId: number, recipientId: number, content: string): Promise<Message>;
+  getMessages(userId1: number, userId2: number): Promise<Message[]>;
+  markMessageAsRead(messageId: number): Promise<boolean>;
+  getUnreadMessageCount(userId: number): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -201,6 +206,11 @@ export class DatabaseStorage implements IStorage {
       with: { card: true, user: true },
     });
     if (!uc) throw new Error("Card not found");
+
+    // Check if user has a partner
+    if (!uc.user.partnerId) {
+      throw new Error("Kamu harus memiliki partner untuk menggunakan kartu");
+    }
 
     const activatedAt = new Date();
     const baseDuration = uc.card.durationMinutes;
@@ -343,6 +353,16 @@ export class DatabaseStorage implements IStorage {
     // Check if already partners
     if (fromUser.partnerId === toUserId) {
       throw new Error("Sudah menjadi partner");
+    }
+
+    // Check if sender already has a partner
+    if (fromUser.partnerId !== null) {
+      throw new Error("Anda sudah memiliki partner");
+    }
+
+    // Check if recipient already has a partner
+    if (toUser.partnerId !== null) {
+      throw new Error("User tersebut sudah memiliki partner");
     }
 
     // Check if request already exists
@@ -870,6 +890,47 @@ export class DatabaseStorage implements IStorage {
 
   verifyUserPin(user: User, plainPin: string): boolean {
     return verifyPin(plainPin, user.pin);
+  }
+
+  async sendMessage(senderId: number, recipientId: number, content: string): Promise<Message> {
+    const [message] = await db.insert(messages).values({
+      senderId,
+      recipientId,
+      content,
+      isRead: false,
+    }).returning();
+    return message;
+  }
+
+  async getMessages(userId1: number, userId2: number): Promise<Message[]> {
+    const result = await db.query.messages.findMany({
+      where: or(
+        and(eq(messages.senderId, userId1), eq(messages.recipientId, userId2)),
+        and(eq(messages.senderId, userId2), eq(messages.recipientId, userId1))
+      ),
+      orderBy: (msg) => messages.createdAt,
+    });
+    return result;
+  }
+
+  async markMessageAsRead(messageId: number): Promise<boolean> {
+    await db.update(messages)
+      .set({ 
+        isRead: true,
+        readAt: new Date()
+      })
+      .where(eq(messages.id, messageId));
+    return true;
+  }
+
+  async getUnreadMessageCount(userId: number): Promise<number> {
+    const result = await db.query.messages.findMany({
+      where: and(
+        eq(messages.recipientId, userId),
+        eq(messages.isRead, false)
+      ),
+    });
+    return result.length;
   }
 }
 

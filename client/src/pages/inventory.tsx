@@ -1,10 +1,12 @@
 import React, { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Inbox, Search, X, Filter, Sparkles, Clock } from "lucide-react";
+import { Inbox, Search, X, Filter, Sparkles, Clock, AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useInventory, useUseCard } from "@/hooks/use-cards";
 import { CardDisplay } from "@/components/card-display";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { api, buildUrl } from "@shared/routes";
 import {
   Dialog,
   DialogContent,
@@ -13,6 +15,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { formatDuration } from "@/lib/utils";
+import type { User } from "@shared/schema";
 
 interface GroupedCard {
   card: any;
@@ -26,6 +29,22 @@ export default function Inventory() {
   const { toast } = useToast();
   const { data: cards, isLoading } = useInventory(user?.id);
   const useCard = useUseCard();
+  
+  // Fetch partner info
+  const { data: partner } = useQuery({
+    queryKey: ['partner', user?.id],
+    queryFn: async (): Promise<User | null> => {
+      if (!user?.id) return null;
+      try {
+        const response = await fetch(buildUrl(api.auth.getPartner.path, { userId: user.id }));
+        if (!response.ok) return null;
+        return response.json();
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!user?.id,
+  });
   
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
@@ -339,6 +358,15 @@ export default function Inventory() {
               </p>
             </div>
 
+            {!partner && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 flex items-start gap-2">
+                <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-700 dark:text-red-300">
+                  ⚠️ Kamu harus memiliki partner terlebih dahulu untuk menggunakan kartu ini.
+                </p>
+              </div>
+            )}
+
             <div className="bg-secondary/50 rounded-lg p-3">
               <p className="text-xs text-muted-foreground">
                 💡 Kartu ini dapat digunakan untuk meminta sesuatu dari pasanganmu. Durasi aktif adalah {selectedCardForDetail && formatDuration(selectedCardForDetail.durationMinutes)}.
@@ -351,7 +379,7 @@ export default function Inventory() {
               setShowConfirmDialog(true);
               setConfirmingUserCardId(selectedUserCardId);
             }}
-            disabled={useCard.isPending}
+            disabled={useCard.isPending || !partner}
             className="w-full bg-gradient-to-r from-pink-500 to-pink-400 hover:from-pink-400 hover:to-pink-300 text-white font-bold py-2 rounded-lg shadow-lg shadow-pink-500/30 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed mb-3"
           >
             {useCard.isPending && useCard.variables === selectedUserCardId ? "Diproses..." : "Gunakan"}

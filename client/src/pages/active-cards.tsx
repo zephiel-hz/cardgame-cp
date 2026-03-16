@@ -1,12 +1,15 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ZapOff, Info, Zap, Clock, Users } from "lucide-react";
 import { useActiveCards } from "@/hooks/use-cards";
 import { CountdownTimer } from "@/components/countdown-timer";
-import { useQueryClient } from "@tanstack/react-query";
-import { api } from "@shared/routes";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { api, buildUrl } from "@shared/routes";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
+import { useAppWebSocket } from "@/hooks/use-websocket";
+import { Button } from "@/components/ui/button";
+import type { User } from "@shared/schema";
 
 interface GroupedCard {
   cardId: number;
@@ -27,7 +30,26 @@ export default function ActiveCards() {
   const { data: activeCards, isLoading, error } = useActiveCards(user?.id);
   const queryClient = useQueryClient();
 
-  console.log('[ActiveCards] Rendering:', { userId: user?.id, isLoading, error: error?.message, cardCount: activeCards?.length });
+  // Fetch partner info
+  const { data: partner } = useQuery({
+    queryKey: ['partner', user?.id],
+    queryFn: async (): Promise<User | null> => {
+      if (!user?.id) return null;
+      try {
+        const response = await fetch(buildUrl(api.auth.getPartner.path, { userId: user.id }));
+        if (!response.ok) return null;
+        return response.json();
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!user?.id,
+  });
+
+  // Setup WebSocket
+  useAppWebSocket(user?.id);
+
+  console.log('[ActiveCards] Rendering:', { userId: user?.id, isLoading, error: error?.message, cardCount: activeCards?.length, partner: partner?.username });
 
   const handleExpire = () => {
     // Refresh list when a timer naturally expires
@@ -103,6 +125,7 @@ export default function ActiveCards() {
 
   return (
     <div className="pb-10 px-2">
+      {/* Active Cards Section */}
       <div className="mb-6">
         <h2 className="text-3xl font-bold text-foreground flex items-center gap-2">
           <Zap className="text-yellow-500 fill-yellow-500 w-8 h-8" />

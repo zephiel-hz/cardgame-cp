@@ -17,6 +17,15 @@ export function useAppWebSocket(userId?: number) {
     const connect = () => {
       wsRef.current = new WebSocket(wsUrl);
       
+      wsRef.current.onopen = () => {
+        console.log("[WebSocket] Connected. Identifying user:", userId);
+        // Send user identification
+        wsRef.current?.send(JSON.stringify({ 
+          type: 'IDENTIFY_USER', 
+          userId 
+        }));
+      };
+      
       wsRef.current.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data) as WsMessage<any>;
@@ -31,8 +40,10 @@ export function useAppWebSocket(userId?: number) {
             });
             
             // Invalidate ALL active cards queries to ensure everyone sees the update
-            // This covers both the user who used the card and any partners viewing it
             queryClient.invalidateQueries({ queryKey: [api.activeCards.list.path] });
+          } else if (data.type === WS_EVENTS.MESSAGE_RECEIVED) {
+            // invalidate ALL chat message queries to refresh
+            queryClient.invalidateQueries({ queryKey: [api.chat.getMessages.path] });
           }
         } catch (e) {
           console.error("Failed to parse WS message", e);
@@ -40,10 +51,15 @@ export function useAppWebSocket(userId?: number) {
       };
 
       wsRef.current.onclose = () => {
+        console.log("[WebSocket] Disconnected. Reconnecting...");
         // Reconnect after a delay if the socket wasn't intentionally closed
         if (wsRef.current) {
           setTimeout(connect, 3000);
         }
+      };
+
+      wsRef.current.onerror = (err) => {
+        console.error("[WebSocket] Error:", err);
       };
     };
 
@@ -57,4 +73,6 @@ export function useAppWebSocket(userId?: number) {
       }
     };
   }, [queryClient, toast, userId]);
+
+  return wsRef.current;
 }

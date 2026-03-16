@@ -87,6 +87,16 @@ export const partnershipRemovalRequests = pgTable("partnership_removal_requests"
   respondedAt: timestamp("responded_at"),
 });
 
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  senderId: integer("sender_id").references(() => users.id).notNull(),
+  recipientId: integer("recipient_id").references(() => users.id).notNull(),
+  content: text("content").notNull(),
+  isRead: boolean("is_read").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  readAt: timestamp("read_at"),
+});
+
 export const userCardsRelations = relations(userCards, ({ one }) => ({
   user: one(users, {
     fields: [userCards.userId],
@@ -106,6 +116,7 @@ export type PushSubscription = typeof pushSubscriptions.$inferSelect;
 export type NotificationPreference = typeof notificationPreferences.$inferSelect;
 export type PartnershipRequest = typeof partnershipRequests.$inferSelect;
 export type PartnershipRemovalRequest = typeof partnershipRemovalRequests.$inferSelect;
+export type Message = typeof messages.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
 export type UserCardWithDetails = UserCard & { card: Card; user: User };
@@ -118,3 +129,4 @@ export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions
 export const insertNotificationPreferenceSchema = createInsertSchema(notificationPreferences);
 export const insertPartnershipRequestSchema = createInsertSchema(partnershipRequests);
 export const insertPartnershipRemovalRequestSchema = createInsertSchema(partnershipRemovalRequests);
+export const insertMessageSchema = createInsertSchema(messages);

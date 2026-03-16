@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Heart, Users, Copy, Check, Search, User as UserIcon, Inbox, Trash2, AlertCircle } from "lucide-react";
+import { Heart, Users, Copy, Check, Search, User as UserIcon, Inbox, Trash2, AlertCircle, ChevronDown } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
@@ -60,6 +60,7 @@ export default function PartnerPairing() {
   const [rejectionReason, setRejectionReason] = useState("");
   const [showForceDeleteDialog, setShowForceDeleteDialog] = useState(false);
   const [pendingForceDeleteRequestId, setPendingForceDeleteRequestId] = useState<number | null>(null);
+  const [showDangerZone, setShowDangerZone] = useState(false);
 
   // Function to refetch removal requests
   const refetchRemovalRequests = async () => {
@@ -769,12 +770,42 @@ export default function PartnerPairing() {
               </p>
             </div>
 
-            <Button
-              onClick={() => setShowRemoveDialog(true)}
-              className="w-full h-12 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold shadow-md shadow-red-500/30"
-            >
-              <Trash2 size={18} className="mr-2" /> Hapus Partnership
-            </Button>
+            {/* Danger Zone - Collapsible */}
+            <div className="border-2 border-red-200 dark:border-red-900/30 rounded-xl overflow-hidden">
+              <button
+                onClick={() => setShowDangerZone(!showDangerZone)}
+                className="w-full px-4 py-3 flex items-center justify-between bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
+              >
+                <span className="font-semibold text-red-700 dark:text-red-400 flex items-center gap-2">
+                  ⚠️ Zona Berbahaya
+                </span>
+                <ChevronDown
+                  size={20}
+                  className={`text-red-600 dark:text-red-400 transition-transform ${
+                    showDangerZone ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+              
+              {showDangerZone && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="px-4 py-4 bg-red-50/50 dark:bg-red-900/5 space-y-3 border-t border-red-200 dark:border-red-900/30"
+                >
+                  <p className="text-xs text-red-700 dark:text-red-300">
+                    Tindakan di sini tidak dapat dibatalkan. Gunakan dengan hati-hati!
+                  </p>
+                  <Button
+                    onClick={() => setShowRemoveDialog(true)}
+                    className="w-full h-10 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold"
+                  >
+                    <Trash2 size={16} className="mr-2" /> Hapus Partnership
+                  </Button>
+                </motion.div>
+              )}
+            </div>
           </div>
         </motion.div>
 

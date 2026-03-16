@@ -36,6 +36,9 @@ export async function registerRoutes(
   
   const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
 
+  // Map to track user ID to WebSocket connection
+  const userConnections = new Map<number, WebSocket>();
+
   // Broadcast helper
   const broadcast = (type: string, payload: any) => {
     const message = JSON.stringify({ type, payload });
@@ -45,6 +48,49 @@ export async function registerRoutes(
       }
     });
   };
+
+  // Send message to specific user
+  const sendToUser = (userId: number, type: string, payload: any) => {
+    const ws = userConnections.get(userId);
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type, payload }));
+    }
+  };
+
+  // WebSocket connection handler
+  wss.on('connection', (ws: WebSocket) => {
+    console.log('[WebSocket] New client connected');
+    let userId: number | null = null;
+
+    ws.on('message', (data: Buffer) => {
+      try {
+        const message = JSON.parse(data.toString());
+        
+        // First message should be user identification
+        if (message.type === 'IDENTIFY_USER' && typeof message.userId === 'number') {
+          userId = message.userId as number;
+          if (userId !== null) {
+            userConnections.set(userId, ws);
+            console.log(`[WebSocket] User ${userId} identified`);
+            ws.send(JSON.stringify({ type: 'IDENTIFIED', userId }));
+          }
+        }
+      } catch (err) {
+        console.error('[WebSocket] Error processing message:', err);
+      }
+    });
+
+    ws.on('close', () => {
+      if (userId) {
+        userConnections.delete(userId);
+        console.log(`[WebSocket] User ${userId} disconnected`);
+      }
+    });
+
+    ws.on('error', (err) => {
+      console.error('[WebSocket] Error:', err);
+    });
+  });
 
   console.log("[registerRoutes] Starting to register routes...");
   console.log("[registerRoutes] api.auth.login.path:", api.auth.login.path);
@@ -823,6 +869,99 @@ export async function registerRoutes(
     });
   }
 
+  console.log("[registerRoutes] Routes registered successfully");
+
+  // ============= CHAT ENDPOINTS =============
+  app.post(api.chat.sendMessage.path, async (req, res) => {
+    try {
+      const input = api.chat.sendMessage.input.parse(req.body);
+      
+      // Verify sender exists and recipient exists
+      const sender = await storage.getUser(input.senderId);
+      const recipient = await storage.getUser(input.recipientId);
+      
+      if (!sender || !recipient) {
+        return res.status(404).json({ message: "Sender or recipient not found" });
+      }
+
+      // Save message to database
+      const message = await storage.sendMessage(input.senderId, input.recipientId, input.content);
+      
+      // Send real-time notification via WebSocket if recipient is online
+      sendToUser(input.recipientId, WS_EVENTS.MESSAGE_RECEIVED, {
+        id: message.id,
+        senderId: message.senderId,
+        recipientId: message.recipientId,
+        content: message.content,
+        createdAt: message.createdAt,
+        senderUsername: sender.username,
+      });
+
+      res.status(200).json({ 
+        success: true, 
+        message: {
+          id: message.id,
+          senderId: message.senderId,
+          recipientId: message.recipientId,
+          content: message.content,
+          isRead: message.isRead,
+          createdAt: message.createdAt,
+        }
+      });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(400).json({ message: "Failed to send message" });
+    }
+  });
+
+  app.get(api.chat.getMessages.path, async (req, res) => {
+    try {
+      const userId = Number(req.params.userId);
+      const partnerId = Number(req.params.partnerId);
+
+      if (isNaN(userId) || isNaN(partnerId)) {
+        return res.status(400).json({ message: "Invalid user IDs" });
+      }
+
+      const messages_list = await storage.getMessages(userId, partnerId);
+      res.status(200).json(messages_list);
+    } catch (err) {
+      console.error("[Chat] Error fetching messages:", err);
+      res.status(400).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  app.post(api.chat.markAsRead.path, async (req, res) => {
+    try {
+      const input = api.chat.markAsRead.input.parse(req.body);
+      const success = await storage.markMessageAsRead(input.messageId);
+      res.status(200).json({ success });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      res.status(400).json({ message: "Failed to mark message as read" });
+    }
+  });
+
+  app.get(api.chat.getUnreadCount.path, async (req, res) => {
+    try {
+      const userId = Number(req.params.userId);
+
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const unreadCount = await storage.getUnreadMessageCount(userId);
+      res.status(200).json({ unreadCount });
+    } catch (err) {
+      console.error("[Chat] Error fetching unread count:", err);
+      res.status(400).json({ message: "Failed to fetch unread count" });
+    }
+  });
+  
   console.log("[registerRoutes] Routes registered successfully");
   
   return httpServer;

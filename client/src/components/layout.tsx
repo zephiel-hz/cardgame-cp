@@ -1,21 +1,58 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Gift, LayoutGrid, Zap, User as UserIcon, LogOut, Heart } from "lucide-react";
+import { Gift, LayoutGrid, Zap, User as UserIcon, LogOut, Heart, ChevronDown, MessageCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { api, buildUrl } from "@shared/routes";
+import type { User } from "@shared/schema";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const { user, logout } = useAuth();
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Fetch partner info
+  const { data: partner } = useQuery({
+    queryKey: ['partner', user?.id],
+    queryFn: async (): Promise<User | null> => {
+      if (!user?.id) return null;
+      try {
+        const response = await fetch(buildUrl(api.auth.getPartner.path, { userId: user.id }));
+        if (!response.ok) return null;
+        return response.json();
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!user?.id,
+  });
 
   const tabs = [
     { href: "/gacha", icon: Gift, label: "Gacha" },
     { href: "/inventory", icon: LayoutGrid, label: "Koleksi" },
     { href: "/active", icon: Zap, label: "Aktif" },
     { href: "/partner-pairing", icon: Heart, label: "Partner" },
-    { href: "/profile", icon: UserIcon, label: "Profil" },
   ];
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsProfileDropdownOpen(false);
+      }
+    };
+
+    if (isProfileDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isProfileDropdownOpen]);
 
   // If not logged in, don't show the nav
   if (!user || !user.username) {
@@ -26,31 +63,67 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <div className="fixed inset-0 bg-background flex flex-col max-w-md mx-auto shadow-2xl overflow-hidden border-x border-border/10">
       {/* Header */}
       <header className="px-6 py-4 flex items-center justify-between bg-gradient-to-r from-pink-100 via-pink-50 to-pink-100 dark:bg-gradient-to-r dark:from-purple-600 dark:via-purple-500 dark:to-pink-500 backdrop-blur-md shrink-0 z-20 border-b border-pink-200 dark:border-pink-400/40 shadow-sm dark:shadow-lg">
-        <Link href="/profile" className="flex items-center gap-3 flex-1 hover:opacity-80 transition-opacity">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-500 dark:from-pink-400 dark:to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-pink-500/40 overflow-hidden border-2 border-white/50">
-            {user.avatarUrl ? (
-              <img src={user.avatarUrl} alt={user.username} className="w-full h-full object-cover" />
-            ) : (
-              String(user.username).charAt(0).toUpperCase()
-            )}
-          </div>
-          <div>
-            <p className="text-xs text-pink-600 dark:text-pink-200 font-bold tracking-wide">✨ HAI SAYANG!</p>
-            <p className="font-bold text-pink-900 dark:text-white leading-none text-sm">{user.username}</p>
-          </div>
-        </Link>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => {
-            logout();
-            setLocation("/");
-          }}
-          className="rounded-full text-pink-600 dark:text-pink-200 hover:text-pink-800 dark:hover:text-pink-100 hover:bg-white/20 dark:hover:bg-black/20 transition-all"
-          title="Keluar"
-        >
-          <LogOut size={20} />
-        </Button>
+        {/* Profile Dropdown */}
+        <div className="flex items-center gap-3 flex-1 relative" ref={dropdownRef}>
+          <button 
+            onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+            className="flex items-center gap-3 flex-1 hover:opacity-80 transition-opacity focus:outline-none"
+            type="button"
+          >
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-500 dark:from-pink-400 dark:to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-pink-500/40 overflow-hidden border-2 border-white/50">
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt={user.username} className="w-full h-full object-cover" />
+              ) : (
+                String(user.username).charAt(0).toUpperCase()
+              )}
+            </div>
+            <div>
+              <p className="text-xs text-pink-600 dark:text-pink-200 font-bold tracking-wide">✨ HAI SAYANG!</p>
+              <p className="font-bold text-pink-900 dark:text-white leading-none text-sm">{user.username}</p>
+            </div>
+          </button>
+
+          {/* Dropdown Menu */}
+          {isProfileDropdownOpen && (
+            <div className="absolute top-full left-0 mt-2 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-pink-200 dark:border-pink-400/20 overflow-hidden min-w-40 z-50">
+              <button
+                onClick={() => {
+                  setLocation("/profile");
+                  setIsProfileDropdownOpen(false);
+                }}
+                className="w-full px-4 py-3 text-left text-pink-900 dark:text-white hover:bg-pink-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 font-medium border-b border-pink-200 dark:border-pink-400/20"
+              >
+                <UserIcon size={18} />
+                Profil
+              </button>
+              <button
+                onClick={() => {
+                  logout();
+                  setLocation("/");
+                  setIsProfileDropdownOpen(false);
+                }}
+                className="w-full px-4 py-3 text-left text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-2 font-medium"
+              >
+                <LogOut size={18} />
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Chat Button - Top Right */}
+        {partner && user && (
+          <Button
+            onClick={() => setLocation("/chat")}  
+            variant="outline"
+            size="sm"
+            className="gap-2 ml-3"
+            title="Chat dengan partner"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span className="hidden xs:inline text-xs">Chat</span>
+          </Button>
+        )}
       </header>
 
       {/* Main Content Area */}
