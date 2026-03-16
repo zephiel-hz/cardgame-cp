@@ -380,15 +380,15 @@ export function ChatWindow({
                       <div className={`flex items-center gap-1 mt-1 px-2 text-xs ${
                         msg.senderId === userId ? "justify-end" : "justify-start"
                       } text-muted-foreground`}>
+                        {msg.senderId === userId && (
+                          <span>{msg.isRead ? "read" : "sent"}</span>
+                        )}
                         <span>
                           {new Date(msg.createdAt).toLocaleTimeString("id-ID", {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
                         </span>
-                        {msg.senderId === userId && (
-                          <span>{msg.isRead ? "read" : "sent"}</span>
-                        )}
                       </div>
 
                       {/* Saved reactions display - top right corner of bubble */}
