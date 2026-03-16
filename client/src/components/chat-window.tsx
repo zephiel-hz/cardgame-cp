@@ -1,10 +1,11 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import { useWebSocketMessages } from "@/hooks/use-websocket";
 import { Smile } from "lucide-react";
 import { EMOJI_CATEGORIES } from "@/data/emoji-categories";
 import type { Message } from "@shared/schema";
@@ -47,6 +48,32 @@ export function ChatWindow({
 
   // Create stable query key - order matters for consistency
   const chatQueryKey = [api.chat.getMessages.path, userId, partnerId];
+
+  // Listen for incoming WebSocket messages and update cache in real-time
+  useWebSocketMessages(
+    useCallback((incomingMessage: Message & { senderUsername?: string }) => {
+      // Only update if message is for this conversation
+      if (incomingMessage.senderId === partnerId && incomingMessage.recipientId === userId) {
+        console.log('[ChatWindow] Received message in real-time:', incomingMessage);
+        
+        // Update cache immediately
+        queryClient.setQueryData(chatQueryKey, (oldData: Message[] | undefined) => {
+          // Check if message already exists to avoid duplicates
+          if (oldData?.some(msg => msg.id === incomingMessage.id)) {
+            return oldData;
+          }
+          return oldData ? [...oldData, incomingMessage] : [incomingMessage];
+        });
+
+        // Scroll to bottom after a small delay to let React render
+        setTimeout(() => {
+          if (scrollRef.current) {
+            scrollRef.current.scrollIntoView({ behavior: "smooth" });
+          }
+        }, 0);
+      }
+    }, [partnerId, userId, queryClient, chatQueryKey])
+  );
 
   // Fetch messages with proper caching
   const { data: messages = [], isLoading } = useQuery({
@@ -159,7 +186,7 @@ export function ChatWindow({
               <p className="text-sm mt-2">Mulai percakapan yang menyenangkan!</p>
             </div>
           ) : (
-            messages.map((msg) => (
+            messages.map((msg: Message) => (
               <div
                 key={msg.id}
                 className={`flex ${

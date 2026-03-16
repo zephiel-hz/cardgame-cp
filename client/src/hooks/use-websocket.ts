@@ -2,6 +2,10 @@ import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { api, WS_EVENTS, type WsMessage } from "@shared/routes";
+import type { Message } from "@shared/schema";
+
+// Custom event untuk WebSocket messages
+const WS_MESSAGE_EVENT = 'ws-message-received';
 
 export function useAppWebSocket(userId?: number) {
   const queryClient = useQueryClient();
@@ -42,8 +46,26 @@ export function useAppWebSocket(userId?: number) {
             // Invalidate ALL active cards queries to ensure everyone sees the update
             queryClient.invalidateQueries({ queryKey: [api.activeCards.list.path] });
           } else if (data.type === WS_EVENTS.MESSAGE_RECEIVED) {
-            // invalidate ALL chat message queries to refresh
-            queryClient.invalidateQueries({ queryKey: [api.chat.getMessages.path] });
+            // Emit custom event untuk chat
+            const messageData: Message & { senderUsername?: string } = {
+              id: data.payload.id,
+              senderId: data.payload.senderId,
+              recipientId: data.payload.recipientId,
+              content: data.payload.content,
+              isRead: false,
+              createdAt: new Date(data.payload.createdAt),
+              readAt: null,
+              senderUsername: data.payload.senderUsername,
+            };
+
+            // Dispatch custom event
+            window.dispatchEvent(
+              new CustomEvent(WS_MESSAGE_EVENT, {
+                detail: messageData,
+              })
+            );
+
+            console.log('[WebSocket] Message received event dispatched:', messageData);
           }
         } catch (e) {
           console.error("Failed to parse WS message", e);
@@ -75,4 +97,20 @@ export function useAppWebSocket(userId?: number) {
   }, [queryClient, toast, userId]);
 
   return wsRef.current;
+}
+
+// Hook untuk subscribe ke WebSocket messages
+export function useWebSocketMessages(callback: (message: Message & { senderUsername?: string }) => void) {
+  useEffect(() => {
+    const handleMessage = (event: Event) => {
+      if (event instanceof CustomEvent) {
+        callback(event.detail);
+      }
+    };
+
+    window.addEventListener(WS_MESSAGE_EVENT, handleMessage);
+    return () => {
+      window.removeEventListener(WS_MESSAGE_EVENT, handleMessage);
+    };
+  }, [callback]);
 }
