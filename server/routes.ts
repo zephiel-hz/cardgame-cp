@@ -588,39 +588,43 @@ export async function registerRoutes(
       const userCard = await storage.addCardToInventory(input.userId, pulledCard.id);
       
       // Notify partner about new card via email (non-blocking with retry logic)
+      // Only send notification for SSR cards
       // Fire and forget with retry mechanism
       (async () => {
         try {
-          const partner = await storage.getPartner(input.userId);
-          
-          if (partner && partner.email && partner.emailVerified) {
-            const user = await storage.getUser(input.userId);
+          // Only notify partner for SSR cards
+          if (pulledCard.tier === 'SSR') {
+            const partner = await storage.getPartner(input.userId);
             
-            let retries = 3;
-            let lastError: Error | null = null;
-            
-            while (retries > 0) {
-              try {
-                await emailNotificationService.notifyNewCardEmail(
-                  partner.email,
-                  user?.username || 'Partner',
-                  pulledCard.tier
-                );
-                console.log('[Email] New card notification sent successfully');
-                break;
-              } catch (err) {
-                lastError = err instanceof Error ? err : new Error(String(err));
-                retries--;
-                if (retries > 0) {
-                  // Wait before retrying (exponential backoff: 1s, 2s, 4s)
-                  await new Promise(resolve => setTimeout(resolve, Math.pow(2, 3 - retries) * 1000));
-                  console.log(`[Email] Retrying notification (${retries} attempts remaining)...`);
+            if (partner && partner.email && partner.emailVerified) {
+              const user = await storage.getUser(input.userId);
+              
+              let retries = 3;
+              let lastError: Error | null = null;
+              
+              while (retries > 0) {
+                try {
+                  await emailNotificationService.notifyNewCardEmail(
+                    partner.email,
+                    user?.username || 'Partner',
+                    pulledCard.tier
+                  );
+                  console.log('[Email] New card notification sent successfully');
+                  break;
+                } catch (err) {
+                  lastError = err instanceof Error ? err : new Error(String(err));
+                  retries--;
+                  if (retries > 0) {
+                    // Wait before retrying (exponential backoff: 1s, 2s, 4s)
+                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, 3 - retries) * 1000));
+                    console.log(`[Email] Retrying notification (${retries} attempts remaining)...`);
+                  }
                 }
               }
-            }
-            
-            if (lastError) {
-              console.error('[Email] Failed to send new card notification after retries:', lastError);
+              
+              if (lastError) {
+                console.error('[Email] Failed to send new card notification after retries:', lastError);
+              }
             }
           }
         } catch (error) {
