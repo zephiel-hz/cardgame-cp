@@ -158,7 +158,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto px-4 pt-6 pb-28 hide-scrollbar">
+      <main className={cn("flex-1 overflow-y-auto px-4 pt-6 hide-scrollbar", location !== "/chat" ? "pb-28" : "")}>
         {children}
       </main>
 
