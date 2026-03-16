@@ -56,9 +56,9 @@ export default function Chat() {
   }
 
   return (
-    <div className="w-full h-dvh bg-white dark:bg-slate-950 flex flex-col md:items-center md:justify-center md:p-4 overflow-hidden">
-      {/* Mobile: fullscreen, Desktop: responsive max-height */}
-      <div className="w-full h-full md:h-auto md:max-w-2xl md:max-h-[80vh] md:rounded-xl md:overflow-hidden md:border md:border-gray-200 md:dark:border-slate-700 md:shadow-lg">
+    <div className="w-full h-full bg-white dark:bg-slate-950 flex flex-col md:items-center md:justify-center overflow-hidden">
+      {/* Mobile: fullscreen, Desktop: flex centered */}
+      <div className="w-full h-full md:w-auto md:h-auto md:max-w-2xl md:rounded-xl md:overflow-hidden md:border md:border-gray-200 md:dark:border-slate-700 md:shadow-lg md:bg-white md:dark:bg-slate-900">
         <ChatWindow
           userId={user.id}
           partnerId={partner.id}
