@@ -423,6 +423,16 @@ export class DatabaseStorage implements IStorage {
         .set({ status: 'accepted', respondedAt: new Date() })
         .where(eq(partnershipRequests.id, requestId));
 
+      // Clean up old removal requests between these two users
+      // Mark them as completed/invalidated since new partnership is formed
+      await pool.query(
+        `UPDATE partnership_removal_requests 
+         SET status = $1, responded_at = NOW()
+         WHERE (initiator_id = $2 AND partner_id = $3) 
+            OR (initiator_id = $3 AND partner_id = $2)`,
+        ['invalidated_by_new_partnership', request.fromUserId, request.toUserId]
+      );
+
       return this.getUser(request.fromUserId) || null;
     } else {
       // Mark request as declined
@@ -506,14 +516,18 @@ export class DatabaseStorage implements IStorage {
     // Get removal requests where:
     // 1. User is the partner AND status is pending (needs to respond), OR
     // 2. User is the initiator (to see status: pending, rejected, completed, force_deleted)
+    // Exclude invalidated_by_new_partnership status
     const requests = await db.select().from(partnershipRemovalRequests)
       .where(
-        or(
-          and(
-            eq(partnershipRemovalRequests.partnerId, userId),
-            ne(partnershipRemovalRequests.status, 'force_deleted')
+        and(
+          or(
+            and(
+              eq(partnershipRemovalRequests.partnerId, userId),
+              ne(partnershipRemovalRequests.status, 'force_deleted')
+            ),
+            eq(partnershipRemovalRequests.initiatorId, userId)
           ),
-          eq(partnershipRemovalRequests.initiatorId, userId)
+          ne(partnershipRemovalRequests.status, 'invalidated_by_new_partnership')
         )
       );
 
