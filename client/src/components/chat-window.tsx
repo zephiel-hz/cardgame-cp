@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { Button } from "@/components/ui/button";
@@ -46,31 +46,45 @@ export function ChatWindow({
     };
   }, [showEmojiPicker]);
 
-  // Create stable query key - order matters for consistency
-  const chatQueryKey = [api.chat.getMessages.path, userId, partnerId];
+  // Create stable query key - memoize to prevent recreation on every render
+  const chatQueryKey = useMemo(() => [api.chat.getMessages.path, userId, partnerId], [userId, partnerId]);
 
   // Listen for incoming WebSocket messages and update cache in real-time
   useWebSocketMessages(
     useCallback((incomingMessage: Message & { senderUsername?: string }) => {
+      console.log('[ChatWindow] useWebSocketMessages callback fired');
+      console.log('[ChatWindow] Incoming message:', incomingMessage);
+      console.log('[ChatWindow] Current user:', userId, 'Partner:', partnerId);
+      console.log('[ChatWindow] Message is from partner?', incomingMessage.senderId === partnerId, 'To current user?', incomingMessage.recipientId === userId);
+      
       // Only update if message is for this conversation
       if (incomingMessage.senderId === partnerId && incomingMessage.recipientId === userId) {
-        console.log('[ChatWindow] Received message in real-time:', incomingMessage);
+        console.log('[ChatWindow] ✅ Message is for this conversation, updating cache');
         
         // Update cache immediately
         queryClient.setQueryData(chatQueryKey, (oldData: Message[] | undefined) => {
+          console.log('[ChatWindow] Old cache data:', oldData?.length || 0, 'messages');
+          
           // Check if message already exists to avoid duplicates
           if (oldData?.some(msg => msg.id === incomingMessage.id)) {
+            console.log('[ChatWindow] Message already exists in cache, skipping');
             return oldData;
           }
-          return oldData ? [...oldData, incomingMessage] : [incomingMessage];
+          
+          const newData = oldData ? [...oldData, incomingMessage] : [incomingMessage];
+          console.log('[ChatWindow] Updated cache with new message, total:', newData.length);
+          return newData;
         });
 
         // Scroll to bottom after a small delay to let React render
         setTimeout(() => {
+          console.log('[ChatWindow] Scrolling to bottom');
           if (scrollRef.current) {
             scrollRef.current.scrollIntoView({ behavior: "smooth" });
           }
         }, 0);
+      } else {
+        console.log('[ChatWindow] ❌ Message is NOT for this conversation');
       }
     }, [partnerId, userId, queryClient, chatQueryKey])
   );

@@ -51,9 +51,13 @@ export async function registerRoutes(
 
   // Send message to specific user
   const sendToUser = (userId: number, type: string, payload: any) => {
+    console.log(`[sendToUser] Attempting to send ${type} to user ${userId}`);
     const ws = userConnections.get(userId);
     if (ws && ws.readyState === WebSocket.OPEN) {
+      console.log(`[sendToUser] ✅ User ${userId} is connected, sending message`);
       ws.send(JSON.stringify({ type, payload }));
+    } else {
+      console.log(`[sendToUser] ❌ User ${userId} is NOT connected (WebSocket state: ${ws?.readyState ?? 'not found'})`);
     }
   };
 
@@ -874,20 +878,27 @@ export async function registerRoutes(
   // ============= CHAT ENDPOINTS =============
   app.post(api.chat.sendMessage.path, async (req, res) => {
     try {
+      console.log('[Chat] sendMessage endpoint called with body:', req.body);
       const input = api.chat.sendMessage.input.parse(req.body);
+      console.log('[Chat] Parsed input:', input);
       
       // Verify sender exists and recipient exists
       const sender = await storage.getUser(input.senderId);
       const recipient = await storage.getUser(input.recipientId);
       
       if (!sender || !recipient) {
+        console.log('[Chat] ❌ Sender or recipient not found');
         return res.status(404).json({ message: "Sender or recipient not found" });
       }
 
+      console.log(`[Chat] ✅ Sender: ${sender.username} (${input.senderId}), Recipient: ${recipient.username} (${input.recipientId})`);
+
       // Save message to database
       const message = await storage.sendMessage(input.senderId, input.recipientId, input.content);
+      console.log('[Chat] Message saved to DB:', message.id);
       
       // Send real-time notification via WebSocket if recipient is online
+      console.log(`[Chat] Sending WebSocket notification to recipient ${input.recipientId}`);
       sendToUser(input.recipientId, WS_EVENTS.MESSAGE_RECEIVED, {
         id: message.id,
         senderId: message.senderId,
@@ -909,6 +920,7 @@ export async function registerRoutes(
         }
       });
     } catch (err) {
+      console.error('[Chat] Error in sendMessage:', err);
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors[0].message });
       }

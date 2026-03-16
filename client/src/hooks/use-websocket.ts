@@ -33,6 +33,7 @@ export function useAppWebSocket(userId?: number) {
       wsRef.current.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data) as WsMessage<any>;
+          console.log('[WebSocket] Message received from server:', data.type, data.payload);
           
           if (data.type === WS_EVENTS.CARD_USED) {
             const { cardName, userName } = data.payload;
@@ -58,14 +59,15 @@ export function useAppWebSocket(userId?: number) {
               senderUsername: data.payload.senderUsername,
             };
 
-            // Dispatch custom event
-            window.dispatchEvent(
-              new CustomEvent(WS_MESSAGE_EVENT, {
-                detail: messageData,
-              })
-            );
+            console.log('[WebSocket] About to dispatch MESSAGE_RECEIVED event:', messageData);
 
-            console.log('[WebSocket] Message received event dispatched:', messageData);
+            // Dispatch custom event
+            const event = new CustomEvent(WS_MESSAGE_EVENT, {
+              detail: messageData,
+            });
+            window.dispatchEvent(event);
+
+            console.log('[WebSocket] MESSAGE_RECEIVED event dispatched successfully');
           }
         } catch (e) {
           console.error("Failed to parse WS message", e);
@@ -73,10 +75,13 @@ export function useAppWebSocket(userId?: number) {
       };
 
       wsRef.current.onclose = () => {
-        console.log("[WebSocket] Disconnected. Reconnecting...");
-        // Reconnect after a delay if the socket wasn't intentionally closed
+        console.log("[WebSocket] Disconnected. wsRef.current is:", wsRef.current !== null);
+        // Only reconnect if socket wasn't intentionally cleared
         if (wsRef.current) {
+          console.log("[WebSocket] Scheduling reconnection in 3s...");
           setTimeout(connect, 3000);
+        } else {
+          console.log("[WebSocket] Socket was intentionally closed, not reconnecting");
         }
       };
 
@@ -102,14 +107,24 @@ export function useAppWebSocket(userId?: number) {
 // Hook untuk subscribe ke WebSocket messages
 export function useWebSocketMessages(callback: (message: Message & { senderUsername?: string }) => void) {
   useEffect(() => {
+    console.log('[useWebSocketMessages] Setting up listener');
+    
     const handleMessage = (event: Event) => {
+      console.log('[useWebSocketMessages] Event received:', event.type);
+      
       if (event instanceof CustomEvent) {
+        console.log('[useWebSocketMessages] CustomEvent detail:', event.detail);
         callback(event.detail);
+      } else {
+        console.warn('[useWebSocketMessages] Event is not a CustomEvent:', event);
       }
     };
 
     window.addEventListener(WS_MESSAGE_EVENT, handleMessage);
+    console.log(`[useWebSocketMessages] Listener attached to ${WS_MESSAGE_EVENT}`);
+    
     return () => {
+      console.log(`[useWebSocketMessages] Removing listener from ${WS_MESSAGE_EVENT}`);
       window.removeEventListener(WS_MESSAGE_EVENT, handleMessage);
     };
   }, [callback]);
