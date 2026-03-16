@@ -106,6 +106,17 @@ export function ChatWindow({
     gcTime: 1000 * 60 * 30, // 30 minutes (formerly cacheTime)
   });
 
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => {
+        if (scrollRef.current) {
+          scrollRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 0);
+    }
+  }, [messages]);
+
   // Send message mutation
   const sendMessageMutation = useMutation({
     mutationFn: async (content: string) => {
