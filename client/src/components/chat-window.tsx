@@ -57,6 +57,7 @@ export function ChatWindow({
   const scrollRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const longPressMenuRef = useRef<HTMLDivElement>(null);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -71,7 +72,9 @@ export function ChatWindow({
         setContextMenuId(null);
       }
       // Close long-press menu when clicking outside
-      setLongPressedMessageId(null);
+      if (longPressMenuRef.current && !longPressMenuRef.current.contains(event.target as Node)) {
+        setLongPressedMessageId(null);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -408,7 +411,10 @@ export function ChatWindow({
 
                       {/* Emoji reactions on long-press */}
                       {longPressedMessageId === msg.id && (
-                        <div className="absolute top-full mt-2 left-0 bg-white dark:bg-slate-800 rounded-full shadow-lg border border-gray-200 dark:border-slate-700 flex gap-1 p-2 animate-in fade-in-0 scale-In-95 duration-150 z-30">
+                        <div 
+                          ref={longPressMenuRef}
+                          className="absolute top-full mt-2 left-0 bg-white dark:bg-slate-800 rounded-full shadow-lg border border-gray-200 dark:border-slate-700 flex gap-1 p-2 animate-in fade-in-0 scale-In-95 duration-150 z-30"
+                        >
                           {QUICK_REACTIONS.map((emoji) => (
                             <button
                               key={emoji}
