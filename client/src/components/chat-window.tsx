@@ -387,7 +387,7 @@ export function ChatWindow({
                           })}
                         </span>
                         {msg.senderId === userId && (
-                          <span>{msg.isRead ? "✓✓" : "✓"}</span>
+                          <span>{msg.isRead ? "read" : "sent"}</span>
                         )}
                       </div>
 
