@@ -958,6 +958,23 @@ export async function registerRoutes(
     }
   });
 
+  // Get unread message count for user
+  app.get(api.chat.getUnreadCount.path, async (req, res) => {
+    try {
+      const userId = Number(req.params.userId);
+
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const unreadCount = await storage.getUnreadMessageCount(userId);
+      res.status(200).json({ unreadCount });
+    } catch (err) {
+      console.error("[Chat] Error fetching unread count:", err);
+      res.status(400).json({ message: "Failed to fetch unread count" });
+    }
+  });
+
   app.get(api.chat.getUnreadCount.path, async (req, res) => {
     try {
       const userId = Number(req.params.userId);

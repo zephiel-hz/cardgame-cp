@@ -4,7 +4,7 @@ import { Gift, LayoutGrid, Zap, User as UserIcon, LogOut, Heart, ChevronDown, Me
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import type { User } from "@shared/schema";
 
@@ -13,6 +13,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
   // Fetch partner info
   const { data: partner } = useQuery({
@@ -28,6 +29,24 @@ export function Layout({ children }: { children: React.ReactNode }) {
       }
     },
     enabled: !!user?.id,
+  });
+
+  // Fetch unread message count
+  const { data: unreadData } = useQuery({
+    queryKey: ['unreadCount', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return { unreadCount: 0 };
+      try {
+        const response = await fetch(buildUrl(api.chat.getUnreadCount.path, { userId: user.id }));
+        if (!response.ok) return { unreadCount: 0 };
+        return response.json();
+      } catch {
+        return { unreadCount: 0 };
+      }
+    },
+    enabled: !!user?.id,
+    // Refetch every 10 seconds to get real-time unread count
+    refetchInterval: 10000,
   });
 
   const tabs = [
@@ -114,13 +133,25 @@ export function Layout({ children }: { children: React.ReactNode }) {
         {/* Chat Button - Top Right */}
         {partner && user && (
           <Button
-            onClick={() => setLocation("/chat")}  
+            onClick={() => {
+              setLocation("/chat");
+              // Invalidate unread count when opening chat
+              queryClient.setQueryData(['unreadCount', user.id], { unreadCount: 0 });
+            }}
             variant="outline"
             size="sm"
-            className="gap-2 ml-3"
+            className="gap-2 ml-3 relative"
             title="Chat dengan partner"
           >
-            <MessageCircle className="w-4 h-4" />
+            <div className="relative">
+              <MessageCircle className="w-4 h-4" />
+              {/* Unread badge */}
+              {unreadData?.unreadCount && unreadData.unreadCount > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                  {unreadData.unreadCount > 99 ? '99+' : unreadData.unreadCount}
+                </span>
+              )}
+            </div>
             <span className="hidden xs:inline text-xs">Chat</span>
           </Button>
         )}

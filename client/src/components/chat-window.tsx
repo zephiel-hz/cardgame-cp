@@ -76,6 +76,9 @@ export function ChatWindow({
           return newData;
         });
 
+        // Invalidate unread count when message arrives (it's now unread)
+        queryClient.invalidateQueries({ queryKey: ['unreadCount', userId] });
+
         // Scroll to bottom after a small delay to let React render
         setTimeout(() => {
           console.log('[ChatWindow] Scrolling to bottom');
@@ -163,6 +166,25 @@ export function ChatWindow({
       return response.json();
     },
   });
+
+  // Mark all unread messages from partner as read when opening chat
+  useEffect(() => {
+    if (messages.length > 0) {
+      console.log('[ChatWindow] Auto-marking unread messages as read');
+      messages.forEach((msg) => {
+        // Only mark messages from partner that are unread
+        if (msg.senderId === partnerId && !msg.isRead) {
+          console.log('[ChatWindow] Marking message', msg.id, 'as read');
+          markAsReadMutation.mutate(msg.id, {
+            onSuccess: () => {
+              // Invalidate the unread count in layout when marking messages as read
+              queryClient.invalidateQueries({ queryKey: ['unreadCount', userId] });
+            }
+          });
+        }
+      });
+    }
+  }, [messages, partnerId, userId, queryClient]);
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
