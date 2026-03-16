@@ -53,6 +53,7 @@ export function ChatWindow({
   const [activeEmojiCategory, setActiveEmojiCategory] = useState<keyof typeof EMOJI_CATEGORIES>("smileys");
   const [longPressedMessageId, setLongPressedMessageId] = useState<number | null>(null);
   const [contextMenuId, setContextMenuId] = useState<number | null>(null);
+  const [messageReactions, setMessageReactions] = useState<Record<number, string[]>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
@@ -233,6 +234,24 @@ export function ChatWindow({
     setShowEmojiPicker(false);
   };
 
+  const handleAddReaction = (messageId: number, emoji: string) => {
+    setMessageReactions((prev) => {
+      const reactions = prev[messageId] || [];
+      // Avoid duplicate reactions from same user
+      if (!reactions.includes(emoji)) {
+        return {
+          ...prev,
+          [messageId]: [...reactions, emoji],
+        };
+      }
+      return prev;
+    });
+    setLongPressedMessageId(null);
+    toast({
+      description: `Reacted with ${emoji}`,
+    });
+  };
+
   // Group messages by date
   const messagesByDate = messages.reduce((acc, msg) => {
     const date = new Date(msg.createdAt);
@@ -373,12 +392,27 @@ export function ChatWindow({
                         )}
                       </div>
 
+                      {/* Saved reactions display */}
+                      {messageReactions[msg.id] && messageReactions[msg.id].length > 0 && (
+                        <div className={`flex gap-1 mt-2 flex-wrap ${msg.senderId === userId ? "justify-end" : "justify-start"}`}>
+                          {messageReactions[msg.id].map((emoji, idx) => (
+                            <span
+                              key={idx}
+                              className="text-lg bg-gray-100 dark:bg-slate-800 rounded-full px-2 py-1 shadow-sm"
+                            >
+                              {emoji}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
                       {/* Emoji reactions on long-press */}
                       {longPressedMessageId === msg.id && (
                         <div className="absolute top-full mt-2 left-0 bg-white dark:bg-slate-800 rounded-full shadow-lg border border-gray-200 dark:border-slate-700 flex gap-1 p-2 animate-in fade-in-0 scale-In-95 duration-150 z-30">
                           {QUICK_REACTIONS.map((emoji) => (
                             <button
                               key={emoji}
+                              onClick={() => handleAddReaction(msg.id, emoji)}
                               className="text-lg hover:scale-125 transition-transform duration-150 cursor-pointer"
                               title={`React with ${emoji}`}
                             >
