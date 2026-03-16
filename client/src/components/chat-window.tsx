@@ -51,15 +51,16 @@ export function ChatWindow({
   const [messageText, setMessageText] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeEmojiCategory, setActiveEmojiCategory] = useState<keyof typeof EMOJI_CATEGORIES>("smileys");
-  const [hoveredMessageId, setHoveredMessageId] = useState<number | null>(null);
+  const [longPressedMessageId, setLongPressedMessageId] = useState<number | null>(null);
   const [contextMenuId, setContextMenuId] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Close emoji picker when clicking outside
+  // Close emoji picker and clear long press when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target as Node)) {
@@ -68,11 +69,22 @@ export function ChatWindow({
       if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
         setContextMenuId(null);
       }
+      // Close long-press menu when clicking outside
+      setLongPressedMessageId(null);
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Cleanup long-press timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+      }
     };
   }, []);
 
@@ -241,7 +253,7 @@ export function ChatWindow({
   }
 
   return (
-    <div className="flex flex-col w-full h-full md:max-h-[80vh] bg-white dark:bg-slate-950 overflow-hidden">
+    <div className="flex flex-col w-full h-full bg-white dark:bg-slate-950 overflow-hidden">
       {/* Header - Instagram style */}
       <div className="bg-white dark:bg-slate-900/90 border-b border-gray-200 dark:border-slate-700 px-4 py-3 flex items-center justify-between sticky top-0 z-10 backdrop-blur">
         <div className="flex items-center gap-3">
@@ -297,14 +309,29 @@ export function ChatWindow({
                 </div>
 
                 {/* Messages for this date */}
-                {dayMessages.map((msg: Message) => (
+                {dayMessages.map((msg: Message) => {
+                  const handleMessagePointerDown = () => {
+                    longPressTimerRef.current = setTimeout(() => {
+                      setLongPressedMessageId(msg.id);
+                    }, 500); // 500ms long press
+                  };
+
+                  const handleMessagePointerUp = () => {
+                    if (longPressTimerRef.current) {
+                      clearTimeout(longPressTimerRef.current);
+                      longPressTimerRef.current = null;
+                    }
+                  };
+
+                  return (
                   <div
                     key={msg.id}
                     className={`flex gap-3 mb-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 ${
                       msg.senderId === userId ? "justify-end" : "justify-start"
                     }`}
-                    onMouseEnter={() => setHoveredMessageId(msg.id)}
-                    onMouseLeave={() => setHoveredMessageId(null)}
+                    onPointerDown={handleMessagePointerDown}
+                    onPointerUp={handleMessagePointerUp}
+                    onPointerLeave={handleMessagePointerUp}
                   >
                     {/* Avatar for incoming messages */}
                     {msg.senderId !== userId && (
@@ -346,9 +373,9 @@ export function ChatWindow({
                         )}
                       </div>
 
-                      {/* Emoji reactions on hover */}
-                      {hoveredMessageId === msg.id && (
-                        <div className="absolute top-full mt-2 left-0 bg-white dark:bg-slate-800 rounded-full shadow-lg border border-gray-200 dark:border-slate-700 flex gap-1 p-2 animate-in fade-in-0 scale-In-95 duration-150">
+                      {/* Emoji reactions on long-press */}
+                      {longPressedMessageId === msg.id && (
+                        <div className="absolute top-full mt-2 left-0 bg-white dark:bg-slate-800 rounded-full shadow-lg border border-gray-200 dark:border-slate-700 flex gap-1 p-2 animate-in fade-in-0 scale-In-95 duration-150 z-30">
                           {QUICK_REACTIONS.map((emoji) => (
                             <button
                               key={emoji}
@@ -359,7 +386,10 @@ export function ChatWindow({
                             </button>
                           ))}
                           <button 
-                            onClick={() => setContextMenuId(msg.id)}
+                            onClick={() => {
+                              setContextMenuId(msg.id);
+                              setLongPressedMessageId(null);
+                            }}
                             className="text-muted-foreground hover:text-foreground p-1 transition-colors"
                             title="More options"
                           >
@@ -396,7 +426,8 @@ export function ChatWindow({
                       )}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             ))
           )}
