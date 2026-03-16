@@ -395,13 +395,14 @@ export function ChatWindow({
                         )}
                       </div>
 
-                      {/* Saved reactions display */}
+                      {/* Saved reactions display - top right corner of bubble */}
                       {messageReactions[msg.id] && messageReactions[msg.id].length > 0 && (
-                        <div className={`flex gap-1 mt-2 flex-wrap ${msg.senderId === userId ? "justify-end" : "justify-start"}`}>
+                        <div className="absolute -top-2 -right-2 flex gap-0.5 flex-wrap max-w-[120px] justify-end bg-white dark:bg-slate-900 rounded-full px-1.5 py-0.5 shadow-md border border-gray-200 dark:border-slate-700">
                           {messageReactions[msg.id].map((emoji, idx) => (
                             <span
                               key={idx}
-                              className="text-lg bg-gray-100 dark:bg-slate-800 rounded-full px-2 py-1 shadow-sm"
+                              className="text-xs"
+                              title={`Reacted with ${emoji}`}
                             >
                               {emoji}
                             </span>
