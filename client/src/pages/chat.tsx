@@ -30,42 +30,40 @@ export default function Chat() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-accent"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-500"></div>
       </div>
     );
   }
 
   if (!partner || !user) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen">
-        <div className="w-20 h-20 bg-pink-200 dark:bg-pink-700/50 rounded-full flex items-center justify-center mb-4">
-          <MessageCircle className="w-10 h-10 text-pink-600 dark:text-pink-300" />
+      <div className="flex flex-col items-center justify-center h-screen bg-white dark:bg-slate-950">
+        <div className="w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4">
+          <MessageCircle className="w-10 h-10 text-blue-500" />
         </div>
-        <h3 className="font-bold text-xl mb-2">Tidak Ada Partner</h3>
-        <p className="text-center text-muted-foreground max-w-xs">
-          Kamu harus memiliki partner terlebih dahulu untuk menggunakan chat.
+        <h3 className="font-bold text-xl mb-2">No Partner Yet</h3>
+        <p className="text-center text-muted-foreground max-w-xs mb-6">
+          You need to pair with a partner first to use the messaging feature.
         </p>
+        <button
+          onClick={() => setLocation('/partner-pairing')}
+          className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-medium transition-colors"
+        >
+          Find Partner
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="pb-10 px-4">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
-          <MessageCircle className="w-8 h-8 text-blue-500" />
-          Chat dengan {partner.username}
-        </h1>
-        <p className="text-muted-foreground text-sm font-medium mt-1">
-          💬 Real-time messaging dengan partner mu
-        </p>
-      </div>
-
-      <div className="max-w-2xl mx-auto">
+    <div className="w-full h-screen bg-white dark:bg-slate-950 flex flex-col md:items-center md:justify-center md:p-4">
+      <div className="w-full h-full md:h-auto md:max-w-2xl md:rounded-xl md:overflow-hidden md:border md:border-gray-200 md:dark:border-slate-700">
         <ChatWindow
           userId={user.id}
           partnerId={partner.id}
           partnerName={partner.username}
+          partnerData={partner}
+          onBack={() => setLocation('/')}
         />
       </div>
     </div>
