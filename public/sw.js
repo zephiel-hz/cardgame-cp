@@ -1,5 +1,5 @@
 // Service Worker for Push Notifications
-const CACHE_NAME = 'cardgame-v1';
+const CACHE_NAME = 'cardgame-v4';
 
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker');
@@ -8,7 +8,25 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating service worker');
-  event.waitUntil(clients.claim());
+  event.waitUntil(
+    (async () => {
+      // Delete old caches
+      const cacheNames = await caches.keys();
+      console.log('[SW] Available caches:', cacheNames);
+      
+      await Promise.all(
+        cacheNames.map(async (cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('[SW] Deleting old cache:', cacheName);
+            await caches.delete(cacheName);
+          }
+        })
+      );
+      
+      console.log('[SW] Cache cleanup complete');
+      return clients.claim();
+    })()
+  );
 });
 
 self.addEventListener('push', (event) => {

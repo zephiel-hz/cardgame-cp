@@ -1,6 +1,6 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
-import { rm, readFile, copyFile, mkdir, cp } from "fs/promises";
+import { rm, readFile, copyFile, mkdir, cp, writeFile } from "fs/promises";
 import path from "path";
 
 // server deps to bundle to reduce openat(2) syscalls
@@ -33,11 +33,33 @@ const allowlist = [
   "zod-validation-error",
 ];
 
+async function addCacheBustingToBuild() {
+  // Add ?v=4 query parameters to asset URLs to force cache refresh
+  const indexPath = path.join("dist/public", "index.html");
+  let html = await readFile(indexPath, "utf-8");
+  
+  // Add cache busting query parameters to JS and CSS assets
+  html = html.replace(
+    /src="(\/assets\/[^"]+\.js)"/g,
+    'src="$1?v=4"'
+  );
+  html = html.replace(
+    /href="(\/assets\/[^"]+\.css)"/g,
+    'href="$1?v=4"'
+  );
+  
+  await writeFile(indexPath, html);
+  console.log("✓ Added cache busting parameters (?v=4) to assets");
+}
+
 async function buildAll() {
   await rm("dist", { recursive: true, force: true });
 
   console.log("building client...");
   await viteBuild();
+
+  // Add cache busting parameters after Vite build
+  await addCacheBustingToBuild();
 
   console.log("building server...");
   const pkg = JSON.parse(await readFile("package.json", "utf-8"));
