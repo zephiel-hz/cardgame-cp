@@ -344,28 +344,15 @@ export function ChatWindow({
                   return (
                   <div
                     key={msg.id}
-                    className={`flex gap-3 mb-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 ${
+                    className={`flex mb-3 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 ${
                       msg.senderId === userId ? "justify-end" : "justify-start"
                     }`}
                     onPointerDown={handleMessagePointerDown}
                     onPointerUp={handleMessagePointerUp}
                     onPointerLeave={handleMessagePointerUp}
                   >
-                    {/* Avatar for incoming messages */}
-                    {msg.senderId !== userId && (
-                      <div className="w-7 h-7 rounded-full flex-shrink-0">
-                        {partnerData?.avatarUrl && (
-                          <img 
-                            src={partnerData.avatarUrl}
-                            alt={partnerName}
-                            className="w-full h-full rounded-full object-cover border border-gray-200 dark:border-slate-700"
-                          />
-                        )}
-                      </div>
-                    )}
-
                     {/* Message bubble with actions */}
-                    <div className={`relative group max-w-xs lg:max-w-md ${msg.senderId === userId ? "order-2" : "order-1"}`}>
+                    <div className="relative group max-w-xs lg:max-w-md">
                       <div
                         className={`px-4 py-2.5 rounded-2xl transition-all ${
                           msg.senderId === userId
@@ -463,11 +450,6 @@ export function ChatWindow({
                         </div>
                       )}
                     </div>
-
-                    {/* Avatar placeholder for outgoing messages (symmetry) */}
-                    {msg.senderId === userId && (
-                      <div className="w-7 h-7 flex-shrink-0" />
-                    )}
                   </div>
                   );
                 })}
