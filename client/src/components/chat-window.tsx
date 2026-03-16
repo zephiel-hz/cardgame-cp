@@ -53,7 +53,7 @@ export function ChatWindow({
   const [activeEmojiCategory, setActiveEmojiCategory] = useState<keyof typeof EMOJI_CATEGORIES>("smileys");
   const [longPressedMessageId, setLongPressedMessageId] = useState<number | null>(null);
   const [contextMenuId, setContextMenuId] = useState<number | null>(null);
-  const [messageReactions, setMessageReactions] = useState<Record<number, string[]>>({});
+  const [messageReactions, setMessageReactions] = useState<Record<number, string>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
@@ -239,15 +239,11 @@ export function ChatWindow({
 
   const handleAddReaction = (messageId: number, emoji: string) => {
     setMessageReactions((prev) => {
-      const reactions = prev[messageId] || [];
-      // Avoid duplicate reactions from same user
-      if (!reactions.includes(emoji)) {
-        return {
-          ...prev,
-          [messageId]: [...reactions, emoji],
-        };
-      }
-      return prev;
+      // Override - single reaction per message
+      return {
+        ...prev,
+        [messageId]: emoji,
+      };
     });
     setLongPressedMessageId(null);
     toast({
@@ -396,17 +392,14 @@ export function ChatWindow({
                       </div>
 
                       {/* Saved reactions display - top right corner of bubble */}
-                      {messageReactions[msg.id] && messageReactions[msg.id].length > 0 && (
-                        <div className="absolute -top-2 -right-2 flex gap-0.5 flex-wrap max-w-[120px] justify-end bg-white dark:bg-slate-900 rounded-full px-1.5 py-0.5 shadow-md border border-gray-200 dark:border-slate-700">
-                          {messageReactions[msg.id].map((emoji, idx) => (
-                            <span
-                              key={idx}
-                              className="text-xs"
-                              title={`Reacted with ${emoji}`}
-                            >
-                              {emoji}
-                            </span>
-                          ))}
+                      {messageReactions[msg.id] && (
+                        <div className="absolute -top-2 -right-2 bg-white dark:bg-slate-900 rounded-full px-1.5 py-0.5 shadow-md border border-gray-200 dark:border-slate-700">
+                          <span
+                            className="text-xs inline-block"
+                            title={`Reacted with ${messageReactions[msg.id]}`}
+                          >
+                            {messageReactions[msg.id]}
+                          </span>
                         </div>
                       )}
 
