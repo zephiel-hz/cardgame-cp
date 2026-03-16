@@ -463,6 +463,11 @@ export function ChatWindow({
                         </div>
                       )}
                     </div>
+
+                    {/* Avatar placeholder for outgoing messages (symmetry) */}
+                    {msg.senderId === userId && (
+                      <div className="w-7 h-7 flex-shrink-0" />
+                    )}
                   </div>
                   );
                 })}
