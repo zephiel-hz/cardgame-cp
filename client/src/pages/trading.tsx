@@ -173,36 +173,39 @@ export default function Trading() {
     setQuantityValue(currentQty > 0 ? currentQty : 1);
   };
 
-  const handleConfirmQuantity = () => {
+  const handleDeleteCard = () => {
     if (!quantityPickerCard) return;
     
     if (quantityPickerContext === 'initiate') {
-      if (quantityValue === 0) {
-        // Remove card
-        const newSelected = { ...selectedCards };
-        delete newSelected[quantityPickerCard.card.id];
-        setSelectedCards(newSelected);
-      } else {
-        // Set quantity
-        setSelectedCards(prev => ({
-          ...prev,
-          [quantityPickerCard.card.id]: quantityValue
-        }));
-      }
+      const newSelected = { ...selectedCards };
+      delete newSelected[quantityPickerCard.card.id];
+      setSelectedCards(newSelected);
     } else {
-      // respond context
-      if (quantityValue === 0) {
-        // Remove card
-        const newResponding = { ...respondingCards };
-        delete newResponding[quantityPickerCard.card.id];
-        setRespondingCards(newResponding);
-      } else {
-        // Set quantity
-        setRespondingCards(prev => ({
-          ...prev,
-          [quantityPickerCard.card.id]: quantityValue
-        }));
-      }
+      const newResponding = { ...respondingCards };
+      delete newResponding[quantityPickerCard.card.id];
+      setRespondingCards(newResponding);
+    }
+    setQuantityPickerCard(null);
+  };
+
+  const handleConfirmQuantity = () => {
+    if (!quantityPickerCard) return;
+    
+    if (quantityValue === 0) {
+      handleDeleteCard();
+      return;
+    }
+    
+    if (quantityPickerContext === 'initiate') {
+      setSelectedCards(prev => ({
+        ...prev,
+        [quantityPickerCard.card.id]: quantityValue
+      }));
+    } else {
+      setRespondingCards(prev => ({
+        ...prev,
+        [quantityPickerCard.card.id]: quantityValue
+      }));
     }
     setQuantityPickerCard(null);
   };
@@ -509,14 +512,14 @@ export default function Trading() {
                                         className="h-full cursor-pointer"
                                         onClick={() => handleSelectCard(stacked.userCards[0])}
                                       >
-                                        {/* Selected quantity display */}
+                                        {/* Selected quantity display at bottom */}
                                         {isSelected > 0 && (
                                           <motion.div
-                                            initial={{ scale: 0 }}
-                                            animate={{ scale: 1 }}
-                                            className="absolute bottom-2 left-2 bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1"
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-blue-600 to-blue-500 text-white h-12 rounded-b-xl flex items-center justify-center font-bold text-lg gap-2 shadow-lg"
                                           >
-                                            <Check className="w-4 h-4" />
+                                            <Check className="w-5 h-5" />
                                             {isSelected}
                                           </motion.div>
                                         )}
@@ -802,11 +805,11 @@ export default function Trading() {
                                             >
                                               {respondingQty > 0 && (
                                                 <motion.div
-                                                  initial={{ scale: 0 }}
-                                                  animate={{ scale: 1 }}
-                                                  className="absolute bottom-2 left-2 bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1"
+                                                  initial={{ opacity: 0, y: 10 }}
+                                                  animate={{ opacity: 1, y: 0 }}
+                                                  className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-blue-600 to-blue-500 text-white h-12 rounded-b-xl flex items-center justify-center font-bold text-lg gap-2 shadow-lg"
                                                 >
-                                                  <Check className="w-4 h-4" />
+                                                  <Check className="w-5 h-5" />
                                                   {respondingQty}
                                                 </motion.div>
                                               )}
@@ -1019,10 +1022,7 @@ export default function Trading() {
             <div className="flex gap-3 pt-2">
               <Button
                 variant="outline"
-                onClick={() => {
-                  setQuantityValue(0);
-                  handleConfirmQuantity();
-                }}
+                onClick={handleDeleteCard}
                 className="flex-1 h-11 text-red-600 hover:text-red-700"
               >
                 Hapus
