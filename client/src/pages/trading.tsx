@@ -1061,11 +1061,27 @@ export default function Trading() {
                       key={cardId}
                       initial={{ scale: 0.8, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      className="rounded-xl overflow-hidden border-2 border-border shadow-lg hover:shadow-xl transition-shadow relative"
+                      className="relative"
                     >
-                      <CardDisplay card={userCard.card} className="h-40 w-full" />
-                      <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-                        ×{quantity}
+                      <div className="relative w-full h-full">
+                        {/* Stack layers for duplicates */}
+                        {quantity > 1 && (
+                          <>
+                            <div className="absolute -bottom-1 -left-1 right-0 aspect-square bg-foreground/5 rounded-2xl -z-10" />
+                            <div className="absolute -bottom-2 -left-2 right-0 aspect-square bg-foreground/3 rounded-2xl -z-20" />
+                          </>
+                        )}
+                        
+                        <div className="relative h-full rounded-2xl border-2 border-border shadow-lg hover:shadow-xl transition-shadow overflow-hidden">
+                          {/* Duplicate Counter Badge */}
+                          {quantity > 1 && (
+                            <div className="absolute -top-2 -right-2 bg-gradient-to-br from-pink-500 to-pink-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-lg z-20 border-2 border-background">
+                              {quantity}
+                            </div>
+                          )}
+                          
+                          <CardDisplay card={userCard.card} className="h-40 w-full" />
+                        </div>
                       </div>
                     </motion.div>
                   ) : null;
