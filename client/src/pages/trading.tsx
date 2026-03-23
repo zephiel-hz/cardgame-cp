@@ -1061,7 +1061,7 @@ export default function Trading() {
                       key={cardId}
                       initial={{ scale: 0.8, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      className="relative"
+                      className={`relative ${quantity > 1 ? 'pb-5 pl-5' : ''}`}
                     >
                       <div className="relative w-full h-full">
                         {/* Stack layers for duplicates */}
@@ -1072,10 +1072,10 @@ export default function Trading() {
                           </>
                         )}
                         
-                        <div className="relative h-full rounded-2xl border-2 border-border shadow-lg hover:shadow-xl transition-shadow overflow-hidden">
+                        <div className="relative h-full rounded-2xl border-2 border-border shadow-lg hover:shadow-xl transition-shadow overflow-visible">
                           {/* Duplicate Counter Badge */}
                           {quantity > 1 && (
-                            <div className="absolute -top-2 -right-2 bg-gradient-to-br from-pink-500 to-pink-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-lg z-20 border-2 border-background">
+                            <div className="absolute -bottom-3 -left-3 bg-gradient-to-br from-pink-500 to-pink-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-lg z-20 border-2 border-background">
                               {quantity}
                             </div>
                           )}
