@@ -735,18 +735,53 @@ export default function Trading() {
                               <div className="space-y-4">
                                 <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
                                   <h4 className="font-semibold mb-3 text-green-900 dark:text-green-100">Kartu yang ditawar:</h4>
-                                  <div className="grid grid-cols-2 gap-3">
+                                  <div className="grid grid-cols-2 gap-4">
                                     {offeredCards.length > 0 ? (
-                                      offeredCards.map((card, cardIdx) => (
-                                        <motion.div
-                                          key={`${trade.id}-${card.id}`}
-                                          initial={{ scale: 0 }}
-                                          animate={{ scale: 1 }}
-                                          transition={{ delay: cardIdx * 0.05 }}
-                                        >
-                                          <CardDisplay card={card} className="h-[140px]" />
-                                        </motion.div>
-                                      ))
+                                      (() => {
+                                        // Group cards by cardId for stacking display
+                                        const groupMap = new Map<number, any[]>();
+                                        offeredCards.forEach(card => {
+                                          if (!groupMap.has(card.id)) {
+                                            groupMap.set(card.id, []);
+                                          }
+                                          groupMap.get(card.id)!.push(card);
+                                        });
+                                        const stackedOfferedCards = Array.from(groupMap.values()).map(group => ({
+                                          cardId: group[0].id,
+                                          card: group[0],
+                                          count: group.length,
+                                        }));
+                                        return stackedOfferedCards.map((stacked, cardIdx) => (
+                                          <motion.div
+                                            key={`${trade.id}-${stacked.cardId}`}
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            transition={{ delay: cardIdx * 0.05 }}
+                                            className={`relative ${stacked.count > 1 ? 'pb-5 pl-5' : ''}`}
+                                          >
+                                            <div className="relative w-full h-full">
+                                              {/* Stack layers for duplicates */}
+                                              {stacked.count > 1 && (
+                                                <>
+                                                  <div className="absolute -bottom-1 -left-1 right-0 aspect-square bg-foreground/5 rounded-2xl -z-10" />
+                                                  <div className="absolute -bottom-2 -left-2 right-0 aspect-square bg-foreground/3 rounded-2xl -z-20" />
+                                                </>
+                                              )}
+                                              
+                                              <div className="relative h-full rounded-2xl border-2 border-border shadow-lg overflow-visible">
+                                                {/* Duplicate Counter Badge */}
+                                                {stacked.count > 1 && (
+                                                  <div className="absolute -bottom-3 -left-3 bg-gradient-to-br from-pink-500 to-pink-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-lg z-20 border-2 border-background">
+                                                    {stacked.count}
+                                                  </div>
+                                                )}
+                                                
+                                                <CardDisplay card={stacked.card} className="h-[140px]" />
+                                              </div>
+                                            </div>
+                                          </motion.div>
+                                        ));
+                                      })()
                                     ) : (
                                       <div className="col-span-2 py-8 text-center text-muted-foreground">
                                         Memuat kartu...
