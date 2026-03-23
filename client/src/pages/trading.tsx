@@ -90,15 +90,18 @@ export default function Trading() {
 
   // Initiate trade state
   const [step, setStep] = useState<'select' | 'confirm'>('select');
-  const [selectedCards, setSelectedCards] = useState<number[]>([]);
+  const [selectedCards, setSelectedCards] = useState<Record<number, number>>({}); // cardId -> quantity
   const [tradeMessage, setTradeMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [tierFilter, setTierFilter] = useState<string | null>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [quantityPickerCard, setQuantityPickerCard] = useState<any>(null); // For quantity modal
+  const [quantityValue, setQuantityValue] = useState(1);
+  const [quantityPickerContext, setQuantityPickerContext] = useState<'initiate' | 'respond'>('initiate'); // Track which tab
 
   // Respond trade state
   const [selectedTradeToRespond, setSelectedTradeToRespond] = useState<any>(null);
-  const [respondingCards, setRespondingCards] = useState<number[]>([]);
+  const [respondingCards, setRespondingCards] = useState<Record<number, number>>({}); // cardId -> quantity
 
   // WebSocket listener untuk trade completion
   useWebSocketTrades(
@@ -152,26 +155,103 @@ export default function Trading() {
     );
   }
 
-  const handleSelectCard = (cardId: number) => {
-    setSelectedCards(prev =>
-      prev.includes(cardId) ? prev.filter(id => id !== cardId) : [...prev, cardId]
-    );
+  const handleSelectCard = (userCard: any) => {
+    // Open quantity picker modal
+    setQuantityPickerCard(userCard);
+    setQuantityPickerContext('initiate');
+    const currentQty = selectedCards[userCard.card.id] || 0;
+    const availableQty = myCards.filter(c => c.card?.id === userCard.card.id).length;
+    setQuantityValue(currentQty > 0 ? currentQty : 1);
   };
 
+  const handleSelectCardForRespond = (userCard: any) => {
+    // Open quantity picker modal for responding to trade
+    setQuantityPickerCard(userCard);
+    setQuantityPickerContext('respond');
+    const currentQty = respondingCards[userCard.card.id] || 0;
+    const availableQty = myCards.filter(c => c.card?.id === userCard.card.id).length;
+    setQuantityValue(currentQty > 0 ? currentQty : 1);
+  };
+
+  const handleConfirmQuantity = () => {
+    if (!quantityPickerCard) return;
+    
+    if (quantityPickerContext === 'initiate') {
+      if (quantityValue === 0) {
+        // Remove card
+        const newSelected = { ...selectedCards };
+        delete newSelected[quantityPickerCard.card.id];
+        setSelectedCards(newSelected);
+      } else {
+        // Set quantity
+        setSelectedCards(prev => ({
+          ...prev,
+          [quantityPickerCard.card.id]: quantityValue
+        }));
+      }
+    } else {
+      // respond context
+      if (quantityValue === 0) {
+        // Remove card
+        const newResponding = { ...respondingCards };
+        delete newResponding[quantityPickerCard.card.id];
+        setRespondingCards(newResponding);
+      } else {
+        // Set quantity
+        setRespondingCards(prev => ({
+          ...prev,
+          [quantityPickerCard.card.id]: quantityValue
+        }));
+      }
+    }
+    setQuantityPickerCard(null);
+  };
+
+  // Group cards by their cardId (stacking)
+  const stackedCards = useMemo(() => {
+    const groupMap = new Map<number, any[]>();
+    filteredCards.forEach(userCard => {
+      const cardId = userCard.card?.id;
+      if (!groupMap.has(cardId)) {
+        groupMap.set(cardId, []);
+      }
+      groupMap.get(cardId)!.push(userCard);
+    });
+    return Array.from(groupMap.values()).map(group => ({
+      cardId: group[0].card.id,
+      card: group[0].card,
+      count: group.length,
+      userCards: group
+    }));
+  }, [filteredCards]);
+
+  // Calculate total selected cards count (sum of all quantities)
+  const totalSelectedCards = Object.values(selectedCards).reduce((sum, qty) => sum + qty, 0);
+
   const handleInitiateTrade = async () => {
-    if (selectedCards.length === 0) {
+    if (totalSelectedCards === 0) {
       alert('Please select at least one card to trade');
       return;
     }
 
+    // Expand quantities into individual card IDs
+    const expandedCardIds: number[] = [];
+    Object.entries(selectedCards).forEach(([cardId, qty]) => {
+      const numCardId = parseInt(cardId);
+      const cardsWithThisId = myCards.filter(c => c.card?.id === numCardId);
+      for (let i = 0; i < qty && i < cardsWithThisId.length; i++) {
+        expandedCardIds.push(cardsWithThisId[i].id);
+      }
+    });
+
     await initiateTrade.mutateAsync({
       recipientId: user.partnerId!,
-      offeringCardIds: selectedCards,
+      offeringCardIds: expandedCardIds,
       message: tradeMessage || undefined,
     });
 
     // Reset state
-    setSelectedCards([]);
+    setSelectedCards({});
     setTradeMessage('');
     setStep('select');
     setIsConfirmModalOpen(false);
@@ -180,19 +260,29 @@ export default function Trading() {
   const handleRespondTrade = async (accept: boolean) => {
     if (!selectedTradeToRespond) return;
 
-    if (accept && respondingCards.length === 0) {
+    if (accept && totalSelectedCards === 0) {
       alert('Please select at least one card to offer in exchange');
       return;
     }
 
+    // Expand quantities into individual card IDs
+    const expandedCardIds: number[] = [];
+    Object.entries(respondingCards).forEach(([cardId, qty]) => {
+      const numCardId = parseInt(cardId);
+      const cardsWithThisId = myCards.filter(c => c.card?.id === numCardId);
+      for (let i = 0; i < qty && i < cardsWithThisId.length; i++) {
+        expandedCardIds.push(cardsWithThisId[i].id);
+      }
+    });
+
     await respondTrade.mutateAsync({
       tradeId: selectedTradeToRespond.id,
       accept,
-      offeringCardIds: respondingCards,
+      offeringCardIds: accept ? expandedCardIds : [],
     });
 
     setSelectedTradeToRespond(null);
-    setRespondingCards([]);
+    setRespondingCards({});
   };
 
   const pendingReceived = tradeRequests.filter(t => t.recipientId === user.id && t.status === 'pending');
@@ -323,9 +413,9 @@ export default function Trading() {
                       {/* Selection Counter */}
                       <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border border-blue-200 dark:border-blue-800">
                         <span className="font-semibold">
-                          {selectedCards.length} kartu dipilih
+                          {totalSelectedCards} kartu dipilih ({Object.keys(selectedCards).length} tipe)
                         </span>
-                        {selectedCards.length > 0 && (
+                        {totalSelectedCards > 0 && (
                           <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
@@ -384,37 +474,45 @@ export default function Trading() {
                       ) : (
                         <div className="grid grid-cols-2 gap-4">
                           <AnimatePresence>
-                            {filteredCards.map((userCard, idx) => (
-                              <motion.div
-                                key={userCard.id}
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.8 }}
-                                transition={{ delay: idx * 0.05 }}
-                              >
-                                <div className={`relative h-full rounded-2xl border-2 transition-all ${
-                                  selectedCards.includes(userCard.id)
-                                    ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-gray-950'
-                                    : ''
-                                }`}>
-                                  <CardDisplay
-                                    card={userCard.card}
-                                    className="h-full cursor-pointer"
-                                    onClick={() => handleSelectCard(userCard.id)}
-                                  >
-                                    {selectedCards.includes(userCard.id) && (
-                                      <motion.div
-                                        initial={{ scale: 0 }}
-                                        animate={{ scale: 1 }}
-                                        className="flex items-center justify-center w-full h-6 bg-blue-500 rounded-lg mt-2"
-                                      >
-                                        <Check className="w-4 h-4 text-white" />
-                                      </motion.div>
-                                    )}
-                                  </CardDisplay>
-                                </div>
-                              </motion.div>
-                            ))}
+                            {stackedCards.map((stacked, idx) => {
+                              const isSelected = selectedCards[stacked.cardId] || 0;
+                              return (
+                                <motion.div
+                                  key={stacked.cardId}
+                                  initial={{ opacity: 0, scale: 0.8 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  exit={{ opacity: 0, scale: 0.8 }}
+                                  transition={{ delay: idx * 0.05 }}
+                                >
+                                  <div className={`relative h-full rounded-2xl border-2 transition-all ${
+                                    isSelected ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-gray-950' : ''
+                                  }`}>
+                                    <CardDisplay
+                                      card={stacked.card}
+                                      className="h-full cursor-pointer"
+                                      onClick={() => handleSelectCard(stacked.userCards[0])}
+                                    >
+                                      {/* Stacking count badge */}
+                                      <div className="absolute top-2 right-2 bg-gray-800 dark:bg-gray-700 text-white px-2 py-1 rounded-full text-xs font-bold">
+                                        ×{stacked.count}
+                                      </div>
+                                      
+                                      {/* Selected quantity display */}
+                                      {isSelected > 0 && (
+                                        <motion.div
+                                          initial={{ scale: 0 }}
+                                          animate={{ scale: 1 }}
+                                          className="absolute bottom-2 left-2 bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1"
+                                        >
+                                          <Check className="w-4 h-4" />
+                                          {isSelected}
+                                        </motion.div>
+                                      )}
+                                    </CardDisplay>
+                                  </div>
+                                </motion.div>
+                              );
+                            })}
                           </AnimatePresence>
                         </div>
                       )}
@@ -652,45 +750,46 @@ export default function Trading() {
                           ) : (
                             <CardContent className="space-y-4">
                               <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
-                                <h4 className="font-semibold mb-3 text-blue-900 dark:text-blue-100">Pilih penawaran Anda ({respondingCards.length} dipilih):</h4>
+                                <h4 className="font-semibold mb-3 text-blue-900 dark:text-blue-100">Pilih penawaran Anda ({Object.values(respondingCards).reduce((a,b) => a+b, 0)} dipilih):</h4>
                                 <div className="grid grid-cols-2 gap-4 max-h-80 overflow-y-auto pr-2">
-                                  <AnimatePresence>
-                                    {myCards.map((userCard, cardIdx) => (
+                                  {stackedCards.map((stacked, stackIdx) => {
+                                    const respondingQty = respondingCards[stacked.cardId] || 0;
+                                    return (
                                       <motion.div
-                                        key={userCard.id}
+                                        key={stacked.cardId}
                                         initial={{ opacity: 0, scale: 0.8 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         exit={{ opacity: 0, scale: 0.8 }}
-                                        transition={{ delay: cardIdx * 0.02 }}
+                                        transition={{ delay: stackIdx * 0.02 }}
                                       >
                                         <div className={`relative h-full rounded-2xl border-2 transition-all ${
-                                          respondingCards.includes(userCard.id)
-                                            ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-gray-950'
-                                            : ''
+                                          respondingQty ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-gray-950' : ''
                                         }`}>
                                           <CardDisplay
-                                            card={userCard.card}
+                                            card={stacked.card}
                                             className="h-full cursor-pointer"
-                                            onClick={() => setRespondingCards(prev =>
-                                              prev.includes(userCard.id)
-                                                ? prev.filter(id => id !== userCard.id)
-                                                : [...prev, userCard.id]
-                                            )}
+                                            onClick={() => handleSelectCardForRespond(stacked.userCards[0])}
                                           >
-                                            {respondingCards.includes(userCard.id) && (
+                                            {/* Stacking count */}
+                                            <div className="absolute top-2 right-2 bg-gray-800 dark:bg-gray-700 text-white px-2 py-1 rounded-full text-xs font-bold">
+                                              ×{stacked.count}
+                                            </div>
+                                            
+                                            {respondingQty > 0 && (
                                               <motion.div
                                                 initial={{ scale: 0 }}
                                                 animate={{ scale: 1 }}
-                                                className="flex items-center justify-center w-full h-6 bg-blue-500 rounded-lg mt-2"
+                                                className="absolute bottom-2 left-2 bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1"
                                               >
-                                                <Check className="w-4 h-4 text-white" />
+                                                <Check className="w-4 h-4" />
+                                                {respondingQty}
                                               </motion.div>
                                             )}
                                           </CardDisplay>
                                         </div>
                                       </motion.div>
-                                    ))}
-                                  </AnimatePresence>
+                                    );
+                                  })}
                                 </div>
                               </div>
 
@@ -712,7 +811,7 @@ export default function Trading() {
                                 </Button>
                                 <Button
                                   onClick={() => handleRespondTrade(true)}
-                                  disabled={respondingCards.length === 0 || respondTrade.isPending}
+                                  disabled={Object.values(respondingCards).reduce((a,b) => a+b, 0) === 0 || respondTrade.isPending}
                                   className="flex-1"
                                 >
                                   <Check className="w-4 h-4 mr-2" /> Terima
@@ -818,7 +917,7 @@ export default function Trading() {
       </div>
 
       {/* Floating Action Button */}
-      {step === 'select' && selectedCards.length > 0 && (
+      {step === 'select' && totalSelectedCards > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -829,10 +928,89 @@ export default function Trading() {
             size="lg"
             className="w-full max-w-sm h-12 text-base font-semibold shadow-xl"
           >
-            Lanjutkan dengan {selectedCards.length} kartu →
+            Lanjutkan dengan {totalSelectedCards} kartu →
           </Button>
         </motion.div>
       )}
+
+      {/* Quantity Picker Modal */}
+      <Dialog open={!!quantityPickerCard} onOpenChange={(open) => !open && setQuantityPickerCard(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Pilih Jumlah Kartu</DialogTitle>
+            <DialogDescription className="text-base">
+              {quantityPickerCard?.card?.name} - Tersedia: {quantityPickerCard ? myCards.filter(c => c.card?.id === quantityPickerCard.card.id).length : 0}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Card Preview */}
+            {quantityPickerCard && (
+              <div className="flex justify-center">
+                <CardDisplay card={quantityPickerCard.card} className="h-48 w-32" />
+              </div>
+            )}
+
+            {/* Quantity Input */}
+            <div className="space-y-3">
+              <label className="text-sm font-semibold text-foreground">Berapa kartu?</label>
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setQuantityValue(Math.max(0, quantityValue - 1))}
+                  className="w-12 h-12"
+                >
+                  −
+                </Button>
+                <input
+                  type="number"
+                  value={quantityValue}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value) || 0;
+                    const available = quantityPickerCard ? myCards.filter(c => c.card?.id === quantityPickerCard.card.id).length : 0;
+                    setQuantityValue(Math.min(Math.max(0, val), available));
+                  }}
+                  className="flex-1 h-12 px-4 text-center text-2xl font-bold border-2 border-border rounded-lg"
+                  min="0"
+                  max={quantityPickerCard ? myCards.filter(c => c.card?.id === quantityPickerCard.card.id).length : 0}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const available = quantityPickerCard ? myCards.filter(c => c.card?.id === quantityPickerCard.card.id).length : 0;
+                    setQuantityValue(Math.min(quantityValue + 1, available));
+                  }}
+                  className="w-12 h-12"
+                >
+                  +
+                </Button>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setQuantityValue(0);
+                  handleConfirmQuantity();
+                }}
+                className="flex-1 h-11 text-red-600 hover:text-red-700"
+              >
+                Hapus
+              </Button>
+              <Button
+                onClick={handleConfirmQuantity}
+                className="flex-1 h-11"
+              >
+                Pilih
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Confirm Trade Modal */}
       <Dialog open={isConfirmModalOpen} onOpenChange={setIsConfirmModalOpen}>
@@ -847,20 +1025,24 @@ export default function Trading() {
           <div className="space-y-6">
             {/* Selected Cards Preview */}
             <div className="space-y-3">
-              <label className="text-sm font-semibold text-foreground">Kartu yang Ditawarkan ({selectedCards.length}):</label>
+              <label className="text-sm font-semibold text-foreground">Kartu yang Ditawarkan ({totalSelectedCards}):</label>
               <div className="grid grid-cols-2 gap-4 max-h-64 overflow-y-auto pr-2">
-                {selectedCards.map((cardId) => {
-                  const userCard = myCards.find(c => c.id === cardId);
-                  return (
+                {Object.entries(selectedCards).map(([cardId, quantity]) => {
+                  const numCardId = parseInt(cardId);
+                  const userCard = myCards.find(c => c.card?.id === numCardId);
+                  return userCard ? (
                     <motion.div 
                       key={cardId}
                       initial={{ scale: 0.8, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      className="rounded-xl overflow-hidden border-2 border-border shadow-lg hover:shadow-xl transition-shadow"
+                      className="rounded-xl overflow-hidden border-2 border-border shadow-lg hover:shadow-xl transition-shadow relative"
                     >
-                      <CardDisplay card={userCard?.card} className="h-40 w-full" />
+                      <CardDisplay card={userCard.card} className="h-40 w-full" />
+                      <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                        ×{quantity}
+                      </div>
                     </motion.div>
-                  );
+                  ) : null;
                 })}
               </div>
             </div>
