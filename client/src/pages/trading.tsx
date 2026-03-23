@@ -207,24 +207,6 @@ export default function Trading() {
     setQuantityPickerCard(null);
   };
 
-  // Group cards by their cardId (stacking)
-  const stackedCards = useMemo(() => {
-    const groupMap = new Map<number, any[]>();
-    filteredCards.forEach(userCard => {
-      const cardId = userCard.card?.id;
-      if (!groupMap.has(cardId)) {
-        groupMap.set(cardId, []);
-      }
-      groupMap.get(cardId)!.push(userCard);
-    });
-    return Array.from(groupMap.values()).map(group => ({
-      cardId: group[0].card.id,
-      card: group[0].card,
-      count: group.length,
-      userCards: group
-    }));
-  }, [filteredCards]);
-
   // Calculate total selected cards count (sum of all quantities)
   const totalSelectedCards = Object.values(selectedCards).reduce((sum, qty) => sum + qty, 0);
 
@@ -304,6 +286,24 @@ export default function Trading() {
       return tierA - tierB;
     });
   }, [myCards, searchQuery, tierFilter]);
+
+  // Group cards by their cardId (stacking)
+  const stackedCards = useMemo(() => {
+    const groupMap = new Map<number, any[]>();
+    filteredCards.forEach(userCard => {
+      const cardId = userCard.card?.id;
+      if (!groupMap.has(cardId)) {
+        groupMap.set(cardId, []);
+      }
+      groupMap.get(cardId)!.push(userCard);
+    });
+    return Array.from(groupMap.values()).map(group => ({
+      cardId: group[0].card.id,
+      card: group[0].card,
+      count: group.length,
+      userCards: group
+    }));
+  }, [filteredCards]);
 
   const tiers = ['N', 'R', 'SR', 'SSR'];
 
