@@ -483,32 +483,45 @@ export default function Trading() {
                                   animate={{ opacity: 1, scale: 1 }}
                                   exit={{ opacity: 0, scale: 0.8 }}
                                   transition={{ delay: idx * 0.05 }}
+                                  className="h-full"
                                 >
-                                  <div className={`relative h-full rounded-2xl border-2 transition-all ${
-                                    isSelected ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-gray-950' : ''
-                                  }`}>
-                                    <CardDisplay
-                                      card={stacked.card}
-                                      className="h-full cursor-pointer"
-                                      onClick={() => handleSelectCard(stacked.userCards[0])}
-                                    >
-                                      {/* Stacking count badge */}
-                                      <div className="absolute top-2 right-2 bg-gray-800 dark:bg-gray-700 text-white px-2 py-1 rounded-full text-xs font-bold">
-                                        ×{stacked.count}
-                                      </div>
-                                      
-                                      {/* Selected quantity display */}
-                                      {isSelected > 0 && (
-                                        <motion.div
-                                          initial={{ scale: 0 }}
-                                          animate={{ scale: 1 }}
-                                          className="absolute bottom-2 left-2 bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1"
-                                        >
-                                          <Check className="w-4 h-4" />
-                                          {isSelected}
-                                        </motion.div>
+                                  <div className="relative w-full h-full">
+                                    {/* Stack layers for duplicates */}
+                                    {stacked.count > 1 && (
+                                      <>
+                                        <div className="absolute -bottom-1 -left-1 right-0 aspect-square bg-foreground/5 rounded-2xl -z-10" />
+                                        <div className="absolute -bottom-2 -left-2 right-0 aspect-square bg-foreground/3 rounded-2xl -z-20" />
+                                      </>
+                                    )}
+                                    
+                                    <div className={`relative h-full rounded-2xl border-2 transition-all ${
+                                      isSelected ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-gray-950' : ''
+                                    }`}>
+                                      {/* Duplicate Counter Badge */}
+                                      {stacked.count > 1 && (
+                                        <div className="absolute -top-2 -right-2 bg-gradient-to-br from-pink-500 to-pink-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-lg z-20 border-2 border-background">
+                                          {stacked.count}
+                                        </div>
                                       )}
-                                    </CardDisplay>
+                                      
+                                      <CardDisplay
+                                        card={stacked.card}
+                                        className="h-full cursor-pointer"
+                                        onClick={() => handleSelectCard(stacked.userCards[0])}
+                                      >
+                                        {/* Selected quantity display */}
+                                        {isSelected > 0 && (
+                                          <motion.div
+                                            initial={{ scale: 0 }}
+                                            animate={{ scale: 1 }}
+                                            className="absolute bottom-2 left-2 bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1"
+                                          >
+                                            <Check className="w-4 h-4" />
+                                            {isSelected}
+                                          </motion.div>
+                                        )}
+                                      </CardDisplay>
+                                    </div>
                                   </div>
                                 </motion.div>
                               );
@@ -761,31 +774,44 @@ export default function Trading() {
                                         animate={{ opacity: 1, scale: 1 }}
                                         exit={{ opacity: 0, scale: 0.8 }}
                                         transition={{ delay: stackIdx * 0.02 }}
+                                        className="h-full"
                                       >
-                                        <div className={`relative h-full rounded-2xl border-2 transition-all ${
-                                          respondingQty ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-gray-950' : ''
-                                        }`}>
-                                          <CardDisplay
-                                            card={stacked.card}
-                                            className="h-full cursor-pointer"
-                                            onClick={() => handleSelectCardForRespond(stacked.userCards[0])}
-                                          >
-                                            {/* Stacking count */}
-                                            <div className="absolute top-2 right-2 bg-gray-800 dark:bg-gray-700 text-white px-2 py-1 rounded-full text-xs font-bold">
-                                              ×{stacked.count}
-                                            </div>
-                                            
-                                            {respondingQty > 0 && (
-                                              <motion.div
-                                                initial={{ scale: 0 }}
-                                                animate={{ scale: 1 }}
-                                                className="absolute bottom-2 left-2 bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1"
-                                              >
-                                                <Check className="w-4 h-4" />
-                                                {respondingQty}
-                                              </motion.div>
+                                        <div className="relative w-full h-full">
+                                          {/* Stack layers for duplicates */}
+                                          {stacked.count > 1 && (
+                                            <>
+                                              <div className="absolute -bottom-1 -left-1 right-0 aspect-square bg-foreground/5 rounded-2xl -z-10" />
+                                              <div className="absolute -bottom-2 -left-2 right-0 aspect-square bg-foreground/3 rounded-2xl -z-20" />
+                                            </>
+                                          )}
+                                          
+                                          <div className={`relative h-full rounded-2xl border-2 transition-all ${
+                                            respondingQty ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-gray-950' : ''
+                                          }`}>
+                                            {/* Duplicate Counter Badge */}
+                                            {stacked.count > 1 && (
+                                              <div className="absolute -top-2 -right-2 bg-gradient-to-br from-pink-500 to-pink-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-lg z-20 border-2 border-background">
+                                                {stacked.count}
+                                              </div>
                                             )}
-                                          </CardDisplay>
+                                            
+                                            <CardDisplay
+                                              card={stacked.card}
+                                              className="h-full cursor-pointer"
+                                              onClick={() => handleSelectCardForRespond(stacked.userCards[0])}
+                                            >
+                                              {respondingQty > 0 && (
+                                                <motion.div
+                                                  initial={{ scale: 0 }}
+                                                  animate={{ scale: 1 }}
+                                                  className="absolute bottom-2 left-2 bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-1"
+                                                >
+                                                  <Check className="w-4 h-4" />
+                                                  {respondingQty}
+                                                </motion.div>
+                                              )}
+                                            </CardDisplay>
+                                          </div>
                                         </div>
                                       </motion.div>
                                     );
