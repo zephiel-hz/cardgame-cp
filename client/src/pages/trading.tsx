@@ -662,7 +662,7 @@ export default function Trading() {
                                   disabled={cancelTrade.isPending}
                                   className="text-xs mt-2 text-red-500 hover:text-red-600"
                                 >
-                                  Batalkankan
+                                  Batalkan
                                 </Button>
                               </div>
                             </div>
