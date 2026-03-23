@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Gift, LayoutGrid, Zap, User as UserIcon, LogOut, Heart, ChevronDown, MessageCircle } from "lucide-react";
+import { Gift, LayoutGrid, Zap, User as UserIcon, LogOut, Heart, ChevronDown, MessageCircle, Repeat2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     { href: "/inventory", icon: LayoutGrid, label: "Koleksi" },
     { href: "/active", icon: Zap, label: "Aktif" },
     { href: "/partner-pairing", icon: Heart, label: "Partner" },
+    { href: "/trading", icon: Repeat2, label: "Trade" },
   ];
 
   // Close dropdown when clicking outside
@@ -91,7 +92,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           >
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-500 dark:from-pink-400 dark:to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-pink-500/40 overflow-hidden border-2 border-white/50">
               {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt={user.username} className="w-full h-full object-cover" />
+                <img src={`${user.avatarUrl}`} alt={user.username} className="w-full h-full object-cover" />
               ) : (
                 String(user.username).charAt(0).toUpperCase()
               )}

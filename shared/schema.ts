@@ -15,6 +15,8 @@ export const users = pgTable("users", {
   emailVerificationToken: text("email_verification_token"),
   emailVerificationExpiresAt: timestamp("email_verification_expires_at"),
   partnerId: integer("partner_id").references(() => users.id), // Partner relationship (nullable)
+  lastActivityAt: timestamp("last_activity_at").defaultNow().notNull(),
+  publicKey: text("public_key"), // E2EE public key (base64)
 });
 
 export const cards = pgTable("cards", {
@@ -33,6 +35,7 @@ export const userCards = pgTable("user_cards", {
   activatedAt: timestamp("activated_at"),
   expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  viewedAsNew: boolean("viewed_as_new").default(true), // Restored from DB to prevent deletion
 });
 
 export const gachaLogs = pgTable("gacha_logs", {
@@ -92,9 +95,34 @@ export const messages = pgTable("messages", {
   senderId: integer("sender_id").references(() => users.id).notNull(),
   recipientId: integer("recipient_id").references(() => users.id).notNull(),
   content: text("content").notNull(),
+  replyToId: integer("reply_to_id").references(() => messages.id),
   isRead: boolean("is_read").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   readAt: timestamp("read_at"),
+});
+
+export const messageReactions = pgTable("message_reactions", {
+  id: serial("id").primaryKey(),
+  messageId: integer("message_id").references(() => messages.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  emoji: text("emoji").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const cardTrades = pgTable("card_trades", {
+  id: serial("id").primaryKey(),
+  initiatorId: integer("initiator_id").references(() => users.id).notNull(),
+  recipientId: integer("recipient_id").references(() => users.id).notNull(),
+  initiatorOfferingCardIds: text("initiator_offering_card_ids").notNull(), // JSON stringified array of card IDs
+  initiatorOfferingCardData: text("initiator_offering_card_data"), // JSON stringified array of card objects with userCardId and cardId
+  recipientOfferingCardIds: text("recipient_offering_card_ids"), // JSON stringified array of card IDs or null until response
+  recipientOfferingCardData: text("recipient_offering_card_data"), // JSON stringified array of card objects with userCardId and cardId
+  message: text("message"),
+  status: text("status").notNull().default("pending"), // 'pending', 'accepted', 'rejected', 'cancelled', 'completed', 'expired'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  respondedAt: timestamp("responded_at"),
+  completedAt: timestamp("completed_at"),
+  expiresAt: timestamp("expires_at").notNull(),
 });
 
 export const userCardsRelations = relations(userCards, ({ one }) => ({
@@ -117,6 +145,8 @@ export type NotificationPreference = typeof notificationPreferences.$inferSelect
 export type PartnershipRequest = typeof partnershipRequests.$inferSelect;
 export type PartnershipRemovalRequest = typeof partnershipRemovalRequests.$inferSelect;
 export type Message = typeof messages.$inferSelect;
+export type MessageReaction = typeof messageReactions.$inferSelect;
+export type CardTrade = typeof cardTrades.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
 export type UserCardWithDetails = UserCard & { card: Card; user: User };
@@ -130,3 +160,5 @@ export const insertNotificationPreferenceSchema = createInsertSchema(notificatio
 export const insertPartnershipRequestSchema = createInsertSchema(partnershipRequests);
 export const insertPartnershipRemovalRequestSchema = createInsertSchema(partnershipRemovalRequests);
 export const insertMessageSchema = createInsertSchema(messages);
+export const insertMessageReactionSchema = createInsertSchema(messageReactions);
+export const insertCardTradeSchema = createInsertSchema(cardTrades);

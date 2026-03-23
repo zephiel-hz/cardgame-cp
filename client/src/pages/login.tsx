@@ -135,6 +135,8 @@ export default function Login() {
 
       if (response.ok) {
         const data = await response.json();
+        // Store PIN in sessionStorage for E2EE keypair derivation across devices
+        sessionStorage.setItem('e2ee_login_pin', loginPin.trim());
         login(data);
         setLocation("/");
       } else {

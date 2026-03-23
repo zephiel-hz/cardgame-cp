@@ -7,6 +7,9 @@ import { z } from "zod";
 import { WebSocketServer, WebSocket } from "ws";
 import fs from "fs";
 import path from "path";
+import { uploadImageToR2 } from "./storage-r2";
+import sharp from "sharp";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
 let registerRoutesCallCount = 0;
 
@@ -156,13 +159,116 @@ export async function registerRoutes(
   });
   console.log("[registerRoutes] Registered POST /api/auth/login");
 
+  // E2EE: Setup encryption (store public key)
+  console.log("[registerRoutes] About to register POST /api/auth/setup-e2ee...");
+  app.post("/api/auth/setup-e2ee", async (req, res) => {
+    try {
+      console.log("[E2EE] setup-e2ee endpoint called with body:", req.body);
+      const { userId, publicKey } = req.body;
+      
+      if (!userId || !publicKey) {
+        return res.status(400).json({ message: "userId and publicKey required" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Store public key
+      await storage.updateUser(userId, { publicKey });
+      
+      console.log(`[E2EE] ✓ Public key stored for user ${userId}, length: ${publicKey.length}`);
+      res.status(200).json({ success: true, message: "E2EE setup complete" });
+    } catch (err: any) {
+      console.error("[E2EE] Setup error:", err);
+      res.status(500).json({ message: "Failed to setup E2EE" });
+    }
+  });
+  console.log("[registerRoutes] Registered POST /api/auth/setup-e2ee");
+
+  // E2EE: Get partner's public key
+  console.log("[registerRoutes] About to register GET /api/auth/public-key/:userId...");
+  app.get("/api/auth/public-key/:userId", async (req, res) => {
+    try {
+      const userId = Number(req.params.userId);
+      console.log("[E2EE] public-key endpoint called for userId:", userId);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        console.log("[E2EE] User not found for ID:", userId);
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      if (!user.publicKey) {
+        console.log("[E2EE] User found but no public key set for userId:", userId);
+        return res.status(404).json({ message: "User has not setup E2EE yet" });
+      }
+      
+      console.log(`[E2EE] ✓ Returning public key for user ${userId}, length: ${user.publicKey.length}`);
+      res.status(200).json({ publicKey: user.publicKey });
+    } catch (err: any) {
+      console.error("[E2EE] Get public key error:", err);
+      res.status(500).json({ message: "Failed to get public key" });
+    }
+  });
+  console.log("[registerRoutes] Registered GET /api/auth/public-key/:userId");
+
+  // E2EE: Reset encryption keys (for debugging/testing)
+  app.post("/api/auth/reset-e2ee/:userId", async (req, res) => {
+    try {
+      const userId = Number(req.params.userId);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Clear public key from database - forces regeneration on next login
+      await storage.updateUser(userId, { publicKey: null });
+      
+      console.log(`[E2EE] ✓ Reset E2EE keys for user ${userId}`);
+      res.status(200).json({ 
+        success: true, 
+        message: "E2EE keys reset. Please log out and log back in to regenerate.",
+        userId
+      });
+    } catch (err: any) {
+      console.error("[E2EE] Reset error:", err);
+      res.status(500).json({ message: "Failed to reset E2EE keys" });
+    }
+  });
+  console.log("[registerRoutes] Registered POST /api/auth/reset-e2ee/:userId");
+
   app.patch(api.auth.updateProfile.path, async (req, res) => {
     try {
-      const { userId, ...updates } = api.auth.updateProfile.input.parse(req.body);
-      const user = await storage.updateUser(userId, updates);
-      res.status(200).json(user);
-    } catch (err) {
-      res.status(400).json({ message: "Failed to update profile" });
+      const { userId, oldPin, ...updates } = api.auth.updateProfile.input.parse(req.body);
+      
+      // If PIN is being changed, validate the old PIN
+      if (updates.pin && oldPin) {
+        const user = await storage.getUser(userId);
+        if (!user) {
+          return res.status(404).json({ message: "User tidak ditemukan" });
+        }
+        // Validate old PIN matches
+        if (user.pin !== oldPin) {
+          return res.status(400).json({ message: "PIN Lama tidak sesuai" });
+        }
+      }
+      
+      const updatedUser = await storage.updateUser(userId, updates);
+      res.status(200).json(updatedUser);
+    } catch (err: any) {
+      console.error("[updateProfile] Error:", err);
+      res.status(400).json({ message: err.message || "Failed to update profile" });
     }
   });
 
@@ -182,7 +288,7 @@ export async function registerRoutes(
     try {
       const { userId, filename, data } = req.body;
       
-      if (!userId || !filename || !data) {
+      if (!userId || !data) {
         return res.status(400).json({ message: "Missing required fields" });
       }
 
@@ -190,37 +296,114 @@ export async function registerRoutes(
       const base64Data = data.replace(/^data:image\/[^;]+;base64,/, "");
       const buffer = Buffer.from(base64Data, "base64");
 
-      // Limit avatar size to 500KB
-      const MAX_AVATAR_SIZE = 500 * 1024;
-      if (buffer.length > MAX_AVATAR_SIZE) {
-        return res.status(400).json({ 
-          message: `Avatar terlalu besar. Maksimal ${MAX_AVATAR_SIZE / 1024}KB` 
-        });
-      }
+      console.log(`[Avatar] === UPLOAD START ===`);
+      console.log(`[Avatar] userId: ${userId} (type: ${typeof userId})`);
+      console.log(`[Avatar] Incoming size: ${buffer.length} bytes`);
 
-      console.log(`[Avatar] Storing avatar for user ${userId}, size: ${buffer.length} bytes`);
-
-      // Store avatar data in database as base64 string (persisted forever in Neon PostgreSQL)
       try {
-        await storage.updateUser(Number(userId), { 
-          avatarUrl: `/api/avatars/${userId}`,
-          avatarData: base64Data // Store as base64 string for easier portability
+        // === INLINE AVATAR UPLOAD LOGIC (Consistent Naming) ===
+        
+        // Initialize S3 client for R2
+        const s3Client = new S3Client({
+          region: "auto",
+          endpoint: process.env.CF_R2_ENDPOINT,
+          credentials: {
+            accessKeyId: process.env.CF_R2_ACCESS_KEY_ID || "",
+            secretAccessKey: process.env.CF_R2_SECRET_ACCESS_KEY || "",
+          },
         });
-      } catch (dbErr: any) {
-        console.error("[Avatar] Database update error:", dbErr);
-        return res.status(500).json({ message: "Gagal menyimpan avatar: " + dbErr.message });
-      }
+        
+        const BUCKET_NAME = process.env.CF_R2_BUCKET_NAME || "chat-images";
+        const PUBLIC_URL_BASE = process.env.CF_R2_PUBLIC_URL || "https://images.example.com";
 
-      // Return the avatar URL
-      const avatarUrl = `/api/avatars/${userId}`;
-      res.status(200).json({ avatarUrl });
+        // Compress image using sharp (512×512, webp format)
+        console.log(`[Avatar] Compressing avatar for user ${userId}...`);
+        const compressedBuffer = await sharp(buffer)
+          .rotate() // Auto-rotate based on EXIF
+          .resize(512, 512, {
+            fit: "cover",
+            withoutEnlargement: true,
+          })
+          .toFormat("webp", {
+            quality: 85,
+            progressive: true,
+          })
+          .toBuffer();
+
+        console.log(`[Avatar] Compressed: ${buffer.length} → ${compressedBuffer.length} bytes`);
+
+        // === KEY: Generate CONSISTENT filename based on userId ===
+        const consistentFilename = `avatars/user-${userId}.webp`;
+        console.log(`[Avatar] ⭐️ CONSISTENT FILENAME: ${consistentFilename}`);
+
+        // Upload to R2 (will overwrite if filename already exists)
+        console.log(`[Avatar] Uploading to R2...`);
+        await s3Client.send(
+          new PutObjectCommand({
+            Bucket: BUCKET_NAME,
+            Key: consistentFilename,
+            Body: compressedBuffer,
+            ContentType: "image/webp",
+            CacheControl: "public, max-age=86400", // 24 hour cache
+          })
+        );
+
+        // Construct public URL
+        const avatarUrl = `${PUBLIC_URL_BASE}/${consistentFilename}`;
+        console.log(`[Avatar] ✅ Avatar uploaded: ${avatarUrl}`);
+
+        // Store R2 URL in database (not base64)
+        await storage.updateUser(Number(userId), { 
+          avatarUrl: avatarUrl,
+          avatarData: null // Clear old base64 data
+        });
+
+        console.log(`[Avatar] ✅ URL saved to database`);
+        console.log(`[Avatar] === UPLOAD END ===`);
+        res.status(200).json({ avatarUrl });
+      } catch (uploadErr: any) {
+        console.error("[Avatar] Upload error:", uploadErr);
+        return res.status(500).json({ message: "Failed to upload avatar: " + uploadErr.message });
+      }
     } catch (err: any) {
-      console.error("[Avatar] Upload error:", err);
+      console.error("[Avatar] Handler error:", err);
       res.status(500).json({ message: "Server error: " + (err.message || "Unknown error") });
     }
   });
 
-  // Serve avatar data from database
+  // DELETE avatar
+  app.delete(api.auth.deleteAvatar.path, async (req, res) => {
+    try {
+      const { userId } = req.body;
+      
+      if (!userId) {
+        return res.status(400).json({ message: "User ID required" });
+      }
+
+      console.log(`[Avatar] === DELETE START ===`);
+      console.log(`[Avatar] userId: ${userId}`);
+
+      try {
+        // Clear avatar URL from database
+        await storage.updateUser(Number(userId), { 
+          avatarUrl: null,
+          avatarData: null
+        });
+
+        console.log(`[Avatar] ✅ Avatar deleted from database for user ${userId}`);
+        console.log(`[Avatar] === DELETE END ===`);
+        res.status(200).json({ message: "Avatar deleted successfully" });
+      } catch (deleteErr: any) {
+        console.error("[Avatar] Delete error:", deleteErr);
+        return res.status(500).json({ message: "Failed to delete avatar: " + deleteErr.message });
+      }
+    } catch (err: any) {
+      console.error("[Avatar] Delete handler error:", err);
+      res.status(500).json({ message: "Server error: " + (err.message || "Unknown error") });
+    }
+  });
+
+  // Redirect to R2 URL for avatar
   app.get('/api/avatars/:userId', async (req, res) => {
     try {
       const userId = Number(req.params.userId);
@@ -231,18 +414,29 @@ export async function registerRoutes(
 
       const user = await storage.getUser(userId);
       
-      if (!user || !user.avatarData) {
-        // Return placeholder if no avatar
+      if (!user || !user.avatarUrl) {
+        // Return 404 if no avatar
         return res.status(404).json({ message: "Avatar not found" });
       }
 
-      // Convert base64 string back to buffer
-      const avatarBuffer = Buffer.from(user.avatarData, 'base64');
+      // If avatarUrl starts with http, it's an R2 URL - redirect to it
+      if (user.avatarUrl.startsWith("http")) {
+        console.log(`[Avatar] Redirecting to R2 for user ${userId}`);
+        return res.redirect(user.avatarUrl);
+      }
 
-      res.set('Content-Type', 'image/jpeg');
-      res.set('Content-Length', String(avatarBuffer.length));
-      res.set('Cache-Control', 'public, max-age=2592000'); // Cache for 30 days
-      res.send(avatarBuffer);
+      // Fallback: if old base64 data exists, serve it (backwards compatibility)
+      if (user.avatarData) {
+        console.log(`[Avatar] Serving base64 avatar for user ${userId} (legacy)`);
+        const avatarBuffer = Buffer.from(user.avatarData, 'base64');
+        res.set('Content-Type', 'image/jpeg');
+        res.set('Content-Length', String(avatarBuffer.length));
+        res.set('Cache-Control', 'public, max-age=2592000');
+        return res.send(avatarBuffer);
+      }
+
+      // No avatar found
+      res.status(404).json({ message: "Avatar not found" });
     } catch (err) {
       console.error("[Avatar] Serve error:", err);
       res.status(500).json({ message: "Failed to serve avatar" });
@@ -292,20 +486,60 @@ export async function registerRoutes(
       
       console.log('[Email] verifyEmail called with token:', token);
       
-      // Check if it's a temporary email token (pre-registration)
+      // Check if it's a temporary email token (pre-registration or email change)
       const tempEmailData = storage.getTempEmailToken(token);
       if (tempEmailData) {
-        // Store the verified email in a session or return it for the register form
-        console.log('[Email] Temp email token verified for:', tempEmailData.email);
-        // Mark as pre-verified so register endpoint knows it's verified
-        storage.markEmailAsPreVerified(tempEmailData.email);
-        storage.clearTempEmailToken(token);
-        return res.status(200).json({ 
-          success: true, 
-          message: "Email berhasil diverifikasi",
-          email: tempEmailData.email,
-          isPreRegistration: true
-        });
+        console.log('[Email] Temp email token found for:', tempEmailData.email, 'userId:', tempEmailData.userId);
+        
+        // Email change flow: userId is present in the token
+        if (tempEmailData.userId) {
+          try {
+            console.log('[Email] Processing email change for userId:', tempEmailData.userId);
+            
+            // Get the current user
+            const user = await storage.getUser(tempEmailData.userId);
+            if (!user) {
+              return res.status(404).json({ 
+                success: false, 
+                message: "User tidak ditemukan" 
+              });
+            }
+            
+            // Update user's email and mark as verified
+            console.log('[Email] Updating user email from', user.email, 'to', tempEmailData.email);
+            const updatedUser = await storage.updateUser(tempEmailData.userId, {
+              email: tempEmailData.email,
+              emailVerified: true,
+              emailVerificationToken: null,
+              emailVerificationExpiresAt: null,
+            });
+            
+            // Clear the temporary token
+            storage.clearTempEmailToken(token);
+            
+            console.log('[Email] Email change successful, returning updated user:', { id: updatedUser.id, username: updatedUser.username, email: updatedUser.email, emailVerified: updatedUser.emailVerified });
+            
+            // Return full user object for frontend to sync state
+            return res.status(200).json(updatedUser);
+          } catch (updateErr: any) {
+            console.error('[Email] Error updating user email:', updateErr);
+            return res.status(500).json({ 
+              success: false, 
+              message: "Gagal mengubah email" 
+            });
+          }
+        } else {
+          // Pre-registration flow: no userId, just mark email as pre-verified
+          console.log('[Email] Temp email token verified for pre-registration:', tempEmailData.email);
+          storage.markEmailAsPreVerified(tempEmailData.email);
+          storage.clearTempEmailToken(token);
+          return res.status(200).json({ 
+            success: true, 
+            message: "Email berhasil diverifikasi",
+            email: tempEmailData.email,
+            isPreRegistration: true
+          });
+        }
       }
 
       // Check if it's a registered user's email verification token
@@ -333,24 +567,48 @@ export async function registerRoutes(
   app.post(api.auth.sendRegistrationEmail.path, async (req, res) => {
     try {
       console.log('[Email] sendRegistrationEmail called with body:', req.body);
-      const { email } = api.auth.sendRegistrationEmail.input.parse(req.body);
+      const { email: emailInput, userId } = api.auth.sendRegistrationEmail.input.parse(req.body);
+      
+      let email = emailInput;
+      
+      // If userId is provided, fetch the user's current email from database
+      if (userId && !emailInput) {
+        console.log('[Email] Fetching user email for userId:', userId);
+        const user = await storage.getUser(userId);
+        if (!user) {
+          return res.status(404).json({ message: "User tidak ditemukan" });
+        }
+        if (!user.email) {
+          return res.status(400).json({ message: "User belum memiliki email" });
+        }
+        email = user.email;
+        console.log('[Email] User email found:', email);
+      }
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email tidak valid" });
+      }
+      
       console.log('[Email] Email parsed:', email);
       
-      // Check if email already exists
-      const existingUser = await storage.getUserByEmail(email);
-      if (existingUser) {
-        console.log('[Email] Email already registered:', email);
-        return res.status(409).json({ message: "Email sudah terdaftar" });
+      // Check if email already exists (only for new registrations)
+      // For email change requests (with userId), we skip this check
+      if (!userId) {
+        const existingUser = await storage.getUserByEmail(email);
+        if (existingUser) {
+          console.log('[Email] Email already registered:', email);
+          return res.status(409).json({ message: "Email sudah terdaftar" });
+        }
       }
 
-      // Generate verification token
+      // Generate verification token (pass userId for email change flows)
       console.log('[Email] Generating temp token for:', email);
-      const { token } = await storage.setTempEmailVerificationToken(email);
+      const { token } = await storage.setTempEmailVerificationToken(email, userId || undefined);
       console.log('[Email] Token generated:', token.substring(0, 10) + '...');
       
       // Send verification email
       console.log('[Email] Sending verification email to:', email);
-      const sent = await emailNotificationService.sendVerificationEmail(0, email, token);
+      const sent = await emailNotificationService.sendVerificationEmail(userId || 0, email, token);
       console.log('[Email] Email sent result:', sent);
       
       if (sent) {
@@ -770,9 +1028,31 @@ export async function registerRoutes(
         checked: activeCards.length, 
         expiring: expiringCards.length 
       });
-    } catch (err) {
-      console.error('[Check Expiry] Error:', err);
-      res.status(500).json({ message: 'Failed to check expiry' });
+    } catch (err: any) {
+      console.error('[Card] Check expiry error:', err);
+      res.status(500).json({ message: 'Failed to check card expiry' });
+    }
+  });
+
+  // Get a single card by ID
+  app.get('/api/cards/:cardId', async (req, res) => {
+    try {
+      const cardId = Number(req.params.cardId);
+      if (isNaN(cardId)) {
+        return res.status(400).json({ message: "Invalid card ID" });
+      }
+      
+      const cards = await storage.getCards();
+      const card = cards.find(c => c.id === cardId);
+      
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      
+      res.json(card);
+    } catch (err: any) {
+      console.error('[Card] Get card error:', err);
+      res.status(500).json({ message: 'Failed to get card' });
     }
   });
 
@@ -835,6 +1115,102 @@ export async function registerRoutes(
 
   // Test Email Endpoint (Development only)
   if (process.env.NODE_ENV === "development") {
+    // Database check and fix endpoint
+    app.get("/api/db-check", async (req, res) => {
+      try {
+        const { db } = await import("./db");
+        
+        console.log("[DB-CHECK] Checking database schema...");
+        
+        // Check if last_activity_at column exists
+        const columnCheck = await db.execute(`
+          SELECT column_name, data_type
+          FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'last_activity_at'
+        `);
+        
+        const columnExists = columnCheck.rows && columnCheck.rows.length > 0;
+        console.log("[DB-CHECK] Column exists:", columnExists);
+        
+        if (!columnExists) {
+          console.log("[DB-CHECK] Column last_activity_at not found! Adding it now...");
+          try {
+            await db.execute(
+              `ALTER TABLE "users" ADD COLUMN "last_activity_at" timestamp NOT NULL DEFAULT now()`
+            );
+            console.log("[DB-CHECK] Column added successfully!");
+          } catch (addErr: any) {
+            console.error("[DB-CHECK] Error adding column:", addErr);
+            throw addErr;
+          }
+        }
+        
+        // Check how many users have NULL values
+        const nullCheck = await db.execute(
+          `SELECT COUNT(*) as count FROM "users" WHERE "last_activity_at" IS NULL`
+        );
+        
+        const nullCount = Number(nullCheck.rows?.[0]?.count || 0);
+        console.log(`[DB-CHECK] Users with NULL last_activity_at: ${nullCount}`);
+        
+        if (nullCount > 0) {
+          console.log("[DB-CHECK] Updating NULL records...");
+          await db.execute(
+            `UPDATE "users" SET "last_activity_at" = NOW() WHERE "last_activity_at" IS NULL`
+          );
+          console.log("[DB-CHECK] Records updated!");
+        }
+        
+        // Get all columns in users table
+        const allColumns = await db.execute(`
+          SELECT column_name, data_type
+          FROM information_schema.columns 
+          WHERE table_name = 'users'
+          ORDER BY ordinal_position
+        `);
+        
+        res.status(200).json({
+          success: true,
+          columnExists,
+          nullCount,
+          columns: allColumns.rows || []
+        });
+      } catch (err) {
+        console.error("[DB-CHECK] Error:", err);
+        res.status(500).json({
+          error: "Database check failed",
+          details: err instanceof Error ? err.message : String(err)
+        });
+      }
+    });
+
+    // Emergency endpoint to fix user activity timestamps (development only)
+    app.post("/api/fix-activity-timestamps", async (req, res) => {
+      try {
+        const { db } = await import("./db");
+        const { users } = await import("@shared/schema");
+        
+        console.log("[FIX] Starting to fix activity timestamps...");
+        
+        // Update all users with NULL lastActivityAt to current time
+        const result = await db.execute(
+          'UPDATE "users" SET "last_activity_at" = NOW() WHERE "last_activity_at" IS NULL'
+        );
+        
+        console.log("[FIX] Fixed activity timestamps");
+        res.status(200).json({ 
+          success: true, 
+          message: "Activity timestamps updated for all users with NULL values"
+        });
+      } catch (err) {
+        console.error("[FIX] Error:", err);
+        res.status(500).json({ 
+          error: "Failed to fix timestamps",
+          details: err instanceof Error ? err.message : String(err)
+        });
+      }
+    });
+
     app.post("/api/test-email", async (req, res) => {
       try {
         const { email, subject, message } = req.body;
@@ -882,9 +1258,12 @@ export async function registerRoutes(
   // ============= CHAT ENDPOINTS =============
   app.post(api.chat.sendMessage.path, async (req, res) => {
     try {
-      console.log('[Chat] sendMessage endpoint called with body:', req.body);
+      console.log('[Chat] sendMessage endpoint called');
+      console.log('[Chat] Request content length:', (req.body.content || '').length);
+      console.log('[Chat] Content preview (first 200 chars):', (req.body.content || '').substring(0, 200));
+      
       const input = api.chat.sendMessage.input.parse(req.body);
-      console.log('[Chat] Parsed input:', input);
+      console.log('[Chat] Parsed input successfully');
       
       // Verify sender exists and recipient exists
       const sender = await storage.getUser(input.senderId);
@@ -897,9 +1276,43 @@ export async function registerRoutes(
 
       console.log(`[Chat] ✅ Sender: ${sender.username} (${input.senderId}), Recipient: ${recipient.username} (${input.recipientId})`);
 
+      // Check if the content is an image and handle R2 upload
+      let finalContent = input.content;
+      try {
+        const parsed = JSON.parse(input.content);
+        console.log('[Chat] Content parsed as JSON, type:', parsed.type);
+        
+        if (parsed.type === "image" && parsed.data) {
+          console.log('[Chat] 🖼️  Image detected, uploading to Cloudflare R2...');
+          try {
+            const imageUrl = await uploadImageToR2(parsed.data, parsed.mimeType);
+            // Replace base64 with R2 URL
+            finalContent = JSON.stringify({
+              type: "image",
+              url: imageUrl,
+              mimeType: parsed.mimeType,
+            });
+            console.log('[Chat] ✓ Image uploaded to R2:', imageUrl);
+          } catch (uploadError) {
+            console.error('[Chat] ❌ R2 upload failed:', uploadError);
+            console.error('[Chat] Error details:', (uploadError as Error).message);
+            // Fall back to storing base64 if R2 upload fails
+            console.log('[Chat] Falling back to base64 storage');
+          }
+        } else {
+          console.log('[Chat] Not an image, storing as text message');
+        }
+      } catch (parseErr) {
+        // Not JSON, continue with original content
+        console.log('[Chat] Content is not JSON, treating as text message');
+      }
+
       // Save message to database
-      const message = await storage.sendMessage(input.senderId, input.recipientId, input.content);
+      const message = await storage.sendMessage(input.senderId, input.recipientId, finalContent, input.replyToId);
       console.log('[Chat] Message saved to DB:', message.id);
+
+      // Update sender's activity timestamp
+      await storage.updateUserActivity(input.senderId);
       
       // Send real-time notification via WebSocket if recipient is online
       console.log(`[Chat] Sending WebSocket notification to recipient ${input.recipientId}`);
@@ -908,7 +1321,10 @@ export async function registerRoutes(
         senderId: message.senderId,
         recipientId: message.recipientId,
         content: message.content,
+        replyToId: message.replyToId || null,
+        isRead: message.isRead,
         createdAt: message.createdAt,
+        readAt: message.readAt,
         senderUsername: sender.username,
       });
 
@@ -919,6 +1335,7 @@ export async function registerRoutes(
           senderId: message.senderId,
           recipientId: message.recipientId,
           content: message.content,
+          replyToId: message.replyToId || null,
           isRead: message.isRead,
           createdAt: message.createdAt,
         }
@@ -952,7 +1369,26 @@ export async function registerRoutes(
   app.post(api.chat.markAsRead.path, async (req, res) => {
     try {
       const input = api.chat.markAsRead.input.parse(req.body);
+      
+      // Get message to find out who the recipient is (the reader)
+      const message = await storage.getMessageById(input.messageId);
+      if (message) {
+        // Update reader's activity timestamp
+        await storage.updateUserActivity(message.recipientId);
+      }
+      
       const success = await storage.markMessageAsRead(input.messageId);
+      
+      // Broadcast MESSAGE_READ event to all connected clients
+      if (success && message) {
+        broadcast(WS_EVENTS.MESSAGE_READ, {
+          messageId: input.messageId,
+          readBy: message.recipientId,
+          readAt: new Date().toISOString(),
+        });
+        console.log(`[Chat] Broadcast MESSAGE_READ for message ${input.messageId}`);
+      }
+      
       res.status(200).json({ success });
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -992,6 +1428,375 @@ export async function registerRoutes(
     } catch (err) {
       console.error("[Chat] Error fetching unread count:", err);
       res.status(400).json({ message: "Failed to fetch unread count" });
+    }
+  });
+
+  // Add message reaction
+  app.post(api.chat.addReaction.path, async (req, res) => {
+    try {
+      const input = api.chat.addReaction.input.parse(req.body);
+      const reaction = await storage.addMessageReaction(input.messageId, input.userId, input.emoji);
+      
+      // Update user's activity timestamp
+      await storage.updateUserActivity(input.userId);
+      
+      // Broadcast reaction added event
+      broadcast(WS_EVENTS.REACTION_ADDED, {
+        messageId: input.messageId,
+        userId: input.userId,
+        emoji: input.emoji,
+      });
+      
+      res.status(200).json({ success: true });
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      console.error("[Chat] Error adding reaction:", err);
+      res.status(400).json({ message: "Failed to add reaction" });
+    }
+  });
+
+  // Get message reactions
+  app.get(api.chat.getReactions.path, async (req, res) => {
+    try {
+      const messageId = Number(req.params.messageId);
+
+      if (isNaN(messageId)) {
+        return res.status(400).json({ message: "Invalid message ID" });
+      }
+
+      const reactions = await storage.getMessageReactions(messageId);
+      res.status(200).json({ reactions });
+    } catch (err) {
+      console.error("[Chat] Error fetching reactions:", err);
+      res.status(400).json({ message: "Failed to fetch reactions" });
+    }
+  });
+
+  // Remove message reaction
+  app.delete(api.chat.removeReaction.path, async (req, res) => {
+    try {
+      const messageId = Number(req.params.messageId);
+      const userId = Number(req.params.userId);
+
+      if (isNaN(messageId) || isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid message ID or user ID" });
+      }
+
+      const success = await storage.removeMessageReaction(messageId, userId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Reaction not found" });
+      }
+
+      // Broadcast reaction removed event
+      broadcast(WS_EVENTS.REACTION_REMOVED, {
+        messageId,
+        userId,
+      });
+
+      res.status(200).json({ success: true });
+    } catch (err) {
+      console.error("[Chat] Error removing reaction:", err);
+      res.status(400).json({ message: "Failed to remove reaction" });
+    }
+  });
+
+  // Delete message
+  app.delete(api.chat.deleteMessage.path, async (req, res) => {
+    try {
+      const messageId = Number(req.params.messageId);
+
+      if (isNaN(messageId)) {
+        return res.status(400).json({ message: "Invalid message ID" });
+      }
+
+      const message = await storage.getMessageById(messageId);
+      
+      if (!message) {
+        return res.status(404).json({ message: "Message not found" });
+      }
+
+      // Only allow deletion by the sender
+      if (message.senderId !== parseInt(req.body.userId || '0')) {
+        return res.status(403).json({ message: "You can only delete your own messages" });
+      }
+
+      const success = await storage.deleteMessage(messageId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Message not found" });
+      }
+
+      res.status(200).json({ success: true });
+    } catch (err) {
+      console.error("[Chat] Error deleting message:", err);
+      res.status(400).json({ message: "Failed to delete message" });
+    }
+  });
+
+  app.get(api.chat.getUserStatus.path, async (req, res) => {
+    try {
+      const userId = Number(req.params.userId);
+
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const lastActivityAt = user.lastActivityAt ? new Date(user.lastActivityAt) : null;
+      const now = new Date();
+      let isOnline = false;
+      let lastSeenText = "Online"; // Default to Online if no activity tracked yet
+
+      if (lastActivityAt) {
+        const diffMs = now.getTime() - lastActivityAt.getTime();
+        const diffMinutes = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        // Consider online if activity within last 5 minutes
+        if (diffMinutes < 5) {
+          isOnline = true;
+          lastSeenText = "Online";
+        } else if (diffMinutes < 60) {
+          lastSeenText = `${diffMinutes} min ago`;
+        } else if (diffHours < 24) {
+          lastSeenText = `${diffHours} h ago`;
+        } else if (diffDays === 1) {
+          lastSeenText = "yesterday";
+        } else if (diffDays < 7) {
+          lastSeenText = `${diffDays}d ago`;
+        } else {
+          lastSeenText = "Offline";
+        }
+      } else {
+        // No activity tracked means user just created or never had activity tracking
+        // Assume they're online
+        isOnline = true;
+      }
+
+      res.status(200).json({ 
+        isOnline,
+        lastSeenText,
+        lastActivityAt
+      });
+    } catch (err) {
+      console.error("[Chat] Error getting user status:", err);
+      res.status(400).json({ message: "Failed to get user status" });
+    }
+  });
+
+  // E2EE: Debug endpoint to test messages and keys
+  app.get("/api/debug/e2ee-status", async (req, res) => {
+    try {
+      const user16 = await storage.getUser(16);
+      const user17 = await storage.getUser(17);
+
+      const messages = await ((req as any).db || storage).query(`
+        SELECT id, sender_id, recipient_id, LENGTH(content) as len, SUBSTRING(content, 1, 50) as preview
+        FROM messages 
+        WHERE (sender_id = 16 AND recipient_id = 17) OR (sender_id = 17 AND recipient_id = 16)
+        ORDER BY id DESC
+        LIMIT 5
+      `);
+
+      res.status(200).json({
+        user16: {
+          id: 16,
+          username: user16?.username,
+          hasPublicKey: !!user16?.publicKey,
+          publicKeyLength: user16?.publicKey?.length || 0,
+          publicKeyPreview: user16?.publicKey?.substring(0, 30) || null,
+        },
+        user17: {
+          id: 17,
+          username: user17?.username,
+          hasPublicKey: !!user17?.publicKey,
+          publicKeyLength: user17?.publicKey?.length || 0,
+          publicKeyPreview: user17?.publicKey?.substring(0, 30) || null,
+        },
+        debug: "Check localStorage on client for user_keypair_16 and user_keypair_17",
+      });
+    } catch (err) {
+      console.error("[E2EE Debug]", err);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
+  // ============ CARD TRADING ENDPOINTS ============
+  
+  // POST /api/trades/propose - Initiate a trade
+  app.post(api.trades.propose.path, async (req, res) => {
+    try {
+      const input = api.trades.propose.input.parse(req.body);
+      
+      // Verify users are partners
+      const initiator = await storage.getUser(input.initiatorId);
+      if (!initiator || initiator.partnerId !== input.recipientId) {
+        return res.status(400).json({ success: false, message: "Users are not partners or user not found" });
+      }
+      
+      // Create trade proposal
+      const trade = await storage.proposeTrade(input.initiatorId, input.recipientId, input.offeringCardIds, input.message);
+      
+      // Notify recipient via WebSocket
+      sendToUser(input.recipientId, WS_EVENTS.TRADE_OFFER_RECEIVED, {
+        tradeId: trade.id,
+        initiatorId: trade.initiatorId,
+        initiatorUsername: initiator.username,
+        offeringCardCount: input.offeringCardIds.length,
+        message: trade.message,
+        createdAt: trade.createdAt,
+        expiresAt: trade.expiresAt,
+      });
+      
+      res.status(200).json({ success: true, trade });
+    } catch (err: any) {
+      console.error("[Trade] Propose error:", err);
+      res.status(400).json({ success: false, message: err.message || "Failed to propose trade" });
+    }
+  });
+  
+  // GET /api/trades/pending/:userId - Get pending trades for user
+  app.get(api.trades.pending.path, async (req, res) => {
+    try {
+      const userId = Number(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const trades = await storage.getPendingTrades(userId);
+      res.status(200).json(trades);
+    } catch (err: any) {
+      console.error("[Trade] Get pending error:", err);
+      res.status(500).json({ message: "Failed to get pending trades" });
+    }
+  });
+  
+  // POST /api/trades/respond - Accept or reject a trade
+  app.post(api.trades.respond.path, async (req, res) => {
+    try {
+      const input = api.trades.respond.input.parse(req.body);
+      
+      const trade = await storage.getTradeById(input.tradeId);
+      if (!trade) {
+        return res.status(404).json({ message: "Trade not found" });
+      }
+      
+      if (trade.recipientId !== input.recipientId) {
+        return res.status(403).json({ message: "Not authorized to respond to this trade" });
+      }
+      
+      const updatedTrade = await storage.respondToTrade(input.tradeId, input.accept, input.offeringCardIds);
+      
+      if (input.accept) {
+        // Notify initiator that trade was accepted
+        sendToUser(trade.initiatorId, WS_EVENTS.TRADE_ACCEPTED, {
+          tradeId: updatedTrade.id,
+          recipientOfferingCardCount: (input.offeringCardIds || []).length,
+          status: updatedTrade.status,
+        });
+        
+        // Complete the trade immediately
+        await storage.completeTrade(input.tradeId);
+        
+        // Calculate card counts from card data
+        let initiatorCardCount = 0;
+        try {
+          if (trade.initiatorOfferingCardData) {
+            const cardData = JSON.parse(trade.initiatorOfferingCardData);
+            initiatorCardCount = cardData.length;
+          }
+        } catch (err) {
+          console.error('[Trade] Error parsing initiator card data:', err);
+        }
+        
+        const recipientCardCount = (input.offeringCardIds || []).length;
+        
+        // Notify both parties that trade is complete
+        sendToUser(trade.initiatorId, WS_EVENTS.TRADE_COMPLETED, {
+          tradeId: input.tradeId,
+          initiatorCardCount: initiatorCardCount,
+          recipientCardCount: recipientCardCount,
+        });
+        
+        sendToUser(input.recipientId, WS_EVENTS.TRADE_COMPLETED, {
+          tradeId: input.tradeId,
+          initiatorCardCount: initiatorCardCount,
+          recipientCardCount: recipientCardCount,
+        });
+        
+        res.status(200).json({ success: true, message: "Trade completed successfully" });
+      } else {
+        // Notify initiator that trade was rejected
+        sendToUser(trade.initiatorId, WS_EVENTS.TRADE_REJECTED, {
+          tradeId: updatedTrade.id,
+          status: updatedTrade.status,
+        });
+        
+        res.status(200).json({ success: true, message: "Trade rejected" });
+      }
+    } catch (err: any) {
+      console.error("[Trade] Respond error:", err);
+      if (err.message.includes("expired")) {
+        return res.status(409).json({ message: err.message });
+      }
+      res.status(400).json({ message: err.message || "Failed to respond to trade" });
+    }
+  });
+  
+  // POST /api/trades/cancel - Cancel a pending trade
+  app.post(api.trades.cancel.path, async (req, res) => {
+    try {
+      const input = api.trades.cancel.input.parse(req.body);
+      
+      const trade = await storage.getTradeById(input.tradeId);
+      if (!trade) {
+        return res.status(404).json({ message: "Trade not found" });
+      }
+      
+      // Only initiator or recipient can cancel
+      if (trade.initiatorId !== input.userId && trade.recipientId !== input.userId) {
+        return res.status(403).json({ message: "Not authorized to cancel this trade" });
+      }
+      
+      const cancelledTrade = await storage.cancelTrade(input.tradeId);
+      
+      // Notify the other party
+      const otherUserId = trade.initiatorId === input.userId ? trade.recipientId : trade.initiatorId;
+      sendToUser(otherUserId, WS_EVENTS.TRADE_CANCELLED, {
+        tradeId: cancelledTrade.id,
+        cancelledBy: input.userId,
+        status: cancelledTrade.status,
+      });
+      
+      res.status(200).json({ success: true, message: "Trade cancelled" });
+    } catch (err: any) {
+      console.error("[Trade] Cancel error:", err);
+      res.status(400).json({ message: err.message || "Failed to cancel trade" });
+    }
+  });
+  
+  // GET /api/trades/history/:userId - Get trade history
+  app.get(api.trades.history.path, async (req, res) => {
+    try {
+      const userId = Number(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
+      
+      const history = await storage.getTradeHistory(userId, 50);
+      res.status(200).json(history);
+    } catch (err: any) {
+      console.error("[Trade] History error:", err);
+      res.status(500).json({ message: "Failed to get trade history" });
     }
   });
   

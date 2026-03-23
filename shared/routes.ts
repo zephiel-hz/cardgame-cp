@@ -42,6 +42,7 @@ export const api = {
         userId: z.number(),
         username: z.string().optional(),
         pin: z.string().optional(),
+        oldPin: z.string().optional(),
         avatarUrl: z.string().optional(),
         gender: z.enum(['male', 'female', 'other']).optional(),
       }),
@@ -62,6 +63,14 @@ export const api = {
       path: '/api/auth/upload-avatar' as const,
       responses: {
         200: z.object({ avatarUrl: z.string() }),
+        400: errorSchemas.validation,
+      }
+    },
+    deleteAvatar: {
+      method: 'DELETE' as const,
+      path: '/api/auth/delete-avatar' as const,
+      responses: {
+        200: z.object({ message: z.string() }),
         400: errorSchemas.validation,
       }
     },
@@ -93,8 +102,12 @@ export const api = {
       method: 'POST' as const,
       path: '/api/auth/send-registration-email' as const,
       input: z.object({ 
-        email: z.string().email(),
-      }),
+        email: z.string().email().optional(),
+        userId: z.number().optional(),
+      }).refine(
+        (data) => data.email || data.userId,
+        { message: "Either email or userId is required" }
+      ),
       responses: {
         200: z.object({ success: z.boolean(), message: z.string() }),
         400: z.object({ message: z.string() }),
@@ -234,7 +247,28 @@ export const api = {
         400: z.object({ message: z.string() }),
         404: errorSchemas.notFound,
       }
-    }
+    },
+    setupE2EE: {
+      method: 'POST' as const,
+      path: '/api/auth/setup-e2ee' as const,
+      input: z.object({
+        userId: z.number(),
+        publicKey: z.string(),
+      }),
+      responses: {
+        200: z.object({ success: z.boolean(), message: z.string() }),
+        400: z.object({ message: z.string() }),
+        404: z.object({ message: z.string() }),
+      }
+    },
+    getPublicKey: {
+      method: 'GET' as const,
+      path: '/api/auth/public-key/:userId' as const,
+      responses: {
+        200: z.object({ publicKey: z.string() }),
+        404: z.object({ message: z.string() }),
+      }
+    },
   },
   gacha: {
     pull: {
@@ -296,6 +330,7 @@ export const api = {
         senderId: z.number(),
         recipientId: z.number(),
         content: z.string().min(1).max(1000),
+        replyToId: z.number().optional(),
       }),
       responses: {
         200: z.object({ 
@@ -305,6 +340,7 @@ export const api = {
             senderId: z.number(),
             recipientId: z.number(),
             content: z.string(),
+            replyToId: z.number().nullable().optional(),
             isRead: z.boolean(),
             createdAt: z.instanceof(Date),
           })
@@ -346,7 +382,155 @@ export const api = {
       responses: {
         200: z.object({ unreadCount: z.number() }),
       }
+    },
+    addReaction: {
+      method: 'POST' as const,
+      path: '/api/chat/reactions/add' as const,
+      input: z.object({
+        messageId: z.number(),
+        userId: z.number(),
+        emoji: z.string(),
+      }),
+      responses: {
+        200: z.object({ success: z.boolean() }),
+        404: errorSchemas.notFound,
+        400: errorSchemas.validation,
+      }
+    },
+    getReactions: {
+      method: 'GET' as const,
+      path: '/api/chat/reactions/:messageId' as const,
+      responses: {
+        200: z.object({ reactions: z.record(z.string(), z.string()) }),
+      }
+    },
+    removeReaction: {
+      method: 'DELETE' as const,
+      path: '/api/chat/reactions/:messageId/:userId' as const,
+      responses: {
+        200: z.object({ success: z.boolean() }),
+        404: errorSchemas.notFound,
+      }
+    },
+    deleteMessage: {
+      method: 'DELETE' as const,
+      path: '/api/chat/messages/:messageId' as const,
+      responses: {
+        200: z.object({ success: z.boolean() }),
+        404: errorSchemas.notFound,
+        403: z.object({ message: z.string() }),
+      }
+    },
+    getUserStatus: {
+      method: 'GET' as const,
+      path: '/api/chat/user-status/:userId' as const,
+      responses: {
+        200: z.object({ 
+          isOnline: z.boolean(),
+          lastSeenText: z.string(),
+          lastActivityAt: z.instanceof(Date).nullable(),
+        }),
+        404: errorSchemas.notFound,
+      }
     }
+  },
+  trades: {
+    propose: {
+      method: 'POST' as const,
+      path: '/api/trades/propose' as const,
+      input: z.object({
+        initiatorId: z.number(),
+        recipientId: z.number(),
+        offeringCardIds: z.array(z.number()).min(1, "Must offer at least 1 card"),
+        message: z.string().max(500).optional(),
+      }),
+      responses: {
+        200: z.object({ 
+          success: z.boolean(), 
+          trade: z.object({
+            id: z.number(),
+            initiatorId: z.number(),
+            recipientId: z.number(),
+            initiatorOfferingCardIds: z.string(),
+            recipientOfferingCardIds: z.string().nullable(),
+            message: z.string().nullable(),
+            status: z.string(),
+            createdAt: z.instanceof(Date),
+            expiresAt: z.instanceof(Date),
+          })
+        }),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      }
+    },
+    pending: {
+      method: 'GET' as const,
+      path: '/api/trades/pending/:userId' as const,
+      responses: {
+        200: z.array(z.object({
+          id: z.number(),
+          initiatorId: z.number(),
+          recipientId: z.number(),
+          initiatorOfferingCardIds: z.string(),
+          recipientOfferingCardIds: z.string().nullable(),
+          message: z.string().nullable(),
+          status: z.string(),
+          createdAt: z.instanceof(Date),
+          respondedAt: z.instanceof(Date).nullable(),
+          expiresAt: z.instanceof(Date),
+        })),
+        404: errorSchemas.notFound,
+      }
+    },
+    respond: {
+      method: 'POST' as const,
+      path: '/api/trades/respond' as const,
+      input: z.object({
+        tradeId: z.number(),
+        recipientId: z.number(),
+        accept: z.boolean(),
+        offeringCardIds: z.array(z.number()).optional(), // Required if accept is true
+      }),
+      responses: {
+        200: z.object({ success: z.boolean(), message: z.string() }),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+        409: z.object({ message: z.string() }), // Conflict (invalid status or expired)
+      }
+    },
+    cancel: {
+      method: 'POST' as const,
+      path: '/api/trades/cancel' as const,
+      input: z.object({
+        tradeId: z.number(),
+        userId: z.number(),
+      }),
+      responses: {
+        200: z.object({ success: z.boolean(), message: z.string() }),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+        403: z.object({ message: z.string() }),
+      }
+    },
+    history: {
+      method: 'GET' as const,
+      path: '/api/trades/history/:userId' as const,
+      responses: {
+        200: z.array(z.object({
+          id: z.number(),
+          initiatorId: z.number(),
+          recipientId: z.number(),
+          initiatorOfferingCardIds: z.string(),
+          recipientOfferingCardIds: z.string().nullable(),
+          message: z.string().nullable(),
+          status: z.string(),
+          createdAt: z.instanceof(Date),
+          respondedAt: z.instanceof(Date).nullable(),
+          completedAt: z.instanceof(Date).nullable(),
+        })),
+        404: errorSchemas.notFound,
+      }
+    },
   }
 };
 
@@ -367,6 +551,13 @@ export const WS_EVENTS = {
   MESSAGE_SENT: 'message_sent',
   MESSAGE_RECEIVED: 'message_received',
   MESSAGE_READ: 'message_read',
+  REACTION_ADDED: 'reaction_added',
+  REACTION_REMOVED: 'reaction_removed',
+  TRADE_OFFER_RECEIVED: 'trade_offer_received',
+  TRADE_ACCEPTED: 'trade_accepted',
+  TRADE_REJECTED: 'trade_rejected',
+  TRADE_CANCELLED: 'trade_cancelled',
+  TRADE_COMPLETED: 'trade_completed',
 } as const;
 
 export interface WsMessage<T = unknown> {

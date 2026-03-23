@@ -1,12 +1,12 @@
 import crypto from 'crypto';
 import { db } from "./db";
 import { pool } from "./db";
-import { users, cards, userCards, gachaLogs, pushSubscriptions, notificationPreferences, partnershipRequests, partnershipRemovalRequests, messages } from "@shared/schema";
-import type { User, InsertUser, Card, UserCard, UserCardWithDetails, PushSubscription, NotificationPreference, PartnershipRequest, PartnershipRemovalRequest, Message } from "@shared/schema";
-import { eq, and, gte, or, ne } from "drizzle-orm";
+import { users, cards, userCards, gachaLogs, pushSubscriptions, notificationPreferences, partnershipRequests, partnershipRemovalRequests, messages, messageReactions, cardTrades } from "@shared/schema";
+import type { User, InsertUser, Card, UserCard, UserCardWithDetails, PushSubscription, NotificationPreference, PartnershipRequest, PartnershipRemovalRequest, Message, MessageReaction, CardTrade } from "@shared/schema";
+import { eq, and, gte, or, ne, inArray, desc } from "drizzle-orm";
 
 // Temporary in-memory storage for email verification tokens (pre-registration)
-const tempEmailTokens = new Map<string, { email: string; token: string; expiresAt: Date }>();
+const tempEmailTokens = new Map<string, { email: string; token: string; expiresAt: Date; userId?: number }>();
 
 // Track pre-verified emails in registration flow
 const preVerifiedEmails = new Map<string, { expiresAt: Date }>();
@@ -73,6 +73,7 @@ function getCurrentPeriodStart(): Date {
 export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   getUser(id: number): Promise<User | undefined>;
+  updateUserActivity(userId: number): Promise<void>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, updates: Partial<User>): Promise<User>;
   getAllUsers(): Promise<User[]>;
@@ -107,8 +108,8 @@ export interface IStorage {
   verifyUserPin(user: User, plainPin: string): boolean;
   // Email methods
   setEmailVerificationToken(userId: number, email: string): Promise<{ token: string; expiresAt: Date }>;
-  setTempEmailVerificationToken(email: string): Promise<{ token: string; expiresAt: Date }>;
-  getTempEmailToken(token: string): { email: string; token: string; expiresAt: Date } | null;
+  setTempEmailVerificationToken(email: string, userId?: number): Promise<{ token: string; expiresAt: Date }>;
+  getTempEmailToken(token: string): { email: string; token: string; expiresAt: Date; userId?: number } | null;
   clearTempEmailToken(token: string): void;
   markEmailAsPreVerified(email: string): void;
   isEmailPreVerified(email: string): boolean;
@@ -116,10 +117,23 @@ export interface IStorage {
   verifyEmail(token: string): Promise<User | null>;
   getUserByEmail(email: string): Promise<User | undefined>;
   // Chat methods
-  sendMessage(senderId: number, recipientId: number, content: string): Promise<Message>;
+  sendMessage(senderId: number, recipientId: number, content: string, replyToId?: number): Promise<Message>;
   getMessages(userId1: number, userId2: number): Promise<Message[]>;
   markMessageAsRead(messageId: number): Promise<boolean>;
   getUnreadMessageCount(userId: number): Promise<number>;
+  getMessageById(messageId: number): Promise<Message | undefined>;
+  deleteMessage(messageId: number): Promise<boolean>;
+  addMessageReaction(messageId: number, userId: number, emoji: string): Promise<MessageReaction>;
+  getMessageReactions(messageId: number): Promise<Record<number, string>>;
+  removeMessageReaction(messageId: number, userId: number): Promise<boolean>;
+  // Trade methods
+  proposeTrade(initiatorId: number, recipientId: number, offeringCardIds: number[], message?: string): Promise<CardTrade>;
+  getPendingTrades(userId: number): Promise<CardTrade[]>;
+  getTradeById(tradeId: number): Promise<CardTrade | undefined>;
+  respondToTrade(tradeId: number, accept: boolean, recipientOfferingCardIds?: number[]): Promise<CardTrade>;
+  cancelTrade(tradeId: number): Promise<CardTrade>;
+  getTradeHistory(userId: number, limit?: number): Promise<CardTrade[]>;
+  completeTrade(tradeId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -131,6 +145,10 @@ export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
+  }
+
+  async updateUserActivity(userId: number): Promise<void> {
+    await db.update(users).set({ lastActivityAt: new Date() }).where(eq(users.id, userId));
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -838,7 +856,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async setTempEmailVerificationToken(email: string): Promise<{ token: string; expiresAt: Date }> {
+  async setTempEmailVerificationToken(email: string, userId?: number): Promise<{ token: string; expiresAt: Date }> {
     // Generate 6-digit token with uppercase letters and numbers
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     const token = Array.from(crypto.randomBytes(6))
@@ -846,8 +864,8 @@ export class DatabaseStorage implements IStorage {
       .join('');
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
 
-    // Store in temporary map
-    tempEmailTokens.set(token, { email, token, expiresAt });
+    // Store in temporary map (userId is optional - used for email change flow)
+    tempEmailTokens.set(token, { email, token, expiresAt, userId });
 
     // Clean up expired tokens periodically
     const now = new Date();
@@ -857,11 +875,11 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
-    console.log(`[Storage] Temp email verification token created for ${email}: ${token}`);
+    console.log(`[Storage] Temp email verification token created for ${email}: ${token}${userId ? ` (userId: ${userId})` : ''}`);
     return { token, expiresAt };
   }
 
-  getTempEmailToken(token: string): { email: string; token: string; expiresAt: Date } | null {
+  getTempEmailToken(token: string): { email: string; token: string; expiresAt: Date; userId?: number } | null {
     const data = tempEmailTokens.get(token);
     if (!data) return null;
 
@@ -906,11 +924,12 @@ export class DatabaseStorage implements IStorage {
     return verifyPin(plainPin, user.pin);
   }
 
-  async sendMessage(senderId: number, recipientId: number, content: string): Promise<Message> {
+  async sendMessage(senderId: number, recipientId: number, content: string, replyToId?: number): Promise<Message> {
     const [message] = await db.insert(messages).values({
       senderId,
       recipientId,
       content,
+      replyToId: replyToId || null,
       isRead: false,
     }).returning();
     return message;
@@ -945,6 +964,276 @@ export class DatabaseStorage implements IStorage {
       ),
     });
     return result.length;
+  }
+
+  async getMessageById(messageId: number): Promise<Message | undefined> {
+    const result = await db.query.messages.findFirst({
+      where: eq(messages.id, messageId),
+    });
+    return result;
+  }
+
+  async deleteMessage(messageId: number): Promise<boolean> {
+    const result = await db.delete(messages).where(eq(messages.id, messageId));
+    // Also delete associated reactions
+    await db.delete(messageReactions).where(eq(messageReactions.messageId, messageId));
+    return true;
+  }
+
+  async addMessageReaction(messageId: number, userId: number, emoji: string): Promise<MessageReaction> {
+    // Delete existing reaction from this user
+    await db.delete(messageReactions).where(
+      and(
+        eq(messageReactions.messageId, messageId),
+        eq(messageReactions.userId, userId)
+      )
+    );
+    
+    // Insert new reaction
+    const [reaction] = await db.insert(messageReactions).values({
+      messageId,
+      userId,
+      emoji,
+    }).returning();
+    return reaction;
+  }
+
+  async getMessageReactions(messageId: number): Promise<Record<number, string>> {
+    const reactions = await db.query.messageReactions.findMany({
+      where: eq(messageReactions.messageId, messageId),
+    });
+    
+    const result: Record<number, string> = {};
+    reactions.forEach(reaction => {
+      result[reaction.userId] = reaction.emoji;
+    });
+    return result;
+  }
+
+  async removeMessageReaction(messageId: number, userId: number): Promise<boolean> {
+    await db.delete(messageReactions).where(
+      and(
+        eq(messageReactions.messageId, messageId),
+        eq(messageReactions.userId, userId)
+      )
+    );
+    return true;
+  }
+
+  // ============ TRADE METHODS ============
+  async proposeTrade(initiatorId: number, recipientId: number, offeringCardIds: number[], message?: string): Promise<CardTrade> {
+    // Verify both users exist and are partners
+    const initiator = await this.getUser(initiatorId);
+    const recipient = await this.getUser(recipientId);
+    
+    if (!initiator || !recipient) {
+      throw new Error("User not found");
+    }
+    
+    if (initiator.partnerId !== recipientId) {
+      throw new Error("Users are not partners");
+    }
+    
+    // Verify all cards are owned by initiator and are in inventory
+    const userCards_ = await db.select().from(userCards).where(eq(userCards.userId, initiatorId));
+    const offeringCardSet = new Set(offeringCardIds);
+    
+    // Collect card data while validating
+    const cardDataArray: any[] = [];
+    for (const cardId of offeringCardIds) {
+      const card = userCards_.find(c => c.id === cardId);
+      if (!card || card.status !== "inventory") {
+        throw new Error(`Card ${cardId} is not available for trading`);
+      }
+      // Store card ID and actual card ID (from the card object)
+      cardDataArray.push({
+        userCardId: card.id,
+        cardId: card.cardId,
+      });
+    }
+    
+    // Create trade
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+    
+    const [newTrade] = await db.insert(cardTrades).values({
+      initiatorId,
+      recipientId,
+      initiatorOfferingCardIds: JSON.stringify(offeringCardIds),
+      initiatorOfferingCardData: JSON.stringify(cardDataArray),
+      recipientOfferingCardIds: null,
+      recipientOfferingCardData: null,
+      message: message || null,
+      status: "pending",
+      expiresAt,
+    }).returning();
+    
+    return newTrade;
+  }
+
+  async getPendingTrades(userId: number): Promise<CardTrade[]> {
+    const trades = await db.select().from(cardTrades).where(
+      and(
+        eq(cardTrades.status, "pending"),
+        or(
+          eq(cardTrades.initiatorId, userId),
+          eq(cardTrades.recipientId, userId)
+        )
+      )
+    );
+    return trades;
+  }
+
+  async getTradeById(tradeId: number): Promise<CardTrade | undefined> {
+    const [trade] = await db.select().from(cardTrades).where(eq(cardTrades.id, tradeId));
+    return trade;
+  }
+
+  async respondToTrade(tradeId: number, accept: boolean, recipientOfferingCardIds?: number[]): Promise<CardTrade> {
+    const trade = await this.getTradeById(tradeId);
+    if (!trade) {
+      throw new Error("Trade not found");
+    }
+    
+    if (trade.status !== "pending") {
+      throw new Error("Trade is no longer pending");
+    }
+    
+    // Check if trade has expired
+    if (new Date() > new Date(trade.expiresAt)) {
+      await db.update(cardTrades).set({ status: "expired" }).where(eq(cardTrades.id, tradeId));
+      throw new Error("Trade has expired");
+    }
+    
+    if (!accept) {
+      // Reject the trade
+      const [updated] = await db.update(cardTrades)
+        .set({ status: "rejected", respondedAt: new Date() })
+        .where(eq(cardTrades.id, tradeId))
+        .returning();
+      return updated;
+    }
+    
+    // Accept the trade
+    if (!recipientOfferingCardIds || recipientOfferingCardIds.length === 0) {
+      throw new Error("Must offer at least 1 card");
+    }
+    
+    // Verify recipient cards and collect data
+    const recipientCards = await db.select().from(userCards).where(eq(userCards.userId, trade.recipientId));
+    const cardDataArray: any[] = [];
+    for (const cardId of recipientOfferingCardIds) {
+      const card = recipientCards.find(c => c.id === cardId);
+      if (!card || card.status !== "inventory") {
+        throw new Error(`Card ${cardId} is not available for trading`);
+      }
+      cardDataArray.push({
+        userCardId: card.id,
+        cardId: card.cardId,
+      });
+    }
+    
+    // Update trade with recipient's offering and mark as accepted
+    const [updated] = await db.update(cardTrades)
+      .set({ 
+        status: "accepted", 
+        recipientOfferingCardIds: JSON.stringify(recipientOfferingCardIds),
+        recipientOfferingCardData: JSON.stringify(cardDataArray),
+        respondedAt: new Date()
+      })
+      .where(eq(cardTrades.id, tradeId))
+      .returning();
+    
+    return updated;
+  }
+
+  async cancelTrade(tradeId: number): Promise<CardTrade> {
+    const trade = await this.getTradeById(tradeId);
+    if (!trade) {
+      throw new Error("Trade not found");
+    }
+    
+    if (trade.status === "completed" || trade.status === "rejected" || trade.status === "cancelled") {
+      throw new Error("Cannot cancel a trade in this status");
+    }
+    
+    const [updated] = await db.update(cardTrades)
+      .set({ status: "cancelled", respondedAt: new Date() })
+      .where(eq(cardTrades.id, tradeId))
+      .returning();
+    
+    return updated;
+  }
+
+  async getTradeHistory(userId: number, limit: number = 50): Promise<CardTrade[]> {
+    const trades = await db.select().from(cardTrades).where(
+      and(
+        or(
+          eq(cardTrades.initiatorId, userId),
+          eq(cardTrades.recipientId, userId)
+        ),
+        or(
+          eq(cardTrades.status, 'completed'),
+          eq(cardTrades.status, 'cancelled'),
+          eq(cardTrades.status, 'rejected')
+        )
+      )
+    ).orderBy(desc(cardTrades.respondedAt), desc(cardTrades.createdAt)).limit(limit);
+    
+    return trades;
+  }
+
+  async completeTrade(tradeId: number): Promise<void> {
+    const trade = await this.getTradeById(tradeId);
+    if (!trade) {
+      throw new Error("Trade not found");
+    }
+    
+    if (trade.status !== "accepted") {
+      throw new Error("Trade must be accepted before completion");
+    }
+    
+    if (!trade.recipientOfferingCardData) {
+      throw new Error("Trade has no recipient offering cards");
+    }
+    
+    // Extract userCardIds from the new card data fields
+    let initiatorCardIds: number[] = [];
+    let recipientCardIds: number[] = [];
+    
+    try {
+      if (trade.initiatorOfferingCardData) {
+        const cardDataArray = JSON.parse(trade.initiatorOfferingCardData);
+        initiatorCardIds = cardDataArray.map((cd: any) => cd.userCardId);
+      }
+      
+      if (trade.recipientOfferingCardData) {
+        const cardDataArray = JSON.parse(trade.recipientOfferingCardData);
+        recipientCardIds = cardDataArray.map((cd: any) => cd.userCardId);
+      }
+    } catch (err) {
+      console.error('[Trade] Error parsing card data:', err);
+      throw new Error("Invalid card data format");
+    }
+    
+    // Transfer cards:
+    // Initiator's cards -> Recipient
+    if (initiatorCardIds.length > 0) {
+      await db.update(userCards)
+        .set({ userId: trade.recipientId })
+        .where(inArray(userCards.id, initiatorCardIds));
+    }
+    
+    // Recipient's cards -> Initiator
+    if (recipientCardIds.length > 0) {
+      await db.update(userCards)
+        .set({ userId: trade.initiatorId })
+        .where(inArray(userCards.id, recipientCardIds));
+    }
+    
+    // Mark trade as completed
+    await db.update(cardTrades)
+      .set({ status: "completed", completedAt: new Date() })
+      .where(eq(cardTrades.id, tradeId));
   }
 }
 

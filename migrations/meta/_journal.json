@@ -29,6 +29,69 @@
       "when": 1772738273643,
       "tag": "0003_partnership_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1772738273644,
+      "tag": "0004_add_created_at_to_user_cards",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1772738273645,
+      "tag": "0005_partnership_removal_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1772738273646,
+      "tag": "0006_add_reason_to_removal_requests",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1772738273647,
+      "tag": "0007_add_rejection_reason",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1772738273648,
+      "tag": "0008_add_messages_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1772738273649,
+      "tag": "0009_add_message_reactions",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1772738273650,
+      "tag": "0010_add_reply_to_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1772738273651,
+      "tag": "0011_add_last_activity_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1772738273652,
+      "tag": "0012_update_existing_users_activity",
+      "breakpoints": true
     }
   ]
 }

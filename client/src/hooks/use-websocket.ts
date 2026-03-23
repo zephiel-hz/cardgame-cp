@@ -4,8 +4,13 @@ import { useToast } from "@/hooks/use-toast";
 import { api, WS_EVENTS, type WsMessage } from "@shared/routes";
 import type { Message } from "@shared/schema";
 
-// Custom event untuk WebSocket messages
+// Custom events for WebSocket messages
 const WS_MESSAGE_EVENT = 'ws-message-received';
+const WS_REACTION_ADDED_EVENT = 'ws-reaction-added';
+const WS_REACTION_REMOVED_EVENT = 'ws-reaction-removed';
+const WS_MESSAGE_READ_EVENT = 'ws-message-read';
+const WS_TRADE_COMPLETED_EVENT = 'ws-trade-completed';
+const WS_TRADE_CANCELLED_EVENT = 'ws-trade-cancelled';
 
 export function useAppWebSocket(userId?: number) {
   const queryClient = useQueryClient();
@@ -68,6 +73,45 @@ export function useAppWebSocket(userId?: number) {
             window.dispatchEvent(event);
 
             console.log('[WebSocket] MESSAGE_RECEIVED event dispatched successfully');
+          } else if (data.type === WS_EVENTS.REACTION_ADDED) {
+            console.log('[WebSocket] REACTION_ADDED received:', data.payload);
+            const event = new CustomEvent(WS_REACTION_ADDED_EVENT, {
+              detail: data.payload,
+            });
+            window.dispatchEvent(event);
+          } else if (data.type === WS_EVENTS.REACTION_REMOVED) {
+            console.log('[WebSocket] REACTION_REMOVED received:', data.payload);
+            const event = new CustomEvent(WS_REACTION_REMOVED_EVENT, {
+              detail: data.payload,
+            });
+            window.dispatchEvent(event);
+          } else if (data.type === WS_EVENTS.MESSAGE_READ) {
+            console.log('[WebSocket] MESSAGE_READ received:', data.payload);
+            const event = new CustomEvent(WS_MESSAGE_READ_EVENT, {
+              detail: data.payload,
+            });
+            window.dispatchEvent(event);
+          } else if (data.type === WS_EVENTS.TRADE_COMPLETED) {
+            console.log('[WebSocket] TRADE_COMPLETED received:', data.payload);
+            const event = new CustomEvent(WS_TRADE_COMPLETED_EVENT, {
+              detail: data.payload,
+            });
+            window.dispatchEvent(event);
+            
+            // Invalidate all relevant queries to refresh UI
+            queryClient.invalidateQueries({ queryKey: ['trades', 'history'] });
+            queryClient.invalidateQueries({ queryKey: ['/api/inventory/:userId'], exact: false }); // Invalidate all inventory queries
+            queryClient.invalidateQueries({ queryKey: ['trades', 'pending'], exact: false }); // Invalidate pending trades
+          } else if (data.type === WS_EVENTS.TRADE_CANCELLED || data.type === WS_EVENTS.TRADE_REJECTED) {
+            console.log('[WebSocket] TRADE_CANCELLED/REJECTED received:', data.payload);
+            const event = new CustomEvent(WS_TRADE_CANCELLED_EVENT, {
+              detail: data.payload,
+            });
+            window.dispatchEvent(event);
+            
+            // Invalidate all relevant queries to refresh UI
+            queryClient.invalidateQueries({ queryKey: ['trades', 'history'] });
+            queryClient.invalidateQueries({ queryKey: ['trades', 'pending'], exact: false }); // Refresh pending trades list
           }
         } catch (e) {
           console.error("Failed to parse WS message", e);
@@ -128,4 +172,84 @@ export function useWebSocketMessages(callback: (message: Message & { senderUsern
       window.removeEventListener(WS_MESSAGE_EVENT, handleMessage);
     };
   }, [callback]);
+}
+
+// Hook untuk subscribe ke reaction events
+export function useWebSocketReactions(
+  onReactionAdded?: (payload: { messageId: number; userId: number; emoji: string }) => void,
+  onReactionRemoved?: (payload: { messageId: number; userId: number }) => void
+) {
+  useEffect(() => {
+    const handleReactionAdded = (event: Event) => {
+      if (event instanceof CustomEvent && onReactionAdded) {
+        console.log('[useWebSocketReactions] REACTION_ADDED:', event.detail);
+        onReactionAdded(event.detail);
+      }
+    };
+
+    const handleReactionRemoved = (event: Event) => {
+      if (event instanceof CustomEvent && onReactionRemoved) {
+        console.log('[useWebSocketReactions] REACTION_REMOVED:', event.detail);
+        onReactionRemoved(event.detail);
+      }
+    };
+
+    window.addEventListener(WS_REACTION_ADDED_EVENT, handleReactionAdded);
+    window.addEventListener(WS_REACTION_REMOVED_EVENT, handleReactionRemoved);
+    
+    return () => {
+      window.removeEventListener(WS_REACTION_ADDED_EVENT, handleReactionAdded);
+      window.removeEventListener(WS_REACTION_REMOVED_EVENT, handleReactionRemoved);
+    };
+  }, [onReactionAdded, onReactionRemoved]);
+}
+
+// Hook untuk subscribe ke message read events
+export function useWebSocketMessageRead(
+  onMessageRead?: (payload: { messageId: number; readBy: number; readAt: string }) => void
+) {
+  useEffect(() => {
+    const handleMessageRead = (event: Event) => {
+      if (event instanceof CustomEvent && onMessageRead) {
+        console.log('[useWebSocketMessageRead] MESSAGE_READ:', event.detail);
+        onMessageRead(event.detail);
+      }
+    };
+
+    window.addEventListener(WS_MESSAGE_READ_EVENT, handleMessageRead);
+    
+    return () => {
+      window.removeEventListener(WS_MESSAGE_READ_EVENT, handleMessageRead);
+    };
+  }, [onMessageRead]);
+}
+
+// Hook untuk subscribe ke trade events
+export function useWebSocketTrades(
+  onTradeCompleted?: (payload: any) => void,
+  onTradeCancelled?: (payload: any) => void
+) {
+  useEffect(() => {
+    const handleTradeCompleted = (event: Event) => {
+      if (event instanceof CustomEvent && onTradeCompleted) {
+        console.log('[useWebSocketTrades] TRADE_COMPLETED:', event.detail);
+        onTradeCompleted(event.detail);
+      }
+    };
+
+    const handleTradeCancelled = (event: Event) => {
+      if (event instanceof CustomEvent && onTradeCancelled) {
+        console.log('[useWebSocketTrades] TRADE_CANCELLED:', event.detail);
+        onTradeCancelled(event.detail);
+      }
+    };
+
+    window.addEventListener(WS_TRADE_COMPLETED_EVENT, handleTradeCompleted);
+    window.addEventListener(WS_TRADE_CANCELLED_EVENT, handleTradeCancelled);
+    
+    return () => {
+      window.removeEventListener(WS_TRADE_COMPLETED_EVENT, handleTradeCompleted);
+      window.removeEventListener(WS_TRADE_CANCELLED_EVENT, handleTradeCancelled);
+    };
+  }, [onTradeCompleted, onTradeCancelled]);
 }

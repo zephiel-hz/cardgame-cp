@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-context";
 import { api } from "@shared/routes";
@@ -10,7 +10,17 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Camera, Lock, User as UserIcon, Moon, Sun, Mail, CheckCircle, RefreshCw } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2, Camera, Lock, User as UserIcon, Moon, Sun, Mail, CheckCircle, RefreshCw, Trash2, Eye, EyeOff } from "lucide-react";
+import { AvatarPreviewModal } from "@/components/avatar-preview-modal";
 
 
 export default function Profile() {
@@ -26,9 +36,36 @@ export default function Profile() {
   const [displayAvatarUrl, setDisplayAvatarUrl] = useState(user?.avatarUrl ? `${user.avatarUrl}?t=${Date.now()}` : "");
   const [gender, setGender] = useState((user?.gender as any) || "other");
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const [newEmail, setNewEmail] = useState("");
-  const [verificationCode, setVerificationCode] = useState("");
-  const [showVerificationInput, setShowVerificationInput] = useState(false);
+  const [isDeletingAvatar, setIsDeletingAvatar] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showAvatarPreview, setShowAvatarPreview] = useState(false);
+  const [previewImageData, setPreviewImageData] = useState<string>("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  
+  // Email change modal states
+  const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
+  const [emailChangeStep, setEmailChangeStep] = useState<0 | 1 | 2 | 3>(0); // Step 0: confirm, Step 1: verify old email, Step 2: new email, Step 3: verify new email
+  const [identityVerificationCode, setIdentityVerificationCode] = useState("");
+  const [isVerifyingIdentity, setIsVerifyingIdentity] = useState(false);
+  const [isSendingVerificationCode, setIsSendingVerificationCode] = useState(false);
+  const [newEmailInput, setNewEmailInput] = useState("");
+  const [newEmailVerificationCode, setNewEmailVerificationCode] = useState("");
+  const [isSubmittingNewEmail, setIsSubmittingNewEmail] = useState(false);
+  const [isVerifyingNewEmail, setIsVerifyingNewEmail] = useState(false);
+  
+  // PIN change modal states
+  const [showChangePinModal, setShowChangePinModal] = useState(false);
+  const [oldPinInput, setOldPinInput] = useState("");
+  const [newPinInput, setNewPinInput] = useState("");
+  const [confirmNewPinInput, setConfirmNewPinInput] = useState("");
+  const [isChangingPin, setIsChangingPin] = useState(false);
+  const [showOldPin, setShowOldPin] = useState(false);
+  const [showNewPin, setShowNewPin] = useState(false);
+  const [showConfirmNewPin, setShowConfirmNewPin] = useState(false);
+
+  // Debounce timer for auto-save
+  const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Detect component mount - run ONCE on every mount
   useEffect(() => {
@@ -54,6 +91,13 @@ export default function Profile() {
       setDisplayAvatarUrl(`${user.avatarUrl}?t=${Date.now()}`);
     }
   }, [user?.avatarUrl, user?.id]);
+
+  // Track user email changes for debugging
+  useEffect(() => {
+    console.log('[Profile] User email updated:', { email: user?.email, emailVerified: user?.emailVerified });
+  }, [user?.email, user?.emailVerified]);
+
+
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -158,39 +202,18 @@ export default function Profile() {
         try {
           const base64 = event.target?.result as string;
           
-          const res = await fetch(api.auth.uploadAvatar.path, {
-            method: api.auth.uploadAvatar.method,
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              userId: String(user?.id),
-              filename: file.name,
-              data: base64,
-            }),
-          });
-
-          if (!res.ok) {
-            const error = await res.json();
-            throw new Error(error.message || "Gagal mengunggah foto");
-          }
-
-          const data = await res.json();
-          // Store base URL without timestamp
-          setBaseAvatarUrl(data.avatarUrl);
-          // Display URL with cache-busting timestamp
-          const urlWithTimestamp = `${data.avatarUrl}?t=${Date.now()}`;
-          setDisplayAvatarUrl(urlWithTimestamp);
-          toast({ title: "Berhasil", description: "Foto berhasil diunggah!" });
+          // Show preview modal instead of uploading immediately
+          setPreviewImageData(base64);
+          setSelectedFile(file);
+          setShowAvatarPreview(true);
         } catch (error: any) {
           toast({
             variant: "destructive",
             title: "Gagal",
-            description: error.message || "Gagal mengunggah foto",
+            description: error.message || "Gagal membaca file",
           });
         } finally {
           setIsUploadingAvatar(false);
-          if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
         }
       };
       reader.readAsDataURL(file);
@@ -204,17 +227,337 @@ export default function Profile() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const updates: any = {};
-    if (username !== user?.username) updates.username = username;
-    if (pin) updates.pin = pin;
-    if (baseAvatarUrl !== user?.avatarUrl) updates.avatarUrl = baseAvatarUrl;
-    if (gender !== user?.gender) updates.gender = gender;
-    
-    if (Object.keys(updates).length > 0) {
-      updateProfileMutation.mutate(updates);
+  const handleAvatarConfirm = async (croppedData: string) => {
+    setShowAvatarPreview(false);
+    setIsUploadingAvatar(true);
+    try {
+      const res = await fetch(api.auth.uploadAvatar.path, {
+        method: api.auth.uploadAvatar.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: String(user?.id),
+          filename: selectedFile?.name || "avatar.png",
+          data: croppedData,
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Gagal mengunggah foto");
+      }
+
+      const data = await res.json();
+      // Store base URL without timestamp
+      setBaseAvatarUrl(data.avatarUrl);
+      // Display URL with cache-busting timestamp
+      const urlWithTimestamp = `${data.avatarUrl}?t=${Date.now()}`;
+      setDisplayAvatarUrl(urlWithTimestamp);
+      
+      // Clear preview data
+      setPreviewImageData("");
+      setSelectedFile(null);
+      
+      // Update user in auth context with cache-buster (triggers header update)
+      if (user) {
+        login({ ...user, avatarUrl: urlWithTimestamp });
+      }
+      
+      toast({ title: "Berhasil", description: "Foto berhasil diunggah!" });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Gagal",
+        description: error.message || "Gagal mengunggah foto",
+      });
+    } finally {
+      setIsUploadingAvatar(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
+  };
+
+  const handleDeleteAvatar = async () => {
+    setShowDeleteConfirm(false);
+    setIsDeletingAvatar(true);
+    try {
+      const res = await fetch(api.auth.deleteAvatar.path, {
+        method: api.auth.deleteAvatar.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: String(user?.id),
+        }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Gagal menghapus foto");
+      }
+
+      // Clear avatar from state
+      setBaseAvatarUrl("");
+      setDisplayAvatarUrl("");
+      
+      // Update user in auth context (triggers re-login)
+      if (user) {
+        login({ ...user, avatarUrl: null });
+      }
+      
+      toast({ title: "Berhasil", description: "Foto profil berhasil dihapus!" });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Gagal",
+        description: error.message || "Gagal menghapus foto",
+      });
+    } finally {
+      setIsDeletingAvatar(false);
+    }
+  };
+
+  const autoSaveProfile = useCallback(
+    (updates: any) => {
+      // Clear existing timer
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+
+      // Set new timer with 1 second delay
+      saveTimerRef.current = setTimeout(() => {
+        if (Object.keys(updates).length > 0) {
+          setIsSavingProfile(true);
+          updateProfileMutation.mutate(updates, {
+            onSettled: () => setIsSavingProfile(false),
+          });
+        }
+      }, 1000);
+    },
+    [updateProfileMutation]
+  );
+
+  // Auto-save when username changes
+  useEffect(() => {
+    if (username !== user?.username && username.trim() !== "") {
+      autoSaveProfile({ username });
+    }
+  }, [username, user?.username, autoSaveProfile]);
+
+  // Auto-save when gender changes
+  useEffect(() => {
+    if (gender !== user?.gender) {
+      autoSaveProfile({ gender });
+    }
+  }, [gender, user?.gender, autoSaveProfile]);
+
+  // Handle PIN change
+  const handleChangePinSubmit = async () => {
+    // Validation
+    if (!oldPinInput || oldPinInput.length !== 4) {
+      toast({ variant: "destructive", title: "Gagal", description: "PIN Lama harus 4 digit" });
+      return;
+    }
+    if (!newPinInput || newPinInput.length !== 4) {
+      toast({ variant: "destructive", title: "Gagal", description: "PIN Baru harus 4 digit" });
+      return;
+    }
+    if (newPinInput !== confirmNewPinInput) {
+      toast({ variant: "destructive", title: "Gagal", description: "PIN Baru tidak cocok" });
+      return;
+    }
+    if (oldPinInput === newPinInput) {
+      toast({ variant: "destructive", title: "Gagal", description: "PIN Baru harus berbeda dari PIN Lama" });
+      return;
+    }
+
+    setIsChangingPin(true);
+    try {
+      const res = await fetch(api.auth.updateProfile.path, {
+        method: api.auth.updateProfile.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          userId: user?.id, 
+          pin: newPinInput,
+          oldPin: oldPinInput 
+        }),
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Gagal mengubah PIN");
+      }
+
+      // Close modal and reset
+      setShowChangePinModal(false);
+      setOldPinInput("");
+      setNewPinInput("");
+      setConfirmNewPinInput("");
+      setPin("");
+
+      toast({ title: "Berhasil", description: "PIN berhasil diubah!" });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Gagal", description: error.message });
+    } finally {
+      setIsChangingPin(false);
+    }
+  };
+
+  // Handle email change - Step 1: Send verification code
+  const handleSendVerificationCode = async () => {
+    setIsSendingVerificationCode(true);
+    try {
+      const res = await fetch(api.auth.sendRegistrationEmail.path, {
+        method: api.auth.sendRegistrationEmail.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user?.id }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Gagal mengirim kode verifikasi");
+      }
+
+      // Move to step 1 (enter verification code)
+      setEmailChangeStep(1);
+      toast({ title: "Kode Terkirim", description: "Cek email Anda untuk kode verifikasi." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Gagal", description: error.message });
+    } finally {
+      setIsSendingVerificationCode(false);
+    }
+  };
+
+  // Handle email change - Step 2: Verify identity
+  const handleVerifyIdentity = async () => {
+    if (!identityVerificationCode.trim()) {
+      toast({ variant: "destructive", title: "Gagal", description: "Masukkan kode verifikasi" });
+      return;
+    }
+
+    setIsVerifyingIdentity(true);
+    try {
+      const res = await fetch(api.auth.verifyEmail.path, {
+        method: api.auth.verifyEmail.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: identityVerificationCode }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Kode verifikasi tidak valid");
+      }
+
+      // Move to step 2
+      setEmailChangeStep(2);
+      setIdentityVerificationCode("");
+      toast({ title: "Berhasil", description: "Identitas terverifikasi. Masukkan email baru Anda." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Gagal", description: error.message });
+    } finally {
+      setIsVerifyingIdentity(false);
+    }
+  };
+
+  // Handle email change - Step 2: Submit new email and send verification code
+  const handleSubmitNewEmail = async () => {
+    if (!newEmailInput.trim() || !newEmailInput.includes("@")) {
+      toast({ variant: "destructive", title: "Gagal", description: "Masukkan email yang valid" });
+      return;
+    }
+
+    if (newEmailInput === user?.email) {
+      toast({ variant: "destructive", title: "Gagal", description: "Email baru harus berbeda dari email saat ini" });
+      return;
+    }
+
+    setIsSubmittingNewEmail(true);
+    try {
+      const res = await fetch(api.auth.sendRegistrationEmail.path, {
+        method: api.auth.sendRegistrationEmail.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: newEmailInput, userId: user?.id }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Gagal mengirim kode verifikasi");
+      }
+
+      // Move to step 3 (verify new email)
+      setEmailChangeStep(3);
+      setNewEmailVerificationCode("");
+      toast({ title: "Kode Terkirim", description: "Cek email baru Anda untuk kode verifikasi." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Gagal", description: error.message });
+    } finally {
+      setIsSubmittingNewEmail(false);
+    }
+  };
+
+  // Handle email change - Step 3: Verify new email
+  const handleVerifyNewEmail = async () => {
+    if (!newEmailVerificationCode.trim()) {
+      toast({ variant: "destructive", title: "Gagal", description: "Masukkan kode verifikasi" });
+      return;
+    }
+
+    setIsVerifyingNewEmail(true);
+    try {
+      console.log('[Email Change] === VERIFY NEW EMAIL START ===');
+      console.log('[Email Change] Current user:', user);
+      
+      // First verify the token - this endpoint returns the updated full user object from server
+      console.log('[Email Change] Verifying token...');
+      const verifyRes = await fetch(api.auth.verifyEmail.path, {
+        method: api.auth.verifyEmail.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: newEmailVerificationCode }),
+      });
+
+      if (!verifyRes.ok) {
+        const error = await verifyRes.json();
+        throw new Error(error.message || "Kode verifikasi tidak valid");
+      }
+      
+      // Get the verified user from response - this is the SOURCE OF TRUTH from server
+      const verifiedUserData = await verifyRes.json();
+      console.log('[Email Change] Token verified, user from server:', verifiedUserData);
+
+      // Update user context with the data from server (not local guess)
+      if (verifiedUserData) {
+        console.log('[Email Change] Logging in with server user data:', verifiedUserData);
+        login(verifiedUserData);
+        console.log('[Email Change] After login() called with server data');
+      } else {
+        throw new Error("Tidak mendapat data user dari server setelah verifikasi");
+      }
+
+      // Close modal and reset
+      setShowChangeEmailModal(false);
+      setEmailChangeStep(0);
+      setIdentityVerificationCode("");
+      setNewEmailInput("");
+      setNewEmailVerificationCode("");
+
+      toast({ title: "Berhasil!", description: "Email telah berhasil diubah." });
+      
+      console.log('[Email Change] === VERIFY NEW EMAIL END ===');
+    } catch (error: any) {
+      console.error('[Email Change] Error:', error);
+      toast({ variant: "destructive", title: "Gagal", description: error.message });
+    } finally {
+      setIsVerifyingNewEmail(false);
+    }
+  };
+
+  // Reset email modal when closed
+  const handleCloseEmailModal = () => {
+    setShowChangeEmailModal(false);
+    setEmailChangeStep(0);
+    setIdentityVerificationCode("");
+    setNewEmailInput("");
+    setNewEmailVerificationCode("");
+    setIsSubmittingNewEmail(false);
+    setIsVerifyingNewEmail(false);
   };
 
   return !user ? (
@@ -276,7 +619,7 @@ export default function Profile() {
           </div>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-6">
             <div className="space-y-3 pb-2 border-b border-pink-200/50 dark:border-pink-400/20">
               <Label htmlFor="username" className="flex items-center gap-2 font-bold text-foreground">
                 <div className="bg-pink-200 dark:bg-pink-500/20 p-2 rounded-lg">
@@ -305,27 +648,45 @@ export default function Profile() {
               <div className="text-sm text-muted-foreground bg-pink-100/50 dark:bg-pink-500/10 rounded-xl p-4 border border-pink-200/50 dark:border-pink-400/30 font-medium">
                 📸 Klik foto profil di atas untuk mengubah foto dari galeri
               </div>
+              {baseAvatarUrl && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  disabled={isDeletingAvatar}
+                  className="w-full rounded-xl"
+                >
+                  {isDeletingAvatar ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Menghapus...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Hapus Foto Profil
+                    </>
+                  )}
+                </Button>
+              )}
             </div>
 
             <div className="space-y-3 pb-2 border-b border-pink-200/50 dark:border-pink-400/20">
-              <Label htmlFor="pin" className="flex items-center gap-2 font-bold text-foreground">
+              <Label className="flex items-center gap-2 font-bold text-foreground">
                 <div className="bg-pink-200 dark:bg-pink-500/20 p-2 rounded-lg">
                   <Lock size={18} className="text-pink-600 dark:text-pink-300" />
                 </div>
                 PIN Keamanan
               </Label>
-              <Input
-                id="pin"
-                name="pin"
-                type="password"
-                maxLength={4}
-                autoComplete="new-password"
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-                className="rounded-2xl border-pink-200/50 dark:border-pink-400/30 focus:border-pink-500 focus:ring-pink-500/20 shadow-sm tracking-widest"
-                placeholder="• • • •"
-              />
-              <p className="text-xs text-muted-foreground font-medium">🔐 PIN 4 digit angka • Kosongkan jika tidak ingin diubah</p>
+              <Button
+                type="button"
+                onClick={() => setShowChangePinModal(true)}
+                className="w-full rounded-2xl py-6 font-bold text-lg bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white transition-all shadow-lg shadow-purple-500/20"
+              >
+                🔐 Ubah PIN
+              </Button>
+              <p className="text-xs text-muted-foreground font-medium">Kelola PIN keamanan akun Anda</p>
             </div>
 
             <div className="space-y-3 pb-2 border-b border-pink-200/50 dark:border-pink-400/20">
@@ -349,15 +710,15 @@ export default function Profile() {
 
             {/* Email Section */}
             <div className="space-y-3 pb-4 pt-2 border-b border-pink-200/50 dark:border-pink-400/20">
-              <Label htmlFor="newEmail" className="flex items-center gap-2 font-bold text-foreground">
+              <Label className="flex items-center gap-2 font-bold text-foreground">
                 <div className="bg-pink-200 dark:bg-pink-500/20 p-2 rounded-lg">
                   <Mail size={18} className="text-pink-600 dark:text-pink-300" />
                 </div>
                 Email untuk Notifikasi
               </Label>
-              <div className="bg-pink-100/50 dark:bg-pink-500/10 rounded-xl p-4 border border-pink-200/50 dark:border-pink-400/30 space-y-3">
+              <div className="bg-pink-100/50 dark:bg-pink-500/10 rounded-xl p-4 border border-pink-200/50 dark:border-pink-400/30">
                 {user?.email && user?.emailVerified ? (
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="space-y-3">
                     <div className="flex items-center gap-3">
                       <div className="bg-green-500/20 p-2 rounded-lg">
                         <CheckCircle className="text-green-600 dark:text-green-400" size={18} />
@@ -367,100 +728,47 @@ export default function Profile() {
                         <span className="text-xs text-muted-foreground">Email terverifikasi</span>
                       </div>
                     </div>
-                    <span className="text-xs bg-green-500/20 text-green-700 dark:text-green-400 px-3 py-1 rounded-lg font-bold">✓ Aktif</span>
-                  </div>
-                ) : user?.email ? (
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-yellow-500/20 p-2 rounded-lg">
-                        <RefreshCw className="text-yellow-600 dark:text-yellow-400" size={18} />
-                      </div>
-                      <div>
-                        <span className="text-sm font-bold text-foreground block">{user.email}</span>
-                        <span className="text-xs text-muted-foreground">Menunggu verifikasi</span>
-                      </div>
-                    </div>
-                    <span className="text-xs bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 px-3 py-1 rounded-lg font-bold">⏳ Pending</span>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground font-medium">🔔 Belum ada email • Tambahkan email untuk notifikasi</p>
-                )}
-              </div>
-
-              {showVerificationInput ? (
-                <div className="space-y-2 pt-3">
-                  <label htmlFor="verificationCode" className="text-sm font-bold text-foreground block">Masukkan Kode Verifikasi</label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="verificationCode"
-                      name="verificationCode"
-                      type="text"
-                      autoComplete="off"
-                      value={verificationCode}
-                      onChange={(e) => setVerificationCode(e.target.value)}
-                      className="rounded-2xl border-pink-200/50 dark:border-pink-400/30 focus:border-pink-500 focus:ring-pink-500/20 shadow-sm"
-                      placeholder="Masukan 6 karakter dari email"
-                    />
                     <Button
                       type="button"
-                      onClick={() => user?.id && verifyEmailMutation.mutate(verificationCode)}
-                      disabled={verifyEmailMutation.isPending || !verificationCode || !user?.id}
-                      className="rounded-2xl px-6 font-bold bg-green-600 hover:bg-green-700"
+                      onClick={() => setShowChangeEmailModal(true)}
+                      className="w-full rounded-xl font-bold text-sm bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white transition-all py-2"
                     >
-                      {verifyEmailMutation.isPending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        "✓ Verifikasi"
-                      )}
+                      ✏️ Ubah Email
                     </Button>
                   </div>
-                </div>
-              ) : (
-                <div className="flex gap-2 pt-3">
-                  <Input
-                    id="newEmail"
-                    name="newEmail"
-                    type="email"
-                    autoComplete="email"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    className="rounded-2xl border-pink-200/50 dark:border-pink-400/30 focus:border-pink-500 focus:ring-pink-500/20 shadow-sm"
-                    placeholder="nama@example.com"
-                  />
-                  <Button
-                    type="button"
-                    onClick={() => user?.id && updateEmailMutation.mutate(newEmail)}
-                    disabled={updateEmailMutation.isPending || !newEmail || !user?.id}
-                    className="rounded-2xl px-6 font-bold bg-blue-600 hover:bg-blue-700"
-                  >
-                    {updateEmailMutation.isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      "📧 Daftarkan"
-                    )}
-                  </Button>
-                </div>
-              )}
+                ) : user?.email ? (
+                  <div className="flex items-center gap-3">
+                    <div className="bg-yellow-500/20 p-2 rounded-lg">
+                      <RefreshCw className="text-yellow-600 dark:text-yellow-400" size={18} />
+                    </div>
+                    <div>
+                      <span className="text-sm font-bold text-foreground block">{user.email}</span>
+                      <span className="text-xs text-muted-foreground">Menunggu verifikasi</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground font-medium">🔔 Belum ada email • Tambahkan email untuk notifikasi</p>
+                    <Button
+                      type="button"
+                      onClick={() => setShowChangeEmailModal(true)}
+                      className="w-full rounded-xl font-bold text-sm bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white transition-all py-2"
+                    >
+                      ➕ Tambah Email
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Action Buttons */}
             <div className="space-y-3 pt-4">
-              <Button
-                type="submit"
-                disabled={updateProfileMutation.isPending}
-                className="w-full rounded-2xl py-6 font-bold text-lg shadow-lg shadow-pink-500/20 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white transition-all"
-              >
-                {updateProfileMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    💾 Simpan Perubahan
-                  </>
-                )}
-              </Button>
+              {isSavingProfile && (
+                <div className="flex items-center justify-center gap-2 text-sm text-pink-600 dark:text-pink-300 py-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Menyimpan perubahan...
+                </div>
+              )}
 
               <Button
                 type="button"
@@ -481,9 +789,356 @@ export default function Profile() {
                 )}
               </Button>
             </div>
-          </form>
+          </div>
         </CardContent>
       </Card>
+
+      <AvatarPreviewModal
+        isOpen={showAvatarPreview}
+        imageData={previewImageData}
+        onConfirm={handleAvatarConfirm}
+        onCancel={() => {
+          setShowAvatarPreview(false);
+          setPreviewImageData("");
+          setSelectedFile(null);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+        }}
+      />
+
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Foto Profil?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tindakan ini akan menghapus foto profil Anda. Anda dapat mengunggah foto baru kapan saja.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex gap-3 justify-end">
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAvatar}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeletingAvatar ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Menghapus...
+                </>
+              ) : (
+                "Hapus"
+              )}
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Change PIN Modal */}
+      <AlertDialog open={showChangePinModal} onOpenChange={setShowChangePinModal}>
+        <AlertDialogContent className="max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl">🔐 Ubah PIN</AlertDialogTitle>
+            <AlertDialogDescription>
+              Masukkan PIN lama dan PIN baru untuk mengubah PIN keamanan akun Anda
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {/* Old PIN */}
+            <div className="space-y-2">
+              <Label htmlFor="oldPin" className="font-bold text-foreground">PIN Lama</Label>
+              <div className="relative">
+                <Input
+                  id="oldPin"
+                  type={showOldPin ? "text" : "password"}
+                  maxLength={4}
+                  placeholder="• • • •"
+                  value={oldPinInput}
+                  onChange={(e) => setOldPinInput(e.target.value.replace(/\D/g, ""))}
+                  className="rounded-xl border-pink-200/50 dark:border-pink-400/30 focus:border-pink-500 focus:ring-pink-500/20 tracking-widest text-center text-lg font-bold pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowOldPin(!showOldPin)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showOldPin ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            {/* New PIN */}
+            <div className="space-y-2">
+              <Label htmlFor="newPin" className="font-bold text-foreground">PIN Baru</Label>
+              <div className="relative">
+                <Input
+                  id="newPin"
+                  type={showNewPin ? "text" : "password"}
+                  maxLength={4}
+                  placeholder="• • • •"
+                  value={newPinInput}
+                  onChange={(e) => setNewPinInput(e.target.value.replace(/\D/g, ""))}
+                  className="rounded-xl border-pink-200/50 dark:border-pink-400/30 focus:border-pink-500 focus:ring-pink-500/20 tracking-widest text-center text-lg font-bold pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPin(!showNewPin)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showNewPin ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Confirm New PIN */}
+            <div className="space-y-2">
+              <Label htmlFor="confirmPin" className="font-bold text-foreground">Konfirmasi PIN Baru</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPin"
+                  type={showConfirmNewPin ? "text" : "password"}
+                  maxLength={4}
+                  placeholder="• • • •"
+                  value={confirmNewPinInput}
+                  onChange={(e) => setConfirmNewPinInput(e.target.value.replace(/\D/g, ""))}
+                  className="rounded-xl border-pink-200/50 dark:border-pink-400/30 focus:border-pink-500 focus:ring-pink-500/20 tracking-widest text-center text-lg font-bold pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmNewPin(!showConfirmNewPin)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showConfirmNewPin ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {newPinInput && confirmNewPinInput && newPinInput === confirmNewPinInput && (
+                <p className="text-xs text-green-600 dark:text-green-400 font-medium flex items-center gap-1">
+                  ✓ PIN cocok
+                </p>
+              )}
+              {newPinInput && confirmNewPinInput && newPinInput !== confirmNewPinInput && (
+                <p className="text-xs text-red-600 dark:text-red-400 font-medium">
+                  ✗ PIN tidak cocok
+                </p>
+              )}
+            </div>
+
+            <p className="text-xs text-muted-foreground font-medium bg-pink-50 dark:bg-pink-500/10 p-3 rounded-lg">
+              💡 PIN harus 4 digit angka dan berbeda dengan PIN lama Anda
+            </p>
+          </div>
+
+          <div className="flex gap-3 justify-end pt-4">
+            <AlertDialogCancel className="rounded-xl">Batal</AlertDialogCancel>
+            <button
+              onClick={handleChangePinSubmit}
+              disabled={isChangingPin || !oldPinInput || !newPinInput || !confirmNewPinInput || oldPinInput.length !== 4 || newPinInput.length !== 4}
+              className="px-6 py-2 rounded-xl bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            >
+              {isChangingPin ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin inline" />
+                  Menyimpan...
+                </>
+              ) : (
+                "Simpan PIN Baru"
+              )}
+            </button>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Change Email Modal */}
+      <AlertDialog open={showChangeEmailModal} onOpenChange={handleCloseEmailModal}>
+        <AlertDialogContent className="max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl">
+              {emailChangeStep === 0 ? "📧 Ubah Email" : emailChangeStep === 1 ? "📧 Verifikasi Identitas" : emailChangeStep === 2 ? "📧 Email Baru" : "📧 Verifikasi Email Baru"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {emailChangeStep === 0 
+                ? "Verifikasi data Anda sebelum mengirim kode verifikasi"
+                : emailChangeStep === 1
+                ? "Masukkan kode verifikasi yang dikirim ke email lama Anda"
+                : emailChangeStep === 2
+                ? "Masukkan email baru Anda"
+                : "Masukkan kode verifikasi yang dikirim ke email baru Anda"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {emailChangeStep === 0 ? (
+            // Step 0: Confirm Email Change
+            <div className="space-y-4 py-4">
+              <div className="bg-blue-50 dark:bg-blue-500/10 p-3 rounded-lg border border-blue-200/50 dark:border-blue-400/30">
+                <p className="text-xs font-medium text-blue-900 dark:text-blue-300 mb-2">Email Saat Ini</p>
+                <p className="text-sm font-bold text-blue-900 dark:text-blue-200">{user?.email || "Tidak ada email"}</p>
+              </div>
+
+              <div className="bg-amber-50 dark:bg-amber-500/10 p-3 rounded-lg border border-amber-200/50 dark:border-amber-400/30">
+                <p className="text-xs font-medium text-amber-900 dark:text-amber-300 mb-1">⚠️ Verifikasi</p>
+                <p className="text-xs text-amber-900 dark:text-amber-200">Kode verifikasi akan dikirim ke email ini untuk mengkonfirmasi perubahan email Anda</p>
+              </div>
+
+              <div className="flex gap-3 justify-end pt-4">
+                <AlertDialogCancel className="rounded-xl">Batal</AlertDialogCancel>
+                <button
+                  onClick={handleSendVerificationCode}
+                  disabled={isSendingVerificationCode}
+                  className="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  {isSendingVerificationCode ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin inline" />
+                      Mengirim...
+                    </>
+                  ) : (
+                    "📧 Kirim Kode"
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : emailChangeStep === 1 ? (
+            // Step 1: Verify Identity
+            <div className="space-y-4 py-4">
+              <div className="bg-green-50 dark:bg-green-500/10 p-3 rounded-lg border border-green-200/50 dark:border-green-400/30">
+                <p className="text-sm font-medium text-green-900 dark:text-green-300">
+                  ✓ Kode terkirim ke:<br />
+                  <span className="font-bold">{user?.email}</span>
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="identityCode" className="font-bold text-foreground">Masukkan Kode Verifikasi</Label>
+                <Input
+                  id="identityCode"
+                  type="text"
+                  placeholder="Masukkan 6 karakter dari email"
+                  value={identityVerificationCode}
+                  onChange={(e) => setIdentityVerificationCode(e.target.value)}
+                  className="rounded-xl border-pink-200/50 dark:border-pink-400/30 focus:border-pink-500 focus:ring-pink-500/20"
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end pt-4">
+                <button
+                  onClick={() => setEmailChangeStep(0)}
+                  className="px-6 py-2 rounded-xl border border-pink-200/50 dark:border-pink-400/30 text-foreground font-bold hover:bg-pink-50 dark:hover:bg-pink-500/10 transition-all"
+                >
+                  ← Kembali
+                </button>
+                <button
+                  onClick={handleVerifyIdentity}
+                  disabled={isVerifyingIdentity || !identityVerificationCode.trim()}
+                  className="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  {isVerifyingIdentity ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin inline" />
+                      Verifikasi...
+                    </>
+                  ) : (
+                    "✓ Verifikasi"
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : emailChangeStep === 2 ? (
+            // Step 2: Enter New Email
+            <div className="space-y-4 py-4">
+              <div className="bg-green-50 dark:bg-green-500/10 p-3 rounded-lg border border-green-200/50 dark:border-green-400/30">
+                <p className="text-sm font-medium text-green-900 dark:text-green-300">
+                  ✓ Identitas terverifikasi. Masukkan email baru Anda.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="newEmail" className="font-bold text-foreground">Email Baru</Label>
+                <Input
+                  id="newEmail"
+                  type="email"
+                  placeholder="email@example.com"
+                  value={newEmailInput}
+                  onChange={(e) => setNewEmailInput(e.target.value)}
+                  className="rounded-xl border-pink-200/50 dark:border-pink-400/30 focus:border-pink-500 focus:ring-pink-500/20"
+                />
+              </div>
+
+              <div className="text-xs text-muted-foreground bg-amber-50 dark:bg-amber-500/10 p-3 rounded-lg">
+                💡 Email baru harus berbeda dan akan menerima kode verifikasi
+              </div>
+
+              <div className="flex gap-3 justify-end pt-4">
+                <button
+                  onClick={() => setEmailChangeStep(1)}
+                  className="px-6 py-2 rounded-xl border border-pink-200/50 dark:border-pink-400/30 text-foreground font-bold hover:bg-pink-50 dark:hover:bg-pink-500/10 transition-all"
+                >
+                  ← Kembali
+                </button>
+                <button
+                  onClick={handleSubmitNewEmail}
+                  disabled={isSubmittingNewEmail || !newEmailInput.trim()}
+                  className="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  {isSubmittingNewEmail ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin inline" />
+                      Mengirim...
+                    </>
+                  ) : (
+                    "📧 Kirim Verifikasi"
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : (
+            // Step 3: Verify New Email
+            <div className="space-y-4 py-4">
+              <div className="bg-purple-50 dark:bg-purple-500/10 p-3 rounded-lg border border-purple-200/50 dark:border-purple-400/30">
+                <p className="text-sm font-medium text-purple-900 dark:text-purple-300">
+                  ✓ Kode terkirim ke:<br />
+                  <span className="font-bold">{newEmailInput}</span>
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="newEmailCode" className="font-bold text-foreground">Masukkan Kode Verifikasi</Label>
+                <Input
+                  id="newEmailCode"
+                  type="text"
+                  placeholder="Masukkan 6 karakter dari email"
+                  value={newEmailVerificationCode}
+                  onChange={(e) => setNewEmailVerificationCode(e.target.value)}
+                  className="rounded-xl border-pink-200/50 dark:border-pink-400/30 focus:border-pink-500 focus:ring-pink-500/20"
+                />
+              </div>
+
+              <div className="flex gap-3 justify-end pt-4">
+                <button
+                  onClick={() => setEmailChangeStep(2)}
+                  className="px-6 py-2 rounded-xl border border-pink-200/50 dark:border-pink-400/30 text-foreground font-bold hover:bg-pink-50 dark:hover:bg-pink-500/10 transition-all"
+                >
+                  ← Kembali
+                </button>
+                <button
+                  onClick={handleVerifyNewEmail}
+                  disabled={isVerifyingNewEmail || !newEmailVerificationCode.trim()}
+                  className="px-6 py-2 rounded-xl bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  {isVerifyingNewEmail ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin inline" />
+                      Verifikasi...
+                    </>
+                  ) : (
+                    "✓ Verifikasi & Ubah Email"
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

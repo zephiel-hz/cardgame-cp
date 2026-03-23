@@ -20,6 +20,7 @@ import Inventory from "@/pages/inventory";
 import ActiveCards from "@/pages/active-cards";
 import Chat from "@/pages/chat";
 import Profile from "@/pages/profile";
+import Trading from "@/pages/trading";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { user } = useAuth();
@@ -70,6 +71,7 @@ function Router() {
         <Route path="/gacha" component={() => <ProtectedRoute component={Gacha} />} />
         <Route path="/inventory" component={() => <ProtectedRoute component={Inventory} />} />
         <Route path="/active" component={() => <ProtectedRoute component={ActiveCards} />} />
+        <Route path="/trading" component={() => <ProtectedRoute component={Trading} />} />
         <Route path="/chat" component={() => <ProtectedRoute component={Chat} />} />
         <Route path="/profile" component={() => <ProtectedRoute component={Profile} />} />
         <Route component={NotFound} />
