@@ -1,5 +1,5 @@
 // Service Worker for Push Notifications
-const CACHE_NAME = 'cardgame-v4';
+const CACHE_NAME = 'cardgame-v5';
 
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker');
