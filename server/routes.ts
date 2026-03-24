@@ -258,8 +258,8 @@ export async function registerRoutes(
         if (!user) {
           return res.status(404).json({ message: "User tidak ditemukan" });
         }
-        // Validate old PIN matches
-        if (user.pin !== oldPin) {
+        // Validate old PIN matches using verifyPin (handles both encrypted and plain text)
+        if (!storage.verifyUserPin(user, oldPin)) {
           return res.status(400).json({ message: "PIN Lama tidak sesuai" });
         }
       }
