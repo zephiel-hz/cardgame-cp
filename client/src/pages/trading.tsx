@@ -349,26 +349,26 @@ export default function Trading() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
       {/* Header */}
-      <div className="border-b bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 backdrop-blur-sm">
-        <div className="container max-w-4xl mx-auto py-8 px-4">
+      <div className="border-b bg-gradient-to-br from-slate-50 via-blue-50/50 to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 shadow-sm backdrop-blur-sm">
+        <div className="container max-w-4xl mx-auto py-6 px-4">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-3 mb-4"
+            className="flex items-center gap-4 mb-4"
           >
-            <div className="p-3 rounded-lg bg-blue-500/20 border border-blue-500/30">
-              <Repeat2 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <div className="p-3 rounded-xl bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-900/40 dark:to-blue-800/40 shadow-md hover:shadow-lg transition-shadow">
+              <Repeat2 className="w-6 h-6 text-blue-600 dark:text-blue-300" />
             </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">
               Tukar Kartu
             </h1>
           </motion.div>
 
           {partner && (
-            <Alert className="bg-blue-50 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800">
-              <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-              <AlertDescription className="text-blue-800 dark:text-blue-200">
-                Terhubung dengan <strong className="text-blue-900 dark:text-blue-100">{partner.username}</strong>
+            <Alert className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200/50 dark:border-blue-800/50 shadow-sm">
+              <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+              <AlertDescription className="text-blue-700 dark:text-blue-200 font-medium">
+                Terhubung dengan <strong className="text-blue-800 dark:text-blue-100">{partner.username}</strong>
               </AlertDescription>
             </Alert>
           )}
@@ -376,9 +376,9 @@ export default function Trading() {
       </div>
 
       {/* Main Content */}
-      <div className="container max-w-4xl mx-auto py-6 px-4 pb-24">
+      <div className="container max-w-4xl mx-auto py-8 px-4 pb-24">
         <Tabs defaultValue="initiate" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-3 mb-8 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-lg shadow-sm">
             <TabsTrigger value="initiate" className="flex items-center gap-2">
               Tukar
               {pendingSent.length > 0 && (
@@ -405,17 +405,17 @@ export default function Trading() {
                   exit={{ opacity: 0, y: -20 }}
                   className="space-y-6"
                 >
-                  <Card className="border-0 shadow-lg">
-                    <CardHeader className="pb-4">
-                      <CardTitle className="text-2xl">Pilih Kartu untuk Ditukar</CardTitle>
-                      <CardDescription className="text-base">
+                  <Card className="border border-slate-200/50 dark:border-slate-700/50 shadow-md hover:shadow-lg transition-shadow">
+                    <CardHeader className="pb-5 border-b border-slate-100 dark:border-slate-800">
+                      <CardTitle className="text-2xl text-slate-900 dark:text-slate-50 font-semibold">Pilih Kartu untuk Ditukar</CardTitle>
+                      <CardDescription className="text-slate-600 dark:text-slate-400 font-medium text-sm">
                         Pilih kartu dari koleksimu ({myCards.length} tersedia)
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6 pb-32">
+                    <CardContent className="space-y-6 pb-32 pt-6">
                       {/* Selection Counter */}
-                      <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border border-blue-200 dark:border-blue-800">
-                        <span className="font-semibold">
+                      <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-800/30 dark:to-blue-900/20 border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+                        <span className="font-medium text-slate-700 dark:text-slate-300">
                           {totalSelectedCards} kartu dipilih ({Object.keys(selectedCards).length} tipe)
                         </span>
                         {totalSelectedCards > 0 && (
@@ -430,12 +430,12 @@ export default function Trading() {
                       </div>
 
                       {/* Search and Filter */}
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         <Input
                           placeholder="Cari nama kartu..."
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          className="h-10"
+                          className="h-10 bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:shadow-md transition-shadow"
                         />
                         <div className="flex gap-2 flex-wrap">
                           {tiers.map(tier => (
@@ -444,7 +444,7 @@ export default function Trading() {
                               variant={tierFilter === tier ? 'default' : 'outline'}
                               size="sm"
                               onClick={() => setTierFilter(tierFilter === tier ? null : tier)}
-                              className="capitalize"
+                              className="capitalize rounded-lg shadow-sm hover:shadow-md transition-all font-medium"
                               title={`Filter ${tierDisplayMap[tier]}`}
                             >
                               {tierDisplayMap[tier]}
@@ -465,17 +465,17 @@ export default function Trading() {
                       {/* Cards Grid */}
                       {cardsLoading ? (
                         <div className="flex justify-center py-12">
-                          <div className="text-muted-foreground">Memuat koleksi...</div>
+                          <div className="text-slate-500 dark:text-slate-400 font-medium">Memuat koleksi...</div>
                         </div>
                       ) : filteredCards.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
-                          <AlertCircle className="w-12 h-12 text-muted-foreground mb-3 opacity-50" />
-                          <div className="text-muted-foreground">
+                          <AlertCircle className="w-12 h-12 text-slate-400 dark:text-slate-600 mb-3" />
+                          <div className="text-slate-600 dark:text-slate-400 font-medium">
                             {myCards.length === 0 ? 'Belum ada kartu. Tarik di Gacha dulu!' : 'Kartu tidak ditemukan'}
                           </div>
                         </div>
                       ) : (
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-2 gap-5">
                           <AnimatePresence>
                             {stackedCards.map((stacked, idx) => {
                               const isSelected = selectedCards[stacked.cardId] || 0;
@@ -497,8 +497,8 @@ export default function Trading() {
                                       </>
                                     )}
                                     
-                                    <div className={`relative h-full rounded-2xl border-2 transition-all ${
-                                      isSelected ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-gray-950' : ''
+                                    <div className={`relative h-full rounded-2xl border border-slate-200/60 dark:border-slate-700/60 transition-all shadow-md hover:shadow-lg ${
+                                      isSelected ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-gray-950 shadow-lg' : ''
                                     }`}>
                                       {/* Duplicate Counter Badge */}
                                       {stacked.count > 1 && (
@@ -517,9 +517,9 @@ export default function Trading() {
                                           <motion.div
                                             initial={{ opacity: 0, y: 10 }}
                                             animate={{ opacity: 1, y: 0 }}
-                                            className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-blue-600 to-blue-500 text-white h-12 rounded-b-xl flex items-center justify-center font-bold text-lg gap-2 shadow-lg"
+                                            className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-blue-500 to-blue-400 text-white h-11 rounded-b-xl flex items-center justify-center font-bold text-base gap-2 shadow-md"
                                           >
-                                            <Check className="w-5 h-5" />
+                                            <Check className="w-4 h-4" />
                                             {isSelected}
                                           </motion.div>
                                         )}
@@ -543,16 +543,16 @@ export default function Trading() {
                   exit={{ opacity: 0, y: -20 }}
                   className="space-y-6"
                 >
-                  <Card className="border-0 shadow-lg">
-                    <CardHeader>
-                      <CardTitle className="text-2xl">Pastikan Penawaranmu</CardTitle>
-                      <CardDescription>Cek dulu sebelum kirim ke {partner?.username}</CardDescription>
+                  <Card className="border border-slate-200/50 dark:border-slate-700/50 shadow-md hover:shadow-lg transition-shadow">
+                    <CardHeader className="pb-5 border-b border-slate-100 dark:border-slate-800">
+                      <CardTitle className="text-2xl text-slate-900 dark:text-slate-50 font-semibold">Pastikan Penawaranmu</CardTitle>
+                      <CardDescription className="text-slate-600 dark:text-slate-400 font-medium text-sm">Cek dulu sebelum kirim ke {partner?.username}</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-6 pb-24">
+                    <CardContent className="space-y-6 pb-24 pt-6">
                       {/* Cards Summary */}
                       <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
-                        <div className="p-6 rounded-lg bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border border-blue-200 dark:border-blue-800">
-                          <h3 className="font-bold text-lg mb-4 text-blue-900 dark:text-blue-100">Kartu yang Kamu Tawarkan:</h3>
+                        <div className="p-6 rounded-lg bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800/30 dark:to-blue-900/20 border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+                          <h3 className="font-semibold text-base mb-4 text-slate-800 dark:text-slate-200">Kartu yang Kamu Tawarkan:</h3>
                           <div className="grid grid-cols-2 gap-3">
                             {selectedCards.map(cardId => {
                               const card = myCards.find(c => c.id === cardId);
@@ -575,17 +575,17 @@ export default function Trading() {
                         <motion.div
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800"
+                          className="p-4 rounded-lg bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-800/30 dark:to-blue-900/20 border border-slate-200/50 dark:border-slate-700/50 shadow-sm"
                         >
-                          <div className="text-xs font-bold text-blue-700 dark:text-blue-300 mb-2">Pesan:</div>
-                          <p className="text-sm text-blue-900 dark:text-blue-100 italic">"{tradeMessage}"</p>
+                          <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">Pesan:</div>
+                          <p className="text-sm text-slate-700 dark:text-slate-300 italic">"{tradeMessage}"</p>
                         </motion.div>
                       )}
 
                       {/* Info Alert */}
-                      <Alert className="bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800">
+                      <Alert className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200/50 dark:border-amber-800/50 shadow-sm">
                         <Zap className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                        <AlertDescription className="text-amber-800 dark:text-amber-200">
+                        <AlertDescription className="text-amber-700 dark:text-amber-200 font-medium text-sm">
                           {partner?.username} akan memilih kartu apa yang mau ditukar balik. Nanti terserah kamu terima atau tolak!
                         </AlertDescription>
                       </Alert>
@@ -596,7 +596,7 @@ export default function Trading() {
                           variant="outline"
                           onClick={() => setStep('select')}
                           size="lg"
-                          className="flex-1"
+                          className="flex-1 rounded-lg shadow-sm hover:shadow-md transition-all"
                         >
                           ← Kembali
                         </Button>
@@ -604,7 +604,7 @@ export default function Trading() {
                           onClick={handleInitiateTrade}
                           disabled={initiateTrade.isPending}
                           size="lg"
-                          className="flex-1"
+                          className="flex-1 rounded-lg shadow-sm hover:shadow-md transition-all"
                         >
                           {initiateTrade.isPending ? 'Mengirim...' : '✉️ Kirim'}
                         </Button>
@@ -623,14 +623,14 @@ export default function Trading() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
                 >
-                  <Card className="border-0 shadow-lg border-l-4 border-l-orange-500">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2 text-lg">
+                  <Card className="border border-slate-200/50 dark:border-slate-700/50 shadow-md hover:shadow-lg transition-shadow border-l-4 border-l-orange-500">
+                    <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800">
+                      <CardTitle className="flex items-center gap-2 text-lg text-slate-900 dark:text-slate-50 font-semibold">
                         <Clock className="w-5 h-5 text-orange-500" />
                         Menunggu ({pendingSent.length})
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-3">
+                    <CardContent className="space-y-3 pt-4">
                       {pendingSent.map((trade, idx) => {
                         const offeringCardIds = safeJsonParse(trade.initiatorOfferingCardIds);
                         const expiresAt = new Date(trade.expiresAt);
@@ -642,17 +642,17 @@ export default function Trading() {
                             initial={{ opacity: 0, x: -20 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: idx * 0.1 }}
-                            className="p-4 rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20"
+                            className="p-4 rounded-lg border border-slate-200/50 dark:border-slate-700/50 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20 shadow-sm hover:shadow-md transition-shadow"
                           >
                             <div className="flex justify-between items-start gap-4">
                               <div className="flex-1">
-                                <div className="font-semibold">Tawaran ke {partner?.username}</div>
-                                <div className="text-sm text-muted-foreground mt-1">
+                                <div className="font-semibold text-slate-800 dark:text-slate-200">Tawaran ke {partner?.username}</div>
+                                <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">
                                   {offeringCardIds.length} kartu
                                 </div>
                               </div>
                               <div className="text-right">
-                                <Badge variant="outline" className="whitespace-nowrap">
+                                <Badge variant="outline" className="whitespace-nowrap bg-white/50 dark:bg-slate-800/50">
                                   {timeLeft}h lagi
                                 </Badge>
                                 <Button
@@ -683,10 +683,10 @@ export default function Trading() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
               >
-                <Card className="border-0 shadow-lg">
+                <Card className="border border-slate-200/50 dark:border-slate-700/50 shadow-md">
                   <CardContent className="py-16 text-center">
-                    <AlertCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-40" />
-                    <p className="text-muted-foreground text-lg">
+                    <AlertCircle className="w-16 h-16 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
+                    <p className="text-slate-600 dark:text-slate-400 text-lg font-medium">
                       Tidak ada tawaran masuk. {partner?.username} belum menawarkan kartu!
                     </p>
                   </CardContent>
@@ -713,28 +713,28 @@ export default function Trading() {
                         exit={{ opacity: 0, y: -20 }}
                         transition={{ delay: idx * 0.1 }}
                       >
-                        <Card className="border-0 shadow-lg border-l-4 border-l-green-500">
-                          <CardHeader className="pb-3">
+                        <Card className="border border-slate-200/50 dark:border-slate-700/50 shadow-md hover:shadow-lg transition-shadow border-l-4 border-l-green-500">
+                          <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800">
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1">
-                                <CardTitle className="text-lg">
+                                <CardTitle className="text-base text-slate-900 dark:text-slate-50 font-semibold">
                                   {partner?.username} tawar {offeringCardIds.length} kartu
                                 </CardTitle>
                                 {trade.message && (
-                                  <CardDescription className="mt-2 text-base italic text-muted-foreground">
+                                  <CardDescription className="mt-2 text-sm text-slate-700 dark:text-slate-300 italic">
                                     "{trade.message}"
                                   </CardDescription>
                                 )}
                               </div>
-                              <Badge variant="default" className="bg-green-500">Baru</Badge>
+                              <Badge variant="default" className="bg-green-500 shadow-sm">Baru</Badge>
                             </div>
                           </CardHeader>
 
                           {selectedTradeToRespond?.id !== trade.id ? (
-                            <CardContent>
+                            <CardContent className="pt-5">
                               <div className="space-y-4">
-                                <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
-                                  <h4 className="font-semibold mb-3 text-green-900 dark:text-green-100">Kartu yang ditawar:</h4>
+                                <div className="p-4 rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
+                                  <h4 className="font-semibold mb-3 text-slate-800 dark:text-slate-200 text-sm">Kartu yang ditawar:</h4>
                                   <div className="grid grid-cols-2 gap-4">
                                     {offeredCards.length > 0 ? (
                                       (() => {
@@ -768,7 +768,7 @@ export default function Trading() {
                                                 </>
                                               )}
                                               
-                                              <div className="relative h-full rounded-2xl border-2 border-border shadow-lg overflow-visible">
+                                              <div className="relative h-full rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-md overflow-visible">
                                                 {/* Duplicate Counter Badge */}
                                                 {stacked.count > 1 && (
                                                   <div className="absolute -bottom-3 -left-3 bg-gradient-to-br from-pink-500 to-pink-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-lg z-20 border-2 border-background">
@@ -783,7 +783,7 @@ export default function Trading() {
                                         ));
                                       })()
                                     ) : (
-                                      <div className="col-span-2 py-8 text-center text-muted-foreground">
+                                      <div className="col-span-2 py-8 text-center text-slate-500 dark:text-slate-400 font-medium">
                                         Memuat kartu...
                                       </div>
                                     )}
@@ -792,7 +792,7 @@ export default function Trading() {
                                 <Button
                                   onClick={() => setSelectedTradeToRespond(trade)}
                                   size="lg"
-                                  className="w-full"
+                                  className="w-full h-10 rounded-lg shadow-sm hover:shadow-md transition-all text-sm font-medium"
                                 >
                                   Lihat & Pilih Kardumu →
                                 </Button>
@@ -947,7 +947,7 @@ export default function Trading() {
                                   <div className="font-semibold text-md">
                                     {isInitiator ? '📤 Dikirim ke' : '📥 Diterima dari'} {partner?.username}
                                   </div>
-                                  <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                                  <div className="text-xs text-slate-600 dark:text-slate-400 mt-1 flex items-center gap-2 font-medium">
                                     <span>{new Date(trade.completedAt || trade.createdAt).toLocaleDateString()}</span>
                                     {isSuccess && (
                                       <>
@@ -963,7 +963,7 @@ export default function Trading() {
                               </div>
                               
                               {trade.message && (
-                                <div className="text-sm bg-white/50 dark:bg-black/20 p-2 rounded text-muted-foreground italic">
+                                <div className="text-sm bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-800/30 dark:to-blue-900/20 p-3 rounded-lg border border-slate-200/50 dark:border-slate-700/50 text-slate-700 dark:text-slate-300 italic font-medium shadow-sm">
                                   "{trade.message}"
                                 </div>
                               )}
@@ -990,40 +990,40 @@ export default function Trading() {
           <Button
             onClick={() => setIsConfirmModalOpen(true)}
             size="lg"
-            className="w-full max-w-sm h-12 text-base font-semibold shadow-xl"
+            className="w-full max-w-sm h-11 text-sm font-semibold shadow-lg hover:shadow-xl transition-shadow rounded-lg"
           >
-            Lanjutkan dengan {totalSelectedCards} kartu →
+            Lanjutkan dengan {totalSelectedCards} kartu
           </Button>
         </motion.div>
       )}
 
       {/* Quantity Picker Modal */}
       <Dialog open={!!quantityPickerCard} onOpenChange={(open) => !open && setQuantityPickerCard(null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 shadow-lg">
           <DialogHeader>
-            <DialogTitle className="text-2xl">Pilih Jumlah Kartu</DialogTitle>
-            <DialogDescription className="text-base">
+            <DialogTitle className="text-xl text-slate-900 dark:text-slate-50 font-semibold">Pilih Jumlah Kartu</DialogTitle>
+            <DialogDescription className="text-sm text-slate-600 dark:text-slate-400">
               {quantityPickerCard?.card?.name} - Tersedia: {quantityPickerCard ? myCards.filter(c => c.card?.id === quantityPickerCard.card.id).length : 0}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6">
+          <div className="space-y-5">
             {/* Card Preview */}
             {quantityPickerCard && (
-              <div className="flex justify-center">
+              <div className="flex justify-center p-4 rounded-lg bg-slate-50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
                 <CardDisplay card={quantityPickerCard.card} className="h-48 w-32" />
               </div>
             )}
 
             {/* Quantity Input */}
             <div className="space-y-3">
-              <label className="text-sm font-semibold text-foreground">Berapa kartu?</label>
-              <div className="flex items-center gap-4">
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Berapa kartu?</label>
+              <div className="flex items-center gap-3">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setQuantityValue(Math.max(0, quantityValue - 1))}
-                  className="w-12 h-12"
+                  className="w-11 h-11 rounded-lg shadow-sm hover:shadow-md transition-all"
                 >
                   −
                 </Button>
@@ -1035,7 +1035,7 @@ export default function Trading() {
                     const available = quantityPickerCard ? myCards.filter(c => c.card?.id === quantityPickerCard.card.id).length : 0;
                     setQuantityValue(Math.min(Math.max(0, val), available));
                   }}
-                  className="flex-1 h-12 px-4 text-center text-2xl font-bold border-2 border-border rounded-lg"
+                  className="flex-1 h-11 px-3 text-center text-lg font-bold border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
                   min="0"
                   max={quantityPickerCard ? myCards.filter(c => c.card?.id === quantityPickerCard.card.id).length : 0}
                 />
@@ -1046,7 +1046,7 @@ export default function Trading() {
                     const available = quantityPickerCard ? myCards.filter(c => c.card?.id === quantityPickerCard.card.id).length : 0;
                     setQuantityValue(Math.min(quantityValue + 1, available));
                   }}
-                  className="w-12 h-12"
+                  className="w-11 h-11 rounded-lg shadow-sm hover:shadow-md transition-all"
                 >
                   +
                 </Button>
@@ -1058,13 +1058,13 @@ export default function Trading() {
               <Button
                 variant="outline"
                 onClick={handleDeleteCard}
-                className="flex-1 h-11 text-red-600 hover:text-red-700"
+                className="flex-1 h-10 rounded-lg shadow-sm hover:shadow-md transition-all text-sm text-red-600 hover:text-red-700"
               >
                 Hapus
               </Button>
               <Button
                 onClick={handleConfirmQuantity}
-                className="flex-1 h-11"
+                className="flex-1 h-10 rounded-lg shadow-sm hover:shadow-md transition-all text-sm"
               >
                 Pilih
               </Button>
@@ -1075,19 +1075,19 @@ export default function Trading() {
 
       {/* Confirm Trade Modal */}
       <Dialog open={isConfirmModalOpen} onOpenChange={setIsConfirmModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 shadow-lg">
           <DialogHeader>
-            <DialogTitle className="text-2xl">Konfirmasi Pertukaran Kartu</DialogTitle>
-            <DialogDescription className="text-base">
+            <DialogTitle className="text-xl text-slate-900 dark:text-slate-50 font-semibold">Konfirmasi Pertukaran Kartu</DialogTitle>
+            <DialogDescription className="text-sm text-slate-600 dark:text-slate-400">
               Cek kartu dan tulis pesan (opsional)
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6">
+          <div className="space-y-5">
             {/* Selected Cards Preview */}
             <div className="space-y-3">
-              <label className="text-sm font-semibold text-foreground">Kartu yang Ditawarkan ({totalSelectedCards}):</label>
-              <div className="grid grid-cols-2 gap-4 max-h-64 overflow-y-auto pr-2">
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Kartu yang Ditawarkan ({totalSelectedCards}):</label>
+              <div className="grid grid-cols-2 gap-4 max-h-56 overflow-y-auto pr-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/50">
                 {Object.entries(selectedCards).map(([cardId, quantity]) => {
                   const numCardId = parseInt(cardId);
                   const userCard = myCards.find(c => c.card?.id === numCardId);
@@ -1107,7 +1107,7 @@ export default function Trading() {
                           </>
                         )}
                         
-                        <div className="relative h-full rounded-2xl border-2 border-border shadow-lg hover:shadow-xl transition-shadow overflow-visible">
+                        <div className="relative h-full rounded-2xl border border-slate-200/60 dark:border-slate-700/60 shadow-md hover:shadow-lg transition-all overflow-visible">
                           {/* Duplicate Counter Badge */}
                           {quantity > 1 && (
                             <div className="absolute -bottom-3 -left-3 bg-gradient-to-br from-pink-500 to-pink-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shadow-lg z-20 border-2 border-background">
@@ -1125,33 +1125,33 @@ export default function Trading() {
             </div>
 
             {/* Message Input */}
-            <div className="space-y-3 pt-2 border-t border-border">
-              <label className="text-sm font-semibold text-foreground">Pesan (opsional)</label>
+            <div className="space-y-3 pt-4 border-t border-slate-200/50 dark:border-slate-700/50">
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pesan (opsional)</label>
               <Textarea
                 placeholder="Tulis pesan... (misal: 'Ini kartu favoritku!' atau biarkan kosong)"
                 value={tradeMessage}
                 onChange={(e) => setTradeMessage(e.target.value)}
                 maxLength={500}
-                className="resize-none min-h-24 text-sm rounded-lg"
+                className="resize-none min-h-20 text-sm rounded-lg bg-slate-50 dark:bg-slate-900/50 border-slate-300 dark:border-slate-600 focus:ring-2 focus:ring-blue-500 shadow-sm"
                 rows={3}
               />
-              <div className="text-xs text-muted-foreground text-right">
+              <div className="text-xs text-slate-600 dark:text-slate-400 text-right font-medium">
                 {tradeMessage.length}/500
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-3 pt-3">
               <Button
                 variant="outline"
                 onClick={() => setIsConfirmModalOpen(false)}
-                className="flex-1 h-11"
+                className="flex-1 h-10 rounded-lg shadow-sm hover:shadow-md transition-all text-sm"
               >
                 Batal
               </Button>
               <Button
                 onClick={handleInitiateTrade}
-                className="flex-1 h-11"
+                className="flex-1 h-10 rounded-lg shadow-sm hover:shadow-md transition-all text-sm"
                 disabled={initiateTrade.isPending}
               >
                 {initiateTrade.isPending ? 'Mengirim...' : '✉️ Kirim Tawaran'}
