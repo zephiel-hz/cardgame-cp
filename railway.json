@@ -3,10 +3,17 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "nixpacks",
-    "buildCommand": "npm ci --include=dev && npm run build"
+    "buildCommand": "npm ci --include=dev --force && npm run build",
+    "nixpacks": {
+      "providers": ["node"]
+    }
   },
   "deploy": {
     "startCommand": "NODE_ENV=production node dist/index.cjs",
     "restartPolicyMaxRetries": 5
+  },
+  "env": {
+    "NODE_VERSION": "20.10.0",
+    "NODE_ENV": "production"
   }
 }
