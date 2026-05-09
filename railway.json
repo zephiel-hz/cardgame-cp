@@ -5,7 +5,12 @@
     "builder": "nixpacks",
     "buildCommand": "npm run build",
     "nixpacks": {
-      "providers": ["node"]
+      "providers": ["node"],
+      "data": {
+        "node": {
+          "version": "20.10.0"
+        }
+      }
     }
   },
   "deploy": {
