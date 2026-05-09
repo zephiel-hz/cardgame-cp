@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Heart, Stars, Lock, User as UserIcon, UserPlus, X, Mail, CheckCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@shared/routes";
@@ -20,6 +21,7 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const { login } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [showSavedAccounts, setShowSavedAccounts] = useState(true);
@@ -44,10 +46,15 @@ export default function Login() {
     const saved = localStorage.getItem("gacha_saved_accounts");
     if (saved) {
       try {
-        setSavedAccounts(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        setSavedAccounts(parsed);
       } catch (e) {
         console.error("Failed to parse saved accounts:", e);
+        setShowSavedAccounts(false);
       }
+    } else {
+      // No saved accounts found, hide saved accounts view
+      setShowSavedAccounts(false);
     }
   }, []);
 
@@ -114,8 +121,8 @@ export default function Login() {
     e.preventDefault();
     if (!selectedAccount || !loginPin.trim()) {
       toast({
-        title: "Error",
-        description: "Masukkan PIN",
+        title: t('common.error'),
+        description: t('auth.errors.enterPin'),
         variant: "destructive",
       });
       return;
@@ -142,8 +149,8 @@ export default function Login() {
       } else {
         const error = await response.json();
         toast({
-          title: "Login Gagal",
-          description: error.message || "PIN salah",
+          title: t('auth.errors.loginFailed'),
+          description: error.message || t('auth.errors.pinIncorrect'),
           variant: "destructive",
         });
       }
@@ -163,8 +170,8 @@ export default function Login() {
     e.preventDefault();
     if (!regEmail.trim()) {
       toast({
-        title: "Error",
-        description: "Isi email terlebih dahulu",
+        title: t('common.error'),
+        description: t('auth.errors.enterEmail'),
         variant: "destructive",
       });
       return;
@@ -246,8 +253,8 @@ export default function Login() {
     e.preventDefault();
     if (!verificationToken.trim()) {
       toast({
-        title: "Error",
-        description: "Isi token verifikasi dari email Anda",
+        title: t('common.error'),
+        description: t('auth.errors.enterToken'),
         variant: "destructive",
       });
       return;
@@ -296,8 +303,8 @@ export default function Login() {
     e.preventDefault();
     if (!loginUsername.trim() || !loginPin.trim()) {
       toast({
-        title: "Error",
-        description: "Isi username dan PIN",
+        title: t('common.error'),
+        description: t('auth.errors.fillCredentials'),
         variant: "destructive",
       });
       return;
@@ -331,8 +338,8 @@ export default function Login() {
     } catch (error) {
       console.error("Login error:", error);
       toast({
-        title: "Error",
-        description: "Gagal login. Coba lagi.",
+        title: t('common.error'),
+        description: t('auth.errors.loginError'),
         variant: "destructive",
       });
     } finally {
@@ -344,8 +351,8 @@ export default function Login() {
     e.preventDefault();
     if (!regUsername.trim() || !regPin.trim() || !regGender) {
       toast({
-        title: "Error",
-        description: "Isi semua field yang diperlukan",
+        title: t('common.error'),
+        description: t('auth.errors.completeRequired'),
         variant: "destructive",
       });
       return;
@@ -353,8 +360,8 @@ export default function Login() {
 
     if (regPin.length < 4) {
       toast({
-        title: "Error",
-        description: "PIN minimal 4 digit",
+        title: t('common.error'),
+        description: t('auth.errors.pinMinimum'),
         variant: "destructive",
       });
       return;
@@ -362,8 +369,8 @@ export default function Login() {
 
     if (!regEmailVerified) {
       toast({
-        title: "Error",
-        description: "Email harus diverifikasi terlebih dahulu",
+        title: t('common.error'),
+        description: t('auth.errors.emailVerificationRequired'),
         variant: "destructive",
       });
       return;
@@ -387,20 +394,20 @@ export default function Login() {
         const data = await response.json();
         login(data);
         savAccountForLater(data);
-        setLocation("/partner-pairing");
+        setLocation("/");
       } else {
         const error = await response.json();
         toast({
-          title: "Register Gagal",
-          description: error.message || "Username mungkin sudah digunakan",
+          title: t('auth.errors.registerFailed'),
+          description: error.message || t('auth.errors.usernameTaken'),
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error("Register error:", error);
       toast({
-        title: "Error",
-        description: "Gagal register. Coba lagi.",
+        title: t('common.error'),
+        description: t('auth.errors.registerError'),
         variant: "destructive",
       });
     } finally {
@@ -435,10 +442,10 @@ export default function Login() {
             <Heart className="w-10 h-10 text-white fill-white" />
           </div>
           <h1 className="text-3xl font-extrabold text-foreground tracking-tight">
-            Gacha Kartu Bareng Pasangan
+            {t('auth.title')}
           </h1>
           <p className="text-muted-foreground font-medium text-sm">
-            Masuk untuk kumpulkan kartu kejutan! 💕
+            {t('auth.subtitle')}
           </p>
         </div>
 
@@ -451,7 +458,7 @@ export default function Login() {
           >
             <div className="text-center mb-6">
               <p className="text-sm font-semibold text-muted-foreground">
-                Pilih akun untuk melanjutkan
+                {t('auth.selectAccount')}
               </p>
             </div>
 
@@ -467,7 +474,7 @@ export default function Login() {
               >
                 <div className="flex items-center gap-3">
                   <span className="text-2xl">{getGenderEmoji(account.gender)}</span>
-                  <span>Masuk {account.username}</span>
+                  <span>{t('auth.loginAs', { username: account.username })}</span>
                 </div>
                 <button
                   onClick={(e) => {
@@ -492,7 +499,7 @@ export default function Login() {
               }}
               className="w-full p-4 rounded-2xl border-2 border-primary/30 text-primary font-bold hover:bg-primary/5 transition-all"
             >
-              Masuk ke Akun Lain
+              {t('auth.loginOtherAccount')}
             </motion.button>
 
             <motion.button
@@ -505,7 +512,7 @@ export default function Login() {
               className="w-full p-4 rounded-2xl border-2 border-primary/30 text-primary font-bold hover:bg-primary/5 transition-all"
             >
               <UserPlus size={20} className="inline mr-2" />
-              Daftar Akun Baru
+              {t('auth.registerNew')}
             </motion.button>
           </motion.div>
         ) : selectedAccount && !isRegisterMode ? (
@@ -521,16 +528,16 @@ export default function Login() {
                 {getGenderEmoji(selectedAccount.gender)}
               </h2>
               <p className="text-lg font-semibold text-foreground">
-                Masuk {selectedAccount.username}
+                {t('auth.loginUsername', { username: selectedAccount.username })}
               </p>
               <p className="text-xs text-muted-foreground">
-                Masukkan PIN kamu untuk login
+                {t('auth.enterPinToLogin')}
               </p>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="pin-only" className="text-xs font-semibold">
-                PIN (4 Digit)
+                {t('auth.pin')}
               </Label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40 w-5 h-5" />
@@ -554,7 +561,7 @@ export default function Login() {
                 disabled={isLoading || loginPin.length < 4}
                 className="w-full py-4 rounded-2xl font-bold text-white shadow-lg bg-gradient-to-r from-primary to-rose-500 hover:shadow-primary/40 active:scale-95 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none transition-all"
               >
-                {isLoading ? "Memverifikasi..." : "Masuk Sekarang"}
+                {isLoading ? t('common.verifying') : t('auth.loginNow')}
               </button>
 
               <div className="space-y-2 pt-2">
@@ -567,7 +574,7 @@ export default function Login() {
                   }}
                   className="w-full text-sm font-semibold text-primary hover:bg-primary/5 transition-all py-2 rounded-lg border-2 border-primary/30"
                 >
-                  ← Kembali ke Akun Tersimpan
+                  {t('auth.backToSavedAccounts')}
                 </button>
               </div>
             </div>
@@ -582,16 +589,16 @@ export default function Login() {
           >
             <div className="text-center space-y-1">
               <h2 className="text-xl font-bold text-foreground flex items-center justify-center gap-2">
-                <UserIcon size={20} /> Login
+                <UserIcon size={20} /> {t('auth.login')}
               </h2>
               <p className="text-xs text-muted-foreground">
-                Masukkan username dan PIN kamu
+                {t('auth.enterUsernamePin')}
               </p>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="login-username" className="text-xs font-semibold">
-                Nama Pengguna
+                {t('auth.username')}
               </Label>
               <div className="relative">
                 <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40 w-5 h-5" />
@@ -600,7 +607,7 @@ export default function Login() {
                   autoFocus
                   value={loginUsername}
                   onChange={(e) => setLoginUsername(e.target.value)}
-                  placeholder="Masukkan username kamu"
+                  placeholder={t('auth.enterUsername')}
                   className="pl-12 h-12 rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20"
                 />
               </div>
@@ -608,7 +615,7 @@ export default function Login() {
 
             <div className="space-y-2">
               <Label htmlFor="login-pin" className="text-xs font-semibold">
-                PIN (4 Digit)
+                {t('auth.pin')}
               </Label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/40 w-5 h-5" />
@@ -631,7 +638,7 @@ export default function Login() {
                 disabled={isLoading || !loginUsername || loginPin.length < 4}
                 className="w-full py-4 rounded-2xl font-bold text-white shadow-lg bg-gradient-to-r from-primary to-rose-500 hover:shadow-primary/40 active:scale-95 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none transition-all"
               >
-                {isLoading ? "Memverifikasi..." : "Masuk Sekarang"}
+                {isLoading ? t('common.verifying') : t('auth.loginNow')}
               </button>
 
               <div className="space-y-2 pt-2">
@@ -644,7 +651,7 @@ export default function Login() {
                   className="w-full text-sm font-semibold text-white hover:text-white transition-all py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 hover:shadow-lg active:scale-95"
                 >
                   <UserPlus size={16} className="inline mr-2" />
-                  Belum punya akun? Daftar di sini
+                  {t('auth.noAccountRegister')}
                 </button>
 
                 {savedAccounts.length > 0 && (
@@ -658,7 +665,7 @@ export default function Login() {
                     }}
                     className="w-full text-sm font-semibold text-primary hover:bg-primary/5 transition-all py-2 rounded-lg border-2 border-primary/30"
                   >
-                    ← Kembali ke Akun Tersimpan
+                    {t('auth.backToSavedAccounts2')}
                   </button>
                 )}
               </div>
@@ -673,10 +680,10 @@ export default function Login() {
           >
             <div className="text-center space-y-1">
               <h2 className="text-xl font-bold text-foreground flex items-center justify-center gap-2">
-                <UserPlus size={20} /> Daftar Akun Baru
+                <UserPlus size={20} /> {t('auth.registerNew')}
               </h2>
               <p className="text-xs text-muted-foreground">
-                Buat akun untuk bermain Gacha Kartu
+                {t('auth.registerSubtitle')}
               </p>
             </div>
 
@@ -685,12 +692,12 @@ export default function Login() {
               <div className="flex items-center justify-between">
                 <Label htmlFor="reg-email" className="text-xs font-semibold flex items-center gap-2">
                   <Mail size={16} className="text-blue-600" />
-                  Email (Wajib Verifikasi)
+                  {t('auth.emailRequired')}
                 </Label>
                 {regEmailVerified && (
                   <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
                     <CheckCircle size={16} />
-                    Terverifikasi
+                    {t('auth.verified')}
                   </div>
                 )}
               </div>
@@ -715,7 +722,7 @@ export default function Login() {
                   disabled={isLoading || !regEmail.trim()}
                   className="w-full py-2 rounded-lg font-semibold text-sm bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 transition-all"
                 >
-                  {isLoading ? "Mengirim..." : "Kirim Kode Verifikasi"}
+                  {isLoading ? t('common.sending') : t('auth.sendVerificationCode')}
                 </button>
               )}
 
@@ -726,7 +733,7 @@ export default function Login() {
                       type="text"
                       value={verificationToken}
                       onChange={(e) => setVerificationToken(e.target.value)}
-                      placeholder="Token dari email"
+                      placeholder={t('auth.tokenPlaceholder')}
                       className="h-10 text-sm"
                     />
                   </div>
@@ -745,14 +752,14 @@ export default function Login() {
             {/* Username */}
             <div className="space-y-2">
               <Label htmlFor="reg-username" className="text-xs font-semibold">
-                Nama Pengguna
+                {t('auth.username')}
               </Label>
               <Input
                 id="reg-username"
                 autoFocus
                 value={regUsername}
                 onChange={(e) => setRegUsername(e.target.value)}
-                placeholder="Minimal 3 karakter"
+                placeholder={t('auth.usernameMinimum')}
                 className="h-12 rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20"
               />
             </div>
@@ -760,7 +767,7 @@ export default function Login() {
             {/* PIN */}
             <div className="space-y-2">
               <Label htmlFor="reg-pin" className="text-xs font-semibold">
-                PIN (4 Digit)
+                {t('auth.pin')}
               </Label>
               <Input
                 id="reg-pin"
@@ -777,16 +784,16 @@ export default function Login() {
             {/* Gender */}
             <div className="space-y-2">
               <Label htmlFor="gender" className="text-xs font-semibold">
-                Jenis Kelamin
+                {t('auth.gender')}
               </Label>
               <Select value={regGender} onValueChange={setRegGender}>
                 <SelectTrigger className="h-12 rounded-xl border-primary/20 focus:border-primary focus:ring-primary/20">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="male">👦🏻 Laki-laki</SelectItem>
-                  <SelectItem value="female">👧🏻 Perempuan</SelectItem>
-                  <SelectItem value="other">🤷 Lainnya</SelectItem>
+                  <SelectItem value="male">{t('auth.genderMale')}</SelectItem>
+                  <SelectItem value="female">{t('auth.genderFemale')}</SelectItem>
+                  <SelectItem value="other">{t('auth.genderOther')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -805,7 +812,7 @@ export default function Login() {
                 className="w-full py-4 rounded-2xl font-bold text-white shadow-lg bg-gradient-to-r from-primary to-rose-500 hover:shadow-primary/40 active:scale-95 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none transition-all flex items-center justify-center gap-2"
               >
                 <UserPlus size={20} />
-                {isLoading ? "Membuat Akun..." : "Buat Akun"}
+                {isLoading ? t('auth.creatingAccount') : t('auth.createAccount')}
               </button>
 
               <button
@@ -823,7 +830,7 @@ export default function Login() {
                 }}
                 className="w-full text-sm font-semibold text-white hover:text-white transition-all py-3 rounded-xl bg-gradient-to-r from-slate-500 to-slate-600 hover:shadow-lg active:scale-95"
               >
-                ← Kembali ke Login
+                {t('auth.backToLogin')}
               </button>
             </div>
           </motion.form>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { useTrades, useInitiateTrade, useRespondToTrade, UseCancelTrade, useTradeHistory } from '../hooks/use-trades';
@@ -19,15 +20,7 @@ import { Checkbox } from '../components/ui/checkbox';
 import { Repeat2, Check, X, Clock, AlertCircle, Zap } from 'lucide-react';
 import { api } from '@shared/routes';
 
-// Tier display mapping
-const tierDisplayMap: Record<string, string> = {
-  'N': 'Common',
-  'R': 'Rare',
-  'SR': 'Epic',
-  'SSR': 'SSR',
-};
-
-// Reverse mapping: display name to code
+// Reverse mapping: display name to code (for database lookup)
 const tierDisplayToCodeMap: Record<string, string> = {
   'Common': 'N',
   'Rare': 'R',
@@ -38,14 +31,6 @@ const tierDisplayToCodeMap: Record<string, string> = {
   'rare': 'R',
   'epic': 'SR',
   'ssr': 'SSR',
-};
-
-// Tier names in Indonesian
-const tierNameMap: Record<string, string> = {
-  'N': 'Umum',
-  'R': 'Langka',
-  'SR': 'Epik',
-  'SSR': 'Legendaris',
 };
 
 // Tier order for sorting (highest to lowest)
@@ -78,6 +63,7 @@ const safeJsonParse = (str: string | null | undefined, fallback: any = []) => {
 };
 
 export default function Trading() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const { data: myCards = [], isLoading: cardsLoading } = useInventory(user?.id);
@@ -97,6 +83,17 @@ export default function Trading() {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [quantityPickerCard, setQuantityPickerCard] = useState<any>(null); // For quantity modal
   const [quantityValue, setQuantityValue] = useState(1);
+
+  // Helper function to get tier display name using translations
+  const getTierDisplay = (tierCode: string): string => {
+    const tierMap: Record<string, string> = {
+      'N': t('trading.tier.common'),
+      'R': t('trading.tier.rare'),
+      'SR': t('trading.tier.epic'),
+      'SSR': t('trading.tier.ssr'),
+    };
+    return tierMap[tierCode] || tierCode;
+  };
   const [quantityPickerContext, setQuantityPickerContext] = useState<'initiate' | 'respond'>('initiate'); // Track which tab
 
   // Respond trade state
@@ -107,16 +104,16 @@ export default function Trading() {
   useWebSocketTrades(
     (payload) => {
       toast({
-        title: "✅ Pertukaran Selesai!",
-        description: `Pertukaran kartu dengan ${partner?.username} berhasil diselesaikan!`,
+        title: t('trading.success'),
+        description: t('trading.successDesc', { partner: partner?.username || 'Partner' }),
         className: "bg-green-600 text-white border-none rounded-2xl shadow-xl",
       });
     },
     (payload) => {
       toast({
-        title: "❌ Pertukaran Dibatalkan",
-        description: `Pertukaran kartu dengan ${partner?.username} telah dibatalkan.`,
-        className: "bg-red-600 text-white border-none rounded-2xl shadow-xl",
+        title: t('trading.cancelled'),
+        description: t('trading.cancelledDesc', { partner: partner?.username || 'Partner' }),
+        className: "bg-yellow-600 text-white border-none rounded-2xl shadow-xl",
       });
     }
   );
@@ -146,9 +143,9 @@ export default function Trading() {
           className="text-center"
         >
           <AlertCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h1 className="text-2xl font-bold mb-2">Belum Ada Mitra</h1>
+            <h1 className="text-2xl font-bold mb-2">{t('trading.noPartner')}</h1>
           <p className="text-muted-foreground text-center max-w-sm">
-            Buat mitra dulu sebelum bisa tukar kartu. Cari mitra di halaman Mitra!
+            {t('trading.noPartnerMessage')}
           </p>
         </motion.div>
       </div>
@@ -156,21 +153,55 @@ export default function Trading() {
   }
 
   const handleSelectCard = (userCard: any) => {
-    // Open quantity picker modal
-    setQuantityPickerCard(userCard);
-    setQuantityPickerContext('initiate');
-    const currentQty = selectedCards[userCard.card.id] || 0;
     const availableQty = myCards.filter(c => c.card?.id === userCard.card.id).length;
-    setQuantityValue(currentQty > 0 ? currentQty : 1);
+    const currentQty = selectedCards[userCard.card.id] || 0;
+    
+    // If only 1 card available, toggle selection directly without modal
+    if (availableQty === 1) {
+      if (currentQty > 0) {
+        // Deselect
+        const newSelected = { ...selectedCards };
+        delete newSelected[userCard.card.id];
+        setSelectedCards(newSelected);
+      } else {
+        // Select
+        setSelectedCards(prev => ({
+          ...prev,
+          [userCard.card.id]: 1
+        }));
+      }
+    } else {
+      // If multiple available, open quantity picker modal
+      setQuantityPickerCard(userCard);
+      setQuantityPickerContext('initiate');
+      setQuantityValue(currentQty > 0 ? currentQty : 1);
+    }
   };
 
   const handleSelectCardForRespond = (userCard: any) => {
-    // Open quantity picker modal for responding to trade
-    setQuantityPickerCard(userCard);
-    setQuantityPickerContext('respond');
-    const currentQty = respondingCards[userCard.card.id] || 0;
     const availableQty = myCards.filter(c => c.card?.id === userCard.card.id).length;
-    setQuantityValue(currentQty > 0 ? currentQty : 1);
+    const currentQty = respondingCards[userCard.card.id] || 0;
+    
+    // If only 1 card available, toggle selection directly without modal
+    if (availableQty === 1) {
+      if (currentQty > 0) {
+        // Deselect
+        const newResponding = { ...respondingCards };
+        delete newResponding[userCard.card.id];
+        setRespondingCards(newResponding);
+      } else {
+        // Select
+        setRespondingCards(prev => ({
+          ...prev,
+          [userCard.card.id]: 1
+        }));
+      }
+    } else {
+      // If multiple available, open quantity picker modal
+      setQuantityPickerCard(userCard);
+      setQuantityPickerContext('respond');
+      setQuantityValue(currentQty > 0 ? currentQty : 1);
+    }
   };
 
   const handleDeleteCard = () => {
@@ -215,7 +246,7 @@ export default function Trading() {
 
   const handleInitiateTrade = async () => {
     if (totalSelectedCards === 0) {
-      alert('Please select at least one card to trade');
+      alert(t('trading.error.noCardSelected'));
       return;
     }
 
@@ -245,8 +276,9 @@ export default function Trading() {
   const handleRespondTrade = async (accept: boolean) => {
     if (!selectedTradeToRespond) return;
 
-    if (accept && totalSelectedCards === 0) {
-      alert('Please select at least one card to offer in exchange');
+    const totalRespondingCards = Object.values(respondingCards).reduce((a, b) => a + b, 0);
+    if (accept && totalRespondingCards === 0) {
+      alert(t('trading.error.noCardSelectedOffer'));
       return;
     }
 
@@ -360,7 +392,7 @@ export default function Trading() {
               <Repeat2 className="w-6 h-6 text-blue-600 dark:text-blue-300" />
             </div>
             <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">
-              Tukar Kartu
+              {t('trading.title')}
             </h1>
           </motion.div>
 
@@ -368,7 +400,7 @@ export default function Trading() {
             <Alert className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-blue-200/50 dark:border-blue-800/50 shadow-sm">
               <AlertCircle className="h-4 w-4 text-blue-600 dark:text-blue-300" />
               <AlertDescription className="text-blue-700 dark:text-blue-200 font-medium">
-                Terhubung dengan <strong className="text-blue-800 dark:text-blue-100">{partner.username}</strong>
+                {t('trading.partner')} <strong className="text-blue-800 dark:text-blue-100">{partner.username}</strong>
               </AlertDescription>
             </Alert>
           )}
@@ -380,18 +412,18 @@ export default function Trading() {
         <Tabs defaultValue="initiate" className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-8 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-lg shadow-sm">
             <TabsTrigger value="initiate" className="flex items-center gap-2">
-              Tukar
+              {t('trading.tabs.initiate')}
               {pendingSent.length > 0 && (
                 <Badge variant="secondary" className="ml-2">{pendingSent.length}</Badge>
               )}
             </TabsTrigger>
             <TabsTrigger value="received" className="flex items-center gap-2">
-              Permintaan
+              {t('trading.tabs.received')}
               {pendingReceived.length > 0 && (
                 <Badge variant="destructive" className="ml-2">{pendingReceived.length}</Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="history">Riwayat</TabsTrigger>
+            <TabsTrigger value="history">{t('trading.tabs.history')}</TabsTrigger>
           </TabsList>
 
           {/* INITIATE TRADE TAB */}
@@ -407,16 +439,16 @@ export default function Trading() {
                 >
                   <Card className="border border-slate-200/50 dark:border-slate-700/50 shadow-md hover:shadow-lg transition-shadow">
                     <CardHeader className="pb-5 border-b border-slate-100 dark:border-slate-800">
-                      <CardTitle className="text-2xl text-slate-900 dark:text-slate-50 font-semibold">Pilih Kartu untuk Ditukar</CardTitle>
+                      <CardTitle className="text-2xl text-slate-900 dark:text-slate-50 font-semibold">{t('trading.selectCards')}</CardTitle>
                       <CardDescription className="text-slate-600 dark:text-slate-400 font-medium text-sm">
-                        Pilih kartu dari koleksimu ({myCards.length} tersedia)
+                        {t('trading.selectDescription')} ({myCards.length} {t('inventory.available')})
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6 pb-32 pt-6">
                       {/* Selection Counter */}
                       <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-800/30 dark:to-blue-900/20 border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
                         <span className="font-medium text-slate-700 dark:text-slate-300">
-                          {totalSelectedCards} kartu dipilih ({Object.keys(selectedCards).length} tipe)
+                          {totalSelectedCards} {t('trading.selected')} ({Object.keys(selectedCards).length} {t('trading.types')})
                         </span>
                         {totalSelectedCards > 0 && (
                           <motion.div
@@ -424,7 +456,7 @@ export default function Trading() {
                             animate={{ scale: 1 }}
                             className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-500 text-white text-sm font-bold"
                           >
-                            <Check className="w-4 h-4" /> Siap
+                            <Check className="w-4 h-4" /> {t('trading.ready')}
                           </motion.div>
                         )}
                       </div>
@@ -432,7 +464,7 @@ export default function Trading() {
                       {/* Search and Filter */}
                       <div className="space-y-4">
                         <Input
-                          placeholder="Cari nama kartu..."
+                          placeholder={t('trading.search')}
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           className="h-10 bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700 rounded-lg shadow-sm focus:shadow-md transition-shadow"
@@ -445,33 +477,24 @@ export default function Trading() {
                               size="sm"
                               onClick={() => setTierFilter(tierFilter === tier ? null : tier)}
                               className="capitalize rounded-lg shadow-sm hover:shadow-md transition-all font-medium"
-                              title={`Filter ${tierDisplayMap[tier]}`}
+                              title={`Filter ${getTierDisplay(tier)}`}
                             >
-                              {tierDisplayMap[tier]}
+                              {getTierDisplay(tier)}
                             </Button>
                           ))}
-                          {(searchQuery || tierFilter) && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => { setSearchQuery(''); setTierFilter(null); }}
-                            >
-                              Reset
-                            </Button>
-                          )}
                         </div>
                       </div>
 
                       {/* Cards Grid */}
                       {cardsLoading ? (
                         <div className="flex justify-center py-12">
-                          <div className="text-slate-500 dark:text-slate-400 font-medium">Memuat koleksi...</div>
+                          <div className="text-slate-500 dark:text-slate-400 font-medium">{t('trading.loading')}</div>
                         </div>
                       ) : filteredCards.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-12 text-center">
                           <AlertCircle className="w-12 h-12 text-slate-400 dark:text-slate-600 mb-3" />
                           <div className="text-slate-600 dark:text-slate-400 font-medium">
-                            {myCards.length === 0 ? 'Belum ada kartu. Tarik di Gacha dulu!' : 'Kartu tidak ditemukan'}
+                            {myCards.length === 0 ? t('trading.noCards') : t('trading.cardsNotFound')}
                           </div>
                         </div>
                       ) : (
@@ -545,14 +568,14 @@ export default function Trading() {
                 >
                   <Card className="border border-slate-200/50 dark:border-slate-700/50 shadow-md hover:shadow-lg transition-shadow">
                     <CardHeader className="pb-5 border-b border-slate-100 dark:border-slate-800">
-                      <CardTitle className="text-2xl text-slate-900 dark:text-slate-50 font-semibold">Pastikan Penawaranmu</CardTitle>
-                      <CardDescription className="text-slate-600 dark:text-slate-400 font-medium text-sm">Cek dulu sebelum kirim ke {partner?.username}</CardDescription>
+                      <CardTitle className="text-2xl text-slate-900 dark:text-slate-50 font-semibold">{t('trading.confirmOffer')}</CardTitle>
+                      <CardDescription className="text-slate-600 dark:text-slate-400 font-medium text-sm">{t('trading.confirmDescription', { partner: partner?.username || 'Partner' })}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6 pb-24 pt-6">
                       {/* Cards Summary */}
                       <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
                         <div className="p-6 rounded-lg bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-800/30 dark:to-blue-900/20 border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
-                          <h3 className="font-semibold text-base mb-4 text-slate-800 dark:text-slate-200">Kartu yang Kamu Tawarkan:</h3>
+                          <h3 className="font-semibold text-base mb-4 text-slate-800 dark:text-slate-200">{t('trading.offering')}</h3>
                           <div className="grid grid-cols-2 gap-3">
                             {selectedCards.map(cardId => {
                               const card = myCards.find(c => c.id === cardId);
@@ -577,7 +600,7 @@ export default function Trading() {
                           animate={{ opacity: 1, y: 0 }}
                           className="p-4 rounded-lg bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-800/30 dark:to-blue-900/20 border border-slate-200/50 dark:border-slate-700/50 shadow-sm"
                         >
-                          <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">Pesan:</div>
+                          <div className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">{t('trading.message')}</div>
                           <p className="text-sm text-slate-700 dark:text-slate-300 italic">"{tradeMessage}"</p>
                         </motion.div>
                       )}
@@ -586,7 +609,7 @@ export default function Trading() {
                       <Alert className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-200/50 dark:border-amber-800/50 shadow-sm">
                         <Zap className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                         <AlertDescription className="text-amber-700 dark:text-amber-200 font-medium text-sm">
-                          {partner?.username} akan memilih kartu apa yang mau ditukar balik. Nanti terserah kamu terima atau tolak!
+                          {t('trading.info', { partner: partner?.username || 'Partner' })}
                         </AlertDescription>
                       </Alert>
 
@@ -598,7 +621,7 @@ export default function Trading() {
                           size="lg"
                           className="flex-1 rounded-lg shadow-sm hover:shadow-md transition-all"
                         >
-                          ← Kembali
+                          ← {t('common.back')}
                         </Button>
                         <Button
                           onClick={handleInitiateTrade}
@@ -606,7 +629,7 @@ export default function Trading() {
                           size="lg"
                           className="flex-1 rounded-lg shadow-sm hover:shadow-md transition-all"
                         >
-                          {initiateTrade.isPending ? 'Mengirim...' : '✉️ Kirim'}
+                          {initiateTrade.isPending ? t('common.sending') : '✉️ ' + t('common.send')}
                         </Button>
                       </div>
                     </CardContent>
@@ -627,7 +650,7 @@ export default function Trading() {
                     <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800">
                       <CardTitle className="flex items-center gap-2 text-lg text-slate-900 dark:text-slate-50 font-semibold">
                         <Clock className="w-5 h-5 text-orange-500" />
-                        Menunggu ({pendingSent.length})
+                        {t('trading.waiting')} ({pendingSent.length})
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3 pt-4">
@@ -646,14 +669,14 @@ export default function Trading() {
                           >
                             <div className="flex justify-between items-start gap-4">
                               <div className="flex-1">
-                                <div className="font-semibold text-slate-800 dark:text-slate-200">Tawaran ke {partner?.username}</div>
+                                <div className="font-semibold text-slate-800 dark:text-slate-200">{t('trading.offerTo', { partner: partner?.username })}</div>
                                 <div className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-                                  {offeringCardIds.length} kartu
+                                  {offeringCardIds.length} {t('inventory.cardCount')}
                                 </div>
                               </div>
                               <div className="text-right">
                                 <Badge variant="outline" className="whitespace-nowrap bg-white/50 dark:bg-slate-800/50">
-                                  {timeLeft}h lagi
+                                  {t('trading.hoursLeft', { count: timeLeft })}
                                 </Badge>
                                 <Button
                                   size="sm"
@@ -662,7 +685,7 @@ export default function Trading() {
                                   disabled={cancelTrade.isPending}
                                   className="text-xs mt-2 text-red-500 hover:text-red-600"
                                 >
-                                  Batalkan
+                                  {t('common.cancel')}
                                 </Button>
                               </div>
                             </div>
@@ -687,7 +710,7 @@ export default function Trading() {
                   <CardContent className="py-16 text-center">
                     <AlertCircle className="w-16 h-16 text-slate-400 dark:text-slate-600 mx-auto mb-4" />
                     <p className="text-slate-600 dark:text-slate-400 text-lg font-medium">
-                      Tidak ada tawaran masuk. {partner?.username} belum menawarkan kartu!
+                      {t('trading.noIncomingOffers', { partner: partner?.username })}
                     </p>
                   </CardContent>
                 </Card>
@@ -718,7 +741,7 @@ export default function Trading() {
                             <div className="flex items-start justify-between gap-4">
                               <div className="flex-1">
                                 <CardTitle className="text-base text-slate-900 dark:text-slate-50 font-semibold">
-                                  {partner?.username} tawar {offeringCardIds.length} kartu
+                                  {t('inventory.offersCards', { partner: partner?.username, count: offeringCardIds.length })}
                                 </CardTitle>
                                 {trade.message && (
                                   <CardDescription className="mt-2 text-sm text-slate-700 dark:text-slate-300 italic">
@@ -726,7 +749,7 @@ export default function Trading() {
                                   </CardDescription>
                                 )}
                               </div>
-                              <Badge variant="default" className="bg-green-500 shadow-sm">Baru</Badge>
+                              <Badge variant="default" className="bg-green-500 shadow-sm">{t('inventory.new')}</Badge>
                             </div>
                           </CardHeader>
 
@@ -734,7 +757,7 @@ export default function Trading() {
                             <CardContent className="pt-5">
                               <div className="space-y-4">
                                 <div className="p-4 rounded-lg bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border border-slate-200/50 dark:border-slate-700/50 shadow-sm">
-                                  <h4 className="font-semibold mb-3 text-slate-800 dark:text-slate-200 text-sm">Kartu yang ditawar:</h4>
+                                  <h4 className="font-semibold mb-3 text-slate-800 dark:text-slate-200 text-sm">{t('inventory.offeredCards')}</h4>
                                   <div className="grid grid-cols-2 gap-4">
                                     {offeredCards.length > 0 ? (
                                       (() => {
@@ -784,7 +807,7 @@ export default function Trading() {
                                       })()
                                     ) : (
                                       <div className="col-span-2 py-8 text-center text-slate-500 dark:text-slate-400 font-medium">
-                                        Memuat kartu...
+                                        {t('trading.loadingCards')}
                                       </div>
                                     )}
                                   </div>
@@ -794,14 +817,14 @@ export default function Trading() {
                                   size="lg"
                                   className="w-full h-10 rounded-lg shadow-sm hover:shadow-md transition-all text-sm font-medium"
                                 >
-                                  Lihat & Pilih Kardumu →
+                                  {t('trading.viewAndSelectCards')}
                                 </Button>
                               </div>
                             </CardContent>
                           ) : (
                             <CardContent className="space-y-4">
                               <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
-                                <h4 className="font-semibold mb-3 text-blue-900 dark:text-blue-100">Pilih penawaran Anda ({Object.values(respondingCards).reduce((a,b) => a+b, 0)} dipilih):</h4>
+                                <h4 className="font-semibold mb-3 text-blue-900 dark:text-blue-100">{t('inventory.selectYourOffer', { count: Object.values(respondingCards).reduce((a,b) => a+b, 0) })}</h4>
                                 <div className="grid grid-cols-2 gap-4 max-h-80 overflow-y-auto pr-2">
                                   {stackedCards.map((stacked, stackIdx) => {
                                     const respondingQty = respondingCards[stacked.cardId] || 0;
@@ -863,7 +886,7 @@ export default function Trading() {
                                   onClick={() => setSelectedTradeToRespond(null)}
                                   className="flex-1"
                                 >
-                                  Kembali
+                                  {t('common.back')}
                                 </Button>
                                 <Button
                                   variant="destructive"
@@ -871,14 +894,14 @@ export default function Trading() {
                                   disabled={respondTrade.isPending}
                                   className="flex-1"
                                 >
-                                  <X className="w-4 h-4 mr-2" /> Tolak
+                                  <X className="w-4 h-4 mr-2" /> {t('common.reject')}
                                 </Button>
                                 <Button
                                   onClick={() => handleRespondTrade(true)}
                                   disabled={Object.values(respondingCards).reduce((a,b) => a+b, 0) === 0 || respondTrade.isPending}
                                   className="flex-1"
                                 >
-                                  <Check className="w-4 h-4 mr-2" /> Terima
+                                  <Check className="w-4 h-4 mr-2" /> {t('common.accept')}
                                 </Button>
                               </div>
                             </CardContent>
@@ -903,7 +926,7 @@ export default function Trading() {
                   <CardContent className="py-16 text-center">
                     <Repeat2 className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-40" />
                     <p className="text-muted-foreground text-lg">
-                      Tidak ada riwayat pertukaran. Pertukaran pertama Anda akan muncul di sini!
+                      {t('trading.noHistory')}
                     </p>
                   </CardContent>
                 </Card>
@@ -926,7 +949,7 @@ export default function Trading() {
                       ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-l-4 border-l-green-500'
                       : 'bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/30 dark:to-orange-950/30 border-l-4 border-l-red-500 opacity-75';
                     
-                    const statusLabel = isSuccess ? 'Sukses' : 'Batal';
+                    const statusLabel = isSuccess ? t('trading.status.success') : t('trading.status.cancelled');
                     const statusBadgeClass = isSuccess 
                       ? 'bg-green-600 hover:bg-green-700'
                       : 'bg-red-600 hover:bg-red-700';
@@ -945,14 +968,14 @@ export default function Trading() {
                               <div className="flex justify-between items-start">
                                 <div className="flex-1">
                                   <div className="font-semibold text-md">
-                                    {isInitiator ? '📤 Dikirim ke' : '📥 Diterima dari'} {partner?.username}
+                                    {isInitiator ? t('trading.sentTo') : t('trading.receivedFrom')} {partner?.username}
                                   </div>
                                   <div className="text-xs text-slate-600 dark:text-slate-400 mt-1 flex items-center gap-2 font-medium">
                                     <span>{new Date(trade.completedAt || trade.createdAt).toLocaleDateString()}</span>
                                     {isSuccess && (
                                       <>
                                         <span>•</span>
-                                        <span>{offeredCardCount} ditawarkan • {receivedCardCount} diterima</span>
+                                        <span>{t('trading.cardCounts', { offered: offeredCardCount, received: receivedCardCount })}</span>
                                       </>
                                     )}
                                   </div>
@@ -992,7 +1015,7 @@ export default function Trading() {
             size="lg"
             className="w-full max-w-sm h-11 text-sm font-semibold shadow-lg hover:shadow-xl transition-shadow rounded-lg"
           >
-            Lanjutkan dengan {totalSelectedCards} kartu
+            {t('trading.continue', { count: totalSelectedCards })}
           </Button>
         </motion.div>
       )}
@@ -1001,9 +1024,9 @@ export default function Trading() {
       <Dialog open={!!quantityPickerCard} onOpenChange={(open) => !open && setQuantityPickerCard(null)}>
         <DialogContent className="max-w-sm bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 shadow-lg">
           <DialogHeader>
-            <DialogTitle className="text-xl text-slate-900 dark:text-slate-50 font-semibold">Pilih Jumlah Kartu</DialogTitle>
+            <DialogTitle className="text-xl text-slate-900 dark:text-slate-50 font-semibold">{t('inventory.selectQuantity')}</DialogTitle>
             <DialogDescription className="text-sm text-slate-600 dark:text-slate-400">
-              {quantityPickerCard?.card?.name} - Tersedia: {quantityPickerCard ? myCards.filter(c => c.card?.id === quantityPickerCard.card.id).length : 0}
+              {quantityPickerCard && t(`cards.card_${quantityPickerCard.card.id}.name`, { defaultValue: quantityPickerCard.card.name })} - {t('inventory.available')}: {quantityPickerCard ? myCards.filter(c => c.card?.id === quantityPickerCard.card.id).length : 0}
             </DialogDescription>
           </DialogHeader>
 
@@ -1017,7 +1040,7 @@ export default function Trading() {
 
             {/* Quantity Input */}
             <div className="space-y-3">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Berapa kartu?</label>
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('inventory.howManyCards')}</label>
               <div className="flex items-center gap-3">
                 <Button
                   variant="outline"
@@ -1060,13 +1083,13 @@ export default function Trading() {
                 onClick={handleDeleteCard}
                 className="flex-1 h-10 rounded-lg shadow-sm hover:shadow-md transition-all text-sm text-red-600 hover:text-red-700"
               >
-                Hapus
+                {t('common.delete')}
               </Button>
               <Button
                 onClick={handleConfirmQuantity}
                 className="flex-1 h-10 rounded-lg shadow-sm hover:shadow-md transition-all text-sm"
               >
-                Pilih
+                {t('inventory.selectCards')}
               </Button>
             </div>
           </div>
@@ -1077,16 +1100,16 @@ export default function Trading() {
       <Dialog open={isConfirmModalOpen} onOpenChange={setIsConfirmModalOpen}>
         <DialogContent className="max-w-md bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 shadow-lg">
           <DialogHeader>
-            <DialogTitle className="text-xl text-slate-900 dark:text-slate-50 font-semibold">Konfirmasi Pertukaran Kartu</DialogTitle>
+            <DialogTitle className="text-xl text-slate-900 dark:text-slate-50 font-semibold">{t('inventory.confirmTrade')}</DialogTitle>
             <DialogDescription className="text-sm text-slate-600 dark:text-slate-400">
-              Cek kartu dan tulis pesan (opsional)
+              {t('inventory.checkAndMessage')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5">
             {/* Selected Cards Preview */}
             <div className="space-y-3">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Kartu yang Ditawarkan ({totalSelectedCards}):</label>
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('inventory.cardOffering', { count: totalSelectedCards })}</label>
               <div className="grid grid-cols-2 gap-4 max-h-56 overflow-y-auto pr-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-800/30 border border-slate-200/50 dark:border-slate-700/50">
                 {Object.entries(selectedCards).map(([cardId, quantity]) => {
                   const numCardId = parseInt(cardId);
@@ -1126,9 +1149,9 @@ export default function Trading() {
 
             {/* Message Input */}
             <div className="space-y-3 pt-4 border-t border-slate-200/50 dark:border-slate-700/50">
-              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pesan (opsional)</label>
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('inventory.optionalMessage')}</label>
               <Textarea
-                placeholder="Tulis pesan... (misal: 'Ini kartu favoritku!' atau biarkan kosong)"
+                placeholder={t('inventory.messagePlaceholder')}
                 value={tradeMessage}
                 onChange={(e) => setTradeMessage(e.target.value)}
                 maxLength={500}
@@ -1147,14 +1170,14 @@ export default function Trading() {
                 onClick={() => setIsConfirmModalOpen(false)}
                 className="flex-1 h-10 rounded-lg shadow-sm hover:shadow-md transition-all text-sm"
               >
-                Batal
+                {t('common.cancel')}
               </Button>
               <Button
                 onClick={handleInitiateTrade}
                 className="flex-1 h-10 rounded-lg shadow-sm hover:shadow-md transition-all text-sm"
                 disabled={initiateTrade.isPending}
               >
-                {initiateTrade.isPending ? 'Mengirim...' : '✉️ Kirim Tawaran'}
+                {initiateTrade.isPending ? t('common.sending') : t('trading.makeOffer')}
               </Button>
             </div>
           </div>

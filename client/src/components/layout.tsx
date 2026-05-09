@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import type { User } from "@shared/schema";
+import { useTranslation } from "react-i18next";
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
@@ -50,11 +52,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
   });
 
   const tabs = [
-    { href: "/gacha", icon: Gift, label: "Gacha" },
-    { href: "/inventory", icon: LayoutGrid, label: "Koleksi" },
-    { href: "/active", icon: Zap, label: "Aktif" },
-    { href: "/partner-pairing", icon: Heart, label: "Partner" },
-    { href: "/trading", icon: Repeat2, label: "Trade" },
+    { href: "/gacha", icon: Gift, label: t('common.navGacha') },
+    { href: "/inventory", icon: LayoutGrid, label: t('common.navInventory') },
+    { href: "/active", icon: Zap, label: t('common.navActive') },
+    { href: "/partner-pairing", icon: Heart, label: t('common.navPartner') },
+    { href: "/trading", icon: Repeat2, label: t('common.navTrade') },
   ];
 
   // Close dropdown when clicking outside
@@ -91,14 +93,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
             type="button"
           >
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-pink-500 dark:from-pink-400 dark:to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-pink-500/40 overflow-hidden border-2 border-white/50">
-              {user.avatarUrl ? (
-                <img src={`${user.avatarUrl}`} alt={user.username} className="w-full h-full object-cover" />
+              {user.avatarUrl && user.id ? (
+                <img src={`/api/avatars/${user.id}?t=${Date.now()}`} alt={user.username} className="w-full h-full object-cover" />
               ) : (
                 String(user.username).charAt(0).toUpperCase()
               )}
             </div>
             <div>
-              <p className="text-xs text-pink-600 dark:text-pink-200 font-bold tracking-wide">✨ HAI SAYANG!</p>
+              <p className="text-xs text-pink-600 dark:text-pink-200 font-bold tracking-wide">{t('common.greeting')}</p>
               <p className="font-bold text-pink-900 dark:text-white leading-none text-sm">{user.username}</p>
             </div>
           </button>

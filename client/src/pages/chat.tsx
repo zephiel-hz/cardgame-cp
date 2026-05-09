@@ -1,6 +1,7 @@
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { useTranslation } from "react-i18next";
 import { MessageCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { ChatWindow } from "@/components/chat-window";
@@ -10,6 +11,7 @@ import type { User } from "@shared/schema";
 export default function Chat() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
 
   // Fetch partner info
   const { data: partner, isLoading } = useQuery({
@@ -41,15 +43,15 @@ export default function Chat() {
         <div className="w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4">
           <MessageCircle className="w-10 h-10 text-blue-500" />
         </div>
-        <h3 className="font-bold text-xl mb-2">No Partner Yet</h3>
+        <h3 className="font-bold text-xl mb-2 text-slate-900 dark:text-white">{t('common.noPartner')}</h3>
         <p className="text-center text-muted-foreground max-w-xs mb-6">
-          You need to pair with a partner first to use the messaging feature.
+          {t('chat.selectPartnerToChat')}
         </p>
         <button
           onClick={() => setLocation('/partner-pairing')}
           className="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-full font-medium transition-colors"
         >
-          Find Partner
+          {t('partnership.findPartner')}
         </button>
       </div>
     );

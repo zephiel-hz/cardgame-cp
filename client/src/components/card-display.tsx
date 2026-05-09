@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Clock, Sparkles, Shield, Zap, Heart } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { Card } from "@shared/schema";
 import { cn, formatDuration } from "@/lib/utils";
 
@@ -27,6 +28,11 @@ const tierStyles = {
 };
 
 export function CardDisplay({ card, className, onClick, children }: CardDisplayProps) {
+  const { t } = useTranslation();
+  
+  const cardName = useMemo(() => t(`cards.card_${card.id}.name`, { defaultValue: card.name }), [card.id, card.name, t]);
+  const cardDescription = useMemo(() => t(`cards.card_${card.id}.description`, { defaultValue: card.description }), [card.id, card.description, t]);
+  
   const tierLower = card.tier.toLowerCase();
   const isSSR = tierLower === 'ssr';
   const styleKey = isSSR ? 'ssr' : (tierStyles[tierLower as keyof typeof tierStyles] ? tierLower : 'common');
@@ -86,8 +92,8 @@ export function CardDisplay({ card, className, onClick, children }: CardDisplayP
         <div className="w-10 h-10 rounded-full bg-foreground/10 backdrop-blur-md flex items-center justify-center mb-1 shadow-inner">
           <Icon className="w-5 h-5 opacity-80" />
         </div>
-        <h3 className="text-xs font-bold mb-0.5 leading-tight drop-shadow-sm line-clamp-2">{card.name}</h3>
-        <p className="text-xs opacity-80 leading-snug font-medium px-1 line-clamp-1">{card.description}</p>
+        <h3 className="text-xs font-bold mb-0.5 leading-tight drop-shadow-sm line-clamp-2">{cardName}</h3>
+        <p className="text-xs opacity-80 leading-snug font-medium px-1 line-clamp-1">{cardDescription}</p>
       </div>
 
       {children && <div className="mt-auto relative z-10">{children}</div>}

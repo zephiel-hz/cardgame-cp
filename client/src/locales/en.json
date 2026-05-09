@@ -1,0 +1,784 @@
+{
+  "common": {
+    "accept": "Accept",
+    "reject": "Reject",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "send": "Send",
+    "submit": "Submit",
+    "logout": "Logout",
+    "settings": "Settings",
+    "profile": "Profile",
+    "noData": "No data available",
+    "empty": "Empty",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "pending": "Pending",
+    "completed": "Completed",
+    "active": "Active",
+    "inactive": "Inactive",
+    "processing": "Processing",
+    "confirmed": "Confirmed",
+    "noPartner": "No Partner Yet",
+    "partner": "Partner",
+    "switchLanguage": "Switch to Indonesian",
+    "verifying": "Verifying...",
+    "sending": "Sending...",
+    "genderMale": "👦🏻 Male",
+    "genderFemale": "👧🏻 Female",
+    "genderOther": "🤷 Other",
+    "cards": "cards",
+    "greeting": "✨ Hi, Love!",
+    "navGacha": "Gacha",
+    "navInventory": "Collection",
+    "navActive": "Active",
+    "navPartner": "Partner",
+    "navTrade": "Trade"
+  },
+  "time": {
+    "hour": "hour",
+    "hours": "hours",
+    "day": "day",
+    "days": "days",
+    "minute": "minute",
+    "minutes": "minutes",
+    "second": "second",
+    "seconds": "seconds",
+    "week": "week",
+    "weeks": "weeks",
+    "month": "month",
+    "months": "months",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "tomorrow": "Tomorrow",
+    "ago": "ago",
+    "in": "in",
+    "justNow": "Just now",
+    "expired": "Expired",
+    "expires": "Expires",
+    "ongoing": "Ongoing",
+    "completed": "Completed",
+    "remaining": "Remaining",
+    "duration": "Duration",
+    "progress": "Progress"
+  },
+  "game": {
+    "cardTitle": "Card",
+    "cards": "Cards",
+    "collection": "Collection",
+    "inventory": "Inventory",
+    "emptyCollection": "Empty Collection",
+    "tier": "Tier",
+    "rarity": "Rarity",
+    "description": "Description",
+    "duration": "Duration",
+    "active": "Active",
+    "activeCards": "Active Cards",
+    "inactive": "Inactive",
+    "used": "Used",
+    "trade": "Trade",
+    "trading": "Trading",
+    "offer": "Offer",
+    "offers": "Offers",
+    "acceptOffer": "Accept Offer",
+    "rejectOffer": "Reject Offer",
+    "makeOffer": "Make Offer",
+    "yourCards": "Your Cards",
+    "theirCards": "Their Cards",
+    "selectCard": "Select Card",
+    "confirming": "Confirming...",
+    "dailyGacha": "Daily Gacha",
+    "gacha": "Gacha",
+    "draw": "Draw",
+    "drawCard": "Draw Card",
+    "remaining": "Remaining",
+    "drawToday": "Draw Today",
+    "nextDrawIn": "Next Draw In",
+    "totalDraws": "Total Draws"
+  },
+  "inventory": {
+    "title": "Card Collection",
+    "subtitle": "Use this card to ask something from your partner!",
+    "cards": "Cards",
+    "all": "All",
+    "sortLabel": "Sort:",
+    "found": "Found {{count}} cards",
+    "noResults": "No cards match the filter",
+    "new": "New",
+    "description": "Description",
+    "partnerRequired": "⚠️ You must have a partner first to use this card.",
+    "infoTip": "💡 This card can be used to ask something from your partner. Active duration is {{duration}}.",
+    "use": "Use",
+    "close": "Close",
+    "processing": "Processing...",
+    "empty": "Empty Collection",
+    "emptyMessage": "Let's go to the Gacha tab to draw new cards!",
+    "searchPlaceholder": "Search name or description...",
+    "filterLabel": "Filter",
+    "cardDetails": "Card Details",
+    "durationLabel": "Duration",
+    "confirmation": "Confirm Card Use",
+    "confirmUseCard": "Are you sure you want to use this card?",
+    "confirming": "Confirming...",
+    "cardWarning": "⚠️ Card will be active for {{duration}} and cannot be cancelled.",
+    "confirmButton": "Yes, Use It",
+    "success": "Success!",
+    "error": "Error",
+    "failedToUse": "Failed to use card",
+    "noCards": "You don't have any cards yet",
+    "sort": {
+      "nameAZ": "Name (A-Z)",
+      "tierHighest": "Tier (Highest)",
+      "tierLowest": "Tier (Lowest)",
+      "duration": "Duration"
+    },
+    "selectQuantity": "Select Card Quantity",
+    "available": "Available",
+    "cardTitle": "Card Active!",
+    "cardUsed": "You have used card: {{cardName}}",
+    "cardError": "Failed",
+    "searchEmpty": "No cards match the filter",
+    "cardCount": "card",
+    "offersCards": "{{partner}} offers {{count}} cards",
+    "offeredCards": "Cards Offered:",
+    "selectYourOffer": "Select Your Offer ({{count}} selected):",
+    "howManyCards": "How many cards?",
+    "selectCards": "Select",
+    "confirmTrade": "Confirm Card Trade",
+    "checkAndMessage": "Check cards and write message (optional)",
+    "cardOffering": "Cards You're Offering ({{count}}):",
+    "optionalMessage": "Message (optional)",
+    "messagePlaceholder": "Write message... (e.g., 'This is my favorite card!' or leave blank)"
+  },
+  "trading": {
+    "title": "Card Trading",
+    "noPartner": "No Partner Yet",
+    "noPartnerMessage": "Create a partner first before you can trade cards. Find a partner on the Partner page!",
+    "tabs": {
+      "initiate": "Trade",
+      "received": "Requests",
+      "history": "History"
+    },
+    "partner": "Connected with",
+    "selectCards": "Select Cards to Trade",
+    "selectDescription": "Choose cards from your collection",
+    "selected": "cards selected",
+    "types": "types",
+    "search": "Search card name...",
+    "noCards": "No cards yet. Draw from Gacha first!",
+    "cardsNotFound": "Cards not found",
+    "loading": "Loading collection...",
+    "ready": "Ready",
+    "confirmOffer": "Confirm Your Offer",
+    "confirmDescription": "Check before sending to {{partner}}",
+    "offering": "Cards You're Offering:",
+    "message": "Message:",
+    "info": "{{partner}} will choose which cards to trade back. Then it's up to you to accept or reject!",
+    "success": "✅ Trade Completed!",
+    "successDesc": "Card trade with {{partner}} completed successfully!",
+    "cancelled": "❌ Trade Cancelled",
+    "cancelledDesc": "Card trade with {{partner}} has been cancelled.",
+    "confirmTradeTitle": "Confirm Card Trade",
+    "confirmTradeMessage": "Send this offer to {{partner}}?",
+    "trading": "Trading",
+    "makeOffer": "Make Offer",
+    "viewOffers": "View Offers",
+    "offer": "Offer",
+    "offers": "Offers",
+    "sent": "Sent",
+    "received": "Received",
+    "accepted": "Accepted",
+    "rejected": "Rejected",
+    "expired": "Expired",
+    "pending": "Pending",
+    "selectPlaymate": "Select Playmate",
+    "selectCard": "Select Card",
+    "yourCard": "Your Card",
+    "theirCard": "Their Card",
+    "requestTrade": "Request Trade",
+    "acceptTrade": "Accept Trade",
+    "rejectTrade": "Reject Trade",
+    "cancelOffer": "Cancel Offer",
+    "tradeHistory": "Trade History",
+    "noOffers": "No Offers",
+    "noHistory": "No trade history. Your first trade will appear here!",
+    "noIncomingOffers": "No incoming offers. {{partner}} hasn't offered any cards yet!",
+    "continue": "Continue with {{count}} cards",
+    "offerTo": "Offer to {{partner}}",
+    "loadingCards": "Loading cards...",
+    "viewAndSelectCards": "View & Select Your Cards →",
+    "status": {
+      "success": "Success",
+      "cancelled": "Cancelled"
+    },
+    "sentTo": "📤 Sent to",
+    "receivedFrom": "📥 Received from",
+    "cardCounts": "{{offered}} offered • {{received}} received",
+    "tier": {
+      "common": "Common",
+      "rare": "Rare",
+      "epic": "Epic",
+      "ssr": "SSR"
+    },
+    "error": {
+      "noCardSelected": "Please select at least one card to trade",
+      "noCardSelectedOffer": "Please select at least one card to offer in exchange"
+    },
+    "waiting": "Waiting",
+    "hoursLeft": "{{count}}h left"
+  },
+  "chat": {
+    "messages": "Messages",
+    "chat": "Chat",
+    "typeMessage": "Type message...",
+    "send": "Send",
+    "sendMessage": "Send Message",
+    "loading": "Loading messages...",
+    "loadingDecrypt": "Decrypting messages...",
+    "noMessages": "No messages yet",
+    "noPartner": "No Partner Yet",
+    "selectPartnerToChat": "Select a partner to chat",
+    "findPartner": "Find Partner",
+    "message": "Message",
+    "latestMessage": "Latest Message",
+    "reaction": "Reaction",
+    "reactWithEmoji": "React with emoji",
+    "reply": "Reply",
+    "replyTo": "Reply to",
+    "quoted": "Quoted",
+    "edited": "Edited",
+    "deleted": "Deleted",
+    "typing": "typing...",
+    "online": "Online",
+    "offline": "Offline",
+    "lastSeen": "Last seen",
+    "input": {
+      "placeholder": "Type Message",
+      "sendButton": "Send",
+      "addEmoji": "Add emoji"
+    },
+    "header": {
+      "backButton": "Back"
+    },
+    "loading": {
+      "messages": "Loading messages...",
+      "decrypting": "Decrypting messages..."
+    },
+    "reaction": {
+      "added": "Reacted with {{emoji}}",
+      "addFailed": "Failed to add reaction",
+      "removed": "Removed {{emoji}} reaction",
+      "removeFailed": "Failed to remove reaction"
+    },
+    "message": {
+      "copiedToClipboard": "Copied to clipboard",
+      "canOnlyDeleteOwn": "You can only delete your own messages",
+      "deleteFailed": "Failed to delete message",
+      "deleteSuccess": "Message deleted",
+      "contentUnavailable": "[Message content unavailable]",
+      "status": {
+        "read": "read",
+        "sent": "sent"
+      }
+    },
+    "contextMenu": {
+      "reply": "Reply to message",
+      "copy": "Copy message text",
+      "copyButton": "Copy",
+      "deleteTooltip": "Delete message (only visible for your own messages)",
+      "deleteButton": "Delete",
+      "moreOptions": "More options"
+    },
+    "emoji": {
+      "addButton": "Add emoji",
+      "scrollLeft": "Scroll left",
+      "scrollRight": "Scroll right"
+    },
+    "common": {
+      "you": "You"
+    },
+    "error": {
+      "title": "Error"
+    }
+  },
+  "partnership": {
+    "partnership": "Partnership",
+    "partners": "Partners",
+    "findPartner": "Find Partner",
+    "partner": "Partner",
+    "pairingRequest": "Pairing Request",
+    "sendPartnerRequest": "Send Partner Request",
+    "partnerRequests": "Partner Requests",
+    "acceptRequest": "Accept Request",
+    "rejectRequest": "Reject Request",
+    "removePartnership": "Remove Partnership",
+    "removePartnershipMessage": "Remove partnership with {{username}}. This action cannot be undone.",
+    "reason": "Reason",
+    "requestRejected": "Request Rejected",
+    "rejectionReason": "Rejection Reason",
+    "partnershipRemoved": "Partnership Removed",
+    "removalReason": "Removal Reason",
+    "noPartner": "No Partner Yet",
+    "requestPending": "Request Pending",
+    "requestSent": "Request Sent",
+    "cardCount": "📊 Card Count",
+    "status": {
+      "paired": "Paired"
+    },
+    "searchPlaceholder": "Enter partner ID",
+    "instructions": "Share your ID with your partner to be accepted. Your partner must accept your request before partnership is official.",
+    "wantPartner": "📨 Wants to be your partner",
+    "title": "Find Your Partner",
+    "subtitle": "Connect with your special someone to unlock exclusive partnership features",
+    "yourPartner": "Your Partner",
+    "dangerZone": "Danger Zone",
+    "dangerZoneDescription": "This is a dangerous area. Removing your partnership cannot be undone."
+  },
+  "profile": {
+    "profile": "Profile",
+    "settings": "Settings",
+    "editProfile": "Edit Profile",
+    "username": "Username",
+    "email": "Email",
+    "gender": "Gender",
+    "changePIN": "🔐 Change PIN",
+    "currentPIN": "Current PIN",
+    "newPIN": "New PIN",
+    "confirmPIN": "Confirm PIN",
+    "save": "Save",
+    "cancel": "Cancel",
+    "updated": "Updated successfully",
+    "language": "Language",
+    "selectLanguage": "Select Language",
+    "english": "English",
+    "avatarTooltip": "Click to change profile picture",
+    "switchToLightMode": "Switch to Light Mode",
+    "switchToDarkMode": "Switch to Dark Mode",
+    "indonesian": "Indonesian",
+    "preference": "Preference",
+    "privateMode": "Private Mode",
+    "notifications": "Notifications",
+    "manageSecurityPin": "Manage your account security PIN",
+    "avatar": "Avatar",
+    "uploadPhoto": "Upload Photo",
+    "deletePhoto": "Delete Photo",
+    "changeEmail": "Change Email",
+    "darkMode": "Dark Mode",
+    "lightMode": "Light Mode",
+    "switchToDarkMode": "Switch to Dark Mode",
+    "switchToLightMode": "Switch to Light Mode",
+    "logout": "Logout",
+    "errors": {
+      "oldPinMust": "Old PIN must be 4 digits",
+      "newPinMust": "New PIN must be 4 digits",
+      "pinMustMatch": "New PINs do not match",
+      "pinMustDifferent": "New PIN must be different from old PIN",
+      "failedToChange": "Failed to change PIN",
+      "failedToUpdateProfile": "Failed to update profile"
+    },
+    "success": {
+      "pinChanged": "PIN changed successfully!",
+      "photoUploaded": "Photo uploaded successfully!",
+      "photoDeleted": "Profile photo deleted successfully!",
+      "profileUpdated": "Profile updated successfully!"
+    },
+    "changePinModal": {
+      "title": "Change PIN",
+      "oldPin": "Old PIN",
+      "newPin": "New PIN",
+      "confirmNewPin": "Confirm New PIN",
+      "save": "Save New PIN",
+      "saving": "Saving..."
+    },
+    "changeEmailModal": {
+      "title": "Change Email",
+      "newEmail": "New Email",
+      "verification": "Verify New Email",
+      "sendVerificationCode": "Send Verification Code",
+      "enterCode": "Enter Verification Code",
+      "verifyCode": "Verify Code",
+      "checkYourEmail": "Check your email for verification code"
+    }
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "register": "Register",
+    "username": "Username",
+    "pin": "PIN",
+    "gender": "Gender",
+    "male": "Male",
+    "female": "Female",
+    "other": "Other",
+    "enterUsername": "Enter your username",
+    "enterPIN": "Enter your PIN",
+    "selectGender": "Select your gender",
+    "loginFailed": "Login failed",
+    "registrationFailed": "Registration failed",
+    "invalidCredentials": "Invalid credentials",
+    "required": "Required",
+    "orContinueWith": "Or continue with",
+    "email": "Email",
+    "pinLoginTitle": "Login {{username}}",
+    "pinLoginSubtitle": "Enter your PIN to login",
+    "pinDigits": "PIN (4 Digits)",
+    "loginNow": "Login Now",
+    "verifying": "Verifying...",
+    "backToLogin": "← Back to Login",
+    "registerForm": {
+      "title": "Create New Account",
+      "subtitle": "Create an account to get started",
+      "createAccount": "Create Account",
+      "usernameLabel": "Username",
+      "emailLabel": "Email",
+      "pinLabel": "PIN (4 Digits)",
+      "genderLabel": "Gender",
+      "verifyEmail": "Verify Email",
+      "verifyEmailDescription": "We've sent a code to your email",
+      "verifyEmailTitle": "Verify Email",
+      "enterVerificationCode": "Enter verification code",
+      "sendCode": "Send Code",
+      "verifyCode": "Verify Code",
+      "resendCode": "Resend Code",
+      "sendingCode": "Sending code...",
+      "verifyingCode": "Verifying code..."
+    },
+    "loginForm": {
+      "title": "Login",
+      "subtitle": "Enter your username and PIN",
+      "usernameLabel": "Username",
+      "usernamePassword": "Username/PIN",
+      "pinDigitsLabel": "PIN (4 Digits)",
+      "loginButton": "Login Now"
+    },
+    "savedAccounts": "Saved Accounts",
+    "errors": {
+      "registerFailed": "Register Failed",
+      "usernameTaken": "Username may already be in use",
+      "registerError": "Failed to register. Try again.",
+      "error": "Error"
+    },
+    "orContinueToRegister": "Or continue to Register",
+    "orBackToLogin": "Or back to Login",
+    "title": "Gacha Cards With Your Partner",
+    "subtitle": "Login to collect surprise cards! 💕",
+    "emailRequired": "Email (Verification Required)",
+    "emailPlaceholder": "name@email.com",
+    "verified": "Verified",
+    "sendVerificationCode": "Send Verification Code",
+    "tokenPlaceholder": "Token from email",
+    "selectAccount": "Select an account to continue",
+    "loginAs": "Login {{username}}",
+    "loginUsername": "Login {{username}}",
+    "loginOtherAccount": "Login to Another Account",
+    "enterPinToLogin": "Enter your PIN to login",
+    "enterUsernamePin": "Enter your username and PIN",
+    "backToSavedAccounts": "← Back to Saved Accounts",
+    "backToSavedAccounts2": "← Back to Saved Accounts",
+    "registerNew": "Register New Account",
+    "registerSubtitle": "Create an account to play Gacha Cards",
+    "createAccount": "Create Account",
+    "creatingAccount": "Creating Account...",
+    "usernameMinimum": "Minimum 3 characters",
+    "genderMale": "👦🏻 Male",
+    "genderFemale": "👧🏻 Female",
+    "genderOther": "🤷 Other",
+    "noAccountRegister": "Don't have an account? Register here",
+    "errors": {
+      "registerFailed": "Register Failed",
+      "usernameTaken": "Username may already be in use",
+      "registerError": "Failed to register. Try again.",
+      "error": "Error",
+      "enterPin": "Please enter your PIN",
+      "enterEmail": "Please enter your email first",
+      "enterToken": "Please enter verification code from your email",
+      "fillCredentials": "Please enter username and PIN",
+      "completeRequired": "Please fill in all required fields",
+      "invalidCredentials": "Invalid username or PIN",
+      "pinIncorrect": "Incorrect PIN",
+      "pinMinimum": "PIN must be at least 4 digits",
+      "emailVerificationRequired": "Email must be verified first",
+      "loginFailed": "Login Failed",
+      "loginError": "Failed to login. Please try again."
+    }
+  },
+  "gacha": {
+    "title": "Daily Gacha",
+    "subtitle": "Get a surprise card for your partner!",
+    "remainingPulls": "Remaining Pulls",
+    "timeToReset": "Time to Reset",
+    "pullNow": "Pull Card Now",
+    "noPullsRemaining": "No pulls remaining",
+    "pullRecords": "Pull Records",
+    "noRecords": "No pull records",
+    "pullRate": "Pull Rates",
+    "commonRate": "Common: 60%",
+    "rareRate": "Rare: 25%",
+    "epicRate": "Epic: 10%",
+    "ssrRate": "SSR: 5%",
+    "failedToPull": "Failed to pull card",
+    "information": "Gacha Information",
+    "resetLabel": "Gacha Reset",
+    "resetTimes": "6:00 AM & 6:00 PM WIB",
+    "pullsPerLabel": "Pulls/Period",
+    "pullsPerPeriod": "Maximum 2 pulls per period",
+    "rateComposition": "Rate Composition",
+    "ssr": "SSR: 10%",
+    "epic": "Epic: 15%",
+    "rare": "Rare: 25%",
+    "common": "Common: 50%",
+    "ssrNotificationLabel": "SSR Notification",
+    "ssrNotification": "Your partner will be notified if you get an SSR card"
+  },
+  "activeCards": {
+    "title": "Current Status",
+    "subtitle": "Active cards must be respected! 😤",
+    "myCards": "My Cards",
+    "partnerCards": "{{partner}}'s Cards",
+    "currentStatus": "Current Status",
+    "noActiveCards": "No Active Cards Yet",
+    "noPartner": "No Partner Yet",
+    "noPartnerMessage": "You must have a partner first to see their active cards.",
+    "empty": "All Safe",
+    "emptyMessage": "No active cards right now. Time to use your cards! 🎯",
+    "progress": "Progress",
+    "total": "Total",
+    "remainingTime": "Remaining Time",
+    "baseLabel": "Base",
+    "totalLabel": "Total",
+    "stacked": "stacked",
+    "stacked2": "stacked",
+    "durationLabel": "Duration",
+    "findPartner": "Find Partner"
+  },
+  "partnerPairing": {
+    "title": "Your Partner",
+    "findPartnerTitle": "Find a Partner",
+    "sendRequest": "Send Request",
+    "partnerRequests": "Requests from Partner",
+    "pendingRequests": "Pending Requests",
+    "accept": "Accept",
+    "reject": "Reject",
+    "remove": "Remove Partnership",
+    "reason": "Reason",
+    "removePartnershipTitle": "Remove Partnership",
+    "confirm": "Confirm",
+    "rejectionReason": "Rejection Reason",
+    "removalReason": "Removal Reason",
+    "errors": {
+      "failedToSend": "Failed to send request",
+      "failedToAccept": "Failed to accept request",
+      "failedToReject": "Failed to reject request",
+      "failedToRemove": "Failed to remove partnership"
+    },
+    "success": {
+      "requestSent": "Request sent!",
+      "requestAccepted": "Request accepted!",
+      "requestRejected": "Request rejected",
+      "partnershipRemoved": "Partnership removed"
+    }
+  },
+  "notFound": {
+    "title": "404 - Page Not Found",
+    "message": "The page you are looking for could not be found",
+    "goHome": "Go Back Home",
+    "didYouForget": "Did you forget something?"
+  },
+  "errors": {
+    "somethingWentWrong": "Something went wrong",
+    "networkError": "Network error",
+    "tryAgain": "Try Again",
+    "pageNotFound": "Page Not Found",
+    "notFound404": "404 - Page Not Found",
+    "goHome": "Go Home",
+    "error": "Error"
+  },
+  "cards": {
+    "card_1": {
+      "name": "Random Selfie Card",
+      "description": "Target must send a random selfie photo right now!"
+    },
+    "card_2": {
+      "name": "Alien Mode Card",
+      "description": "For 15 minutes, target must reply to chats with weird words/typos added."
+    },
+    "card_3": {
+      "name": "Send Meme Card",
+      "description": "Target must send 1 random or worst meme/sticker."
+    },
+    "card_4": {
+      "name": "Singing Challenge Card",
+      "description": "Target must send a voice note singing a kids song."
+    },
+    "card_5": {
+      "name": "Vent Freely Card",
+      "description": "You can vent for 20 minutes, target can only say 'Yes, you're right'."
+    },
+    "card_6": {
+      "name": "I'm The Boss Card",
+      "description": "For 30 minutes, target must call you 'Sir/Ma'am' or 'Boss'."
+    },
+    "card_7": {
+      "name": "Type With Nose Card",
+      "description": "Target must type 'I love you so much' using their nose without correcting typos."
+    },
+    "card_8": {
+      "name": "Forced Poem Card",
+      "description": "For the next 5 messages (while active), reply to chat using poems/rhymes."
+    },
+    "card_9": {
+      "name": "Stop Sulking Card",
+      "description": "Target must immediately send a smiling photo and stop sulking right now."
+    },
+    "card_10": {
+      "name": "Embarrassing Contact Name Card",
+      "description": "Change target's contact name to something embarrassing for 24 hours. Must screenshot."
+    },
+    "card_11": {
+      "name": "Virtual Genie Card",
+      "description": "Ask target for one small favor and they cannot refuse."
+    },
+    "card_12": {
+      "name": "Robot Voice Card",
+      "description": "Target must reply via voice note with a robotic, stuttering voice."
+    },
+    "card_13": {
+      "name": "Emoji Only Card",
+      "description": "For the next 5 messages, target can only reply using emoji combinations, NO LETTERS allowed."
+    },
+    "card_14": {
+      "name": "Cheesy Food Flirt Card",
+      "description": "Target must give you one corny pickup line related to food."
+    },
+    "card_15": {
+      "name": "Ceiling Selfie Card",
+      "description": "Target must take a photo of the ceiling/sky right now and caption it poetically."
+    },
+    "card_16": {
+      "name": "Missing You Spam Card",
+      "description": "Target must spam 'I miss you' messages 10 times in a row right now."
+    },
+    "card_17": {
+      "name": "Funny Filter Card",
+      "description": "Target must send a photo/video with the weirdest Instagram or TikTok filter."
+    },
+    "card_18": {
+      "name": "News Reporter Card",
+      "description": "Target must send a voice note reporting like a news anchor about things in front of them."
+    },
+    "card_19": {
+      "name": "No Laughing Card",
+      "description": "You can joke freely, but target is forbidden from replying with laugh words (haha/lol) or emoji. Must stay serious!"
+    },
+    "card_20": {
+      "name": "Mind Reader Card",
+      "description": "Target must guess what you're doing right now. If wrong, you can roast them."
+    },
+    "card_21": {
+      "name": "Praise Me Card",
+      "description": "Target must send a short paragraph with exaggerated praise in ALL CAPS."
+    },
+    "card_22": {
+      "name": "Weather Report Card",
+      "description": "Target must send a selfie of the current sky/weather outside their window, captioned like a weather presenter."
+    },
+    "card_23": {
+      "name": "Eye Closeup Card",
+      "description": "Target must take a closeup zoom photo of just one eye, send it, and not unsee it!"
+    },
+    "card_24": {
+      "name": "Jakarta Slang Card",
+      "description": "Target must use slang language mixed with English (like, basically, literally) in every message."
+    },
+    "card_25": {
+      "name": "Lip Sync Concert Card",
+      "description": "Target must send a short video lip-syncing a dangdut or pop song with dramatic expression."
+    },
+    "card_26": {
+      "name": "Absurd Review Card",
+      "description": "Target must send a voice note reviewing a random object nearby as if it's a luxury item worth millions."
+    },
+    "card_27": {
+      "name": "No 'Whatever' Card",
+      "description": "Whatever you ask, target is strictly forbidden from answering 'whatever'. Must give a definite answer!"
+    },
+    "card_28": {
+      "name": "Professional Pickup Line Card",
+      "description": "Target must give you a flirty pickup line using their profession's jargon (engineering, coding, architecture, etc)."
+    },
+    "card_29": {
+      "name": "Pronoun Change Card",
+      "description": "Target must change their pronouns from 'I-You' to 'Me-You' or use overly dramatic formal pronouns."
+    },
+    "card_30": {
+      "name": "Ridiculous Tutorial Card",
+      "description": "Target must send a video tutorial on how to do something super trivial (like how to drink water correctly)."
+    },
+    "card_31": {
+      "name": "Mood Booster Card",
+      "description": "Target must send 3 meme/motivational quotes throughout the next hour to cheer you up."
+    },
+    "card_32": {
+      "name": "Guess The Doodle Card",
+      "description": "You draw something badly on your phone, target must guess it and praise your 'art' like it's a masterpiece."
+    },
+    "card_33": {
+      "name": "Embarrassing Story Card",
+      "description": "Target must tell one funny or embarrassing childhood story via voice note."
+    },
+    "card_34": {
+      "name": "Funny Nickname Card",
+      "description": "You get to assign a silly nickname to target (like 'Potato', 'Brick', 'Fridge') that they MUST use to call you for 1 hour."
+    },
+    "card_35": {
+      "name": "Motivator Chaos Card",
+      "description": "Target must act like a self-help guru, sending a 1+ minute voice note with nonsensical life advice and motivational quotes."
+    },
+    "card_36": {
+      "name": "Baby Mode Card",
+      "description": "You get to be extra clingy and needy for 1 hour, target MUST pamper and agree with all your silly requests."
+    },
+    "card_37": {
+      "name": "Spam Call Card",
+      "description": "For the next 12 hours, you can call target anytime, say one random word, and hang up. Target can't complain!"
+    },
+    "card_38": {
+      "name": "Silly Contract Card",
+      "description": "Target must write a goofy handwritten contract that YOU dictate (like 'I promise to praise my love forever'), sign it, take a photo, and send it. Legally binding in LDR law!"
+    },
+    "card_39": {
+      "name": "One Word Only Card",
+      "description": "For 60 minutes, target can only reply with ONE WORD max per message. Watch them struggle trying to explain things!"
+    },
+    "card_40": {
+      "name": "Robotic Customer Service Card",
+      "description": "For 60 minutes, target must respond like a stiff customer service representative - no romantic replies allowed!"
+    },
+    "card_42": {
+      "name": "Extreme Photo Challenge Card",
+      "description": "Target must send 10 funny pose photos within 2 hours with funny captions."
+    },
+    "card_43": {
+      "name": "Forced Romance Call Card",
+      "description": "Target must listen to a 1-hour voice call, casual conversation is fine."
+    },
+    "card_44": {
+      "name": "Must Listen Vent Card",
+      "description": "Vent as much as you want for 90 minutes, target must listen and reply seriously."
+    },
+    "card_45": {
+      "name": "Surprise Date Plan Card",
+      "description": "Plan a surprise date for the next week right now, target doesn't pay but must show up."
+    }
+  }
+}

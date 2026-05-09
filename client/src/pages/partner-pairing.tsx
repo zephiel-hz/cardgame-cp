@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Heart, Users, Copy, Check, Search, User as UserIcon, Inbox, Trash2, AlertCircle, ChevronDown } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { api } from "@shared/routes";
 import { useToast } from "@/hooks/use-toast";
+import { useAppWebSocket, useWebSocketPartnership, useWebSocketPartnershipResponses } from "@/hooks/use-websocket";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,6 +45,7 @@ export default function PartnerPairing() {
   const [, setLocation] = useLocation();
   const { user, login } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
   
   const [partnerUserId, setPartnerUserId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -61,9 +64,58 @@ export default function PartnerPairing() {
   const [showForceDeleteDialog, setShowForceDeleteDialog] = useState(false);
   const [pendingForceDeleteRequestId, setPendingForceDeleteRequestId] = useState<number | null>(null);
   const [showDangerZone, setShowDangerZone] = useState(false);
+  const [avatarCacheBuster, setAvatarCacheBuster] = useState<string>("");
 
-  // Function to refetch removal requests
-  const refetchRemovalRequests = async () => {
+  // Memoized function to refetch existing partner
+  const refetchExistingPartner = useCallback(async () => {
+    if (!user) return;
+    try {
+      const url = api.auth.getPartner.path.replace(":userId", String(user.id));
+      console.log("🔄 Refetching existing partner from:", url);
+      
+      const partnerRes = await fetch(url);
+      if (partnerRes.ok) {
+        const partner = await partnerRes.json();
+        if (partner) {
+          const partnerInfo = await fetch(
+            api.auth.getUserInfo.path.replace(":id", String(partner.id))
+          ).then(r => r.json());
+          setExistingPartner(partnerInfo);
+          console.log("🔄 Partner fetched:", partnerInfo.username);
+        } else {
+          setExistingPartner(null);
+          console.log("🔄 No partner found");
+        }
+      } else {
+        console.error("🔄 Error response:", partnerRes.status, await partnerRes.text());
+      }
+    } catch (error) {
+      console.error("Failed to refetch existing partner:", error);
+    }
+  }, [user]);
+
+  // Memoized function to refetch pending requests
+  const refetchPendingRequests = useCallback(async () => {
+    if (!user) return;
+    try {
+      const url = api.auth.getPendingRequests.path.replace(":userId", String(user.id));
+      console.log("🔄 Refetching pending requests from:", url);
+      
+      const requestsRes = await fetch(url);
+      if (requestsRes.ok) {
+        const requests = await requestsRes.json();
+        console.log("🔄 Refetched pending requests:", JSON.stringify(requests, null, 2));
+        setPendingRequests(requests);
+      } else {
+        console.error("🔄 Error response:", requestsRes.status, await requestsRes.text());
+      }
+    } catch (error) {
+      console.error("Failed to refetch pending requests:", error);
+    }
+  }, [user]);
+
+  // Memoized function to refetch removal requests
+  const refetchRemovalRequests = useCallback(async () => {
     if (!user) return;
     try {
       const url = api.auth.getPendingRemovals.path.replace(":userId", String(user.id));
@@ -80,7 +132,7 @@ export default function PartnerPairing() {
     } catch (error) {
       console.error("Failed to refetch removal requests:", error);
     }
-  };
+  }, [user]);
 
   // Check if user already has a partner and get pending requests
   useEffect(() => {
@@ -126,6 +178,59 @@ export default function PartnerPairing() {
     checkPartner();
   }, [user]);
 
+  // Update avatar cache buster when partner changes
+  useEffect(() => {
+    if (existingPartner) {
+      setAvatarCacheBuster(String(Date.now()));
+    }
+  }, [existingPartner?.id]);
+
+  // Memoized callbacks for WebSocket events to prevent listener re-registration
+  const handlePartnershipRequest = useCallback((payload: any) => {
+    console.log('Partnership request received:', payload);
+    refetchPendingRequests();
+    refetchExistingPartner();
+  }, [refetchPendingRequests, refetchExistingPartner]);
+
+  const handleRemovalRequest = useCallback((payload: any) => {
+    console.log('Partnership removal request received:', payload);
+    refetchRemovalRequests();
+    refetchExistingPartner();
+  }, [refetchRemovalRequests, refetchExistingPartner]);
+
+  const handleRemovalResponse = useCallback((payload: any) => {
+    console.log('Partnership removal response:', payload);
+    refetchRemovalRequests();
+    refetchExistingPartner();
+  }, [refetchRemovalRequests, refetchExistingPartner]);
+
+  const handlePartnershipAccepted = useCallback((payload: any) => {
+    console.log('Partnership request accepted:', payload);
+    refetchPendingRequests();
+    refetchExistingPartner();
+  }, [refetchPendingRequests, refetchExistingPartner]);
+
+  const handlePartnershipRejected = useCallback((payload: any) => {
+    console.log('Partnership request rejected:', payload);
+    refetchPendingRequests();
+  }, [refetchPendingRequests]);
+
+  // Initialize WebSocket connection
+  useAppWebSocket(user?.id);
+
+  // Listen for real-time partnership updates
+  useWebSocketPartnership(
+    handlePartnershipRequest,
+    handleRemovalRequest,
+    handleRemovalResponse
+  );
+
+  // Listen for partnership request acceptance/rejection responses
+  useWebSocketPartnershipResponses(
+    handlePartnershipAccepted,
+    handlePartnershipRejected
+  );
+
   const handleCopyUserId = () => {
     if (user) {
       navigator.clipboard.writeText(String(user.id));
@@ -137,8 +242,8 @@ export default function PartnerPairing() {
   const handleSearchUser = async () => {
     if (!partnerUserId.trim()) {
       toast({
-        title: "Error",
-        description: "Masukkan ID partner",
+        title: t('common.error'),
+        description: t('auth.errors.enterPin'),
         variant: "destructive",
       });
       return;
@@ -155,16 +260,16 @@ export default function PartnerPairing() {
           setPreviewUser(userInfo);
         } else {
           toast({
-            title: "User tidak ditemukan",
-            description: "ID user tidak valid",
+            title: t('partnership.noPartner'),
+            description: t('partnership.noPartner'),
             variant: "destructive",
           });
           setPreviewUser(null);
         }
       } else {
         toast({
-          title: "User tidak ditemukan",
-          description: "ID user tidak valid",
+          title: t('partnership.noPartner'),
+          description: t('partnership.noPartner'),
           variant: "destructive",
         });
         setPreviewUser(null);
@@ -172,8 +277,8 @@ export default function PartnerPairing() {
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Gagal",
-        description: error.message || "Error mencari user",
+        title: t('common.error'),
+        description: error.message || t('common.error'),
       });
       setPreviewUser(null);
     } finally {
@@ -197,8 +302,8 @@ export default function PartnerPairing() {
 
       if (res.ok) {
         toast({
-          title: "✨ Permintaan Terkirim!",
-          description: `Permintaan partnership ke ${previewUser.username} telah terkirim. Tunggu konfirmasi mereka.`,
+          title: "✨ " + t('partnership.requestSent'),
+          description: t('partnership.sendPartnerRequest') + ` ${previewUser.username}`,
         });
         setPartnerUserId("");
         setPreviewUser(null);
@@ -206,14 +311,14 @@ export default function PartnerPairing() {
         const error = await res.json();
         toast({
           variant: "destructive",
-          title: "Gagal",
-          description: error.message || "Gagal mengirim permintaan",
+          title: t('common.error'),
+          description: error.message || t('common.error'),
         });
       }
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error",
+        title: t('common.error'),
         description: error.message,
       });
     } finally {
@@ -232,10 +337,10 @@ export default function PartnerPairing() {
 
       if (res.ok) {
         toast({
-          title: accept ? "✨ Diterima!" : "Ditolak",
+          title: accept ? "✨ " + t('partnership.acceptRequest') : t('common.reject'),
           description: accept 
-            ? "Partnership berhasil dikonfirmasi!" 
-            : "Partnership request ditolak",
+            ? t('partnership.partnership') + " " + t('common.confirmed')
+            : t('partnership.rejectRequest'),
         });
         setPendingRequests(pendingRequests.filter(r => r.id !== requestId));
         
@@ -256,14 +361,14 @@ export default function PartnerPairing() {
         const error = await res.json();
         toast({
           variant: "destructive",
-          title: "Gagal",
+          title: t('common.error'),
           description: error.message,
         });
       }
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error",
+        title: t('common.error'),
         description: error.message,
       });
     } finally {
@@ -278,8 +383,8 @@ export default function PartnerPairing() {
     if (!removalReason.trim()) {
       toast({
         variant: "destructive",
-        title: "❌ Alasan Wajib Diisi",
-        description: "Jelaskan alasan Anda ingin menghapus partnership sebelum mengirim permintaan.",
+        title: "❌ " + t('common.error'),
+        description: t('auth.errors.completeRequired'),
       });
       return;
     }
@@ -298,8 +403,8 @@ export default function PartnerPairing() {
 
       if (res.ok) {
         toast({
-          title: "📨 Permintaan Terkirim",
-          description: "Permintaan penghapusan partnership telah dikirim ke partner Anda. Tunggu konfirmasi mereka.",
+          title: "📨 " + t('partnership.removePartnership'),
+          description: t('auth.errors.completeRequired'),
         });
         setShowRemoveDialog(false);
         setRemovalReason("");
@@ -309,14 +414,14 @@ export default function PartnerPairing() {
         const error = await res.json();
         toast({
           variant: "destructive",
-          title: "Gagal",
+          title: t('common.error'),
           description: error.message,
         });
       }
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error",
+        title: t('common.error'),
         description: error.message,
       });
     } finally {
@@ -341,10 +446,10 @@ export default function PartnerPairing() {
 
       if (res.ok) {
         toast({
-          title: accept ? "✨ Partnership Dihapus" : "❌ Permintaan Ditolak",
+          title: accept ? "✨ " + t('partnership.removePartnership') : "❌ " + t('partnership.rejectRequest'),
           description: accept 
-            ? "Partnership telah dihapus. Anda sekarang bebas mencari partner lain." 
-            : "Permintaan penghapusan partnership ditolak dengan alasan.",
+            ? t('partnership.removePartnership')
+            : t('partnership.rejectRequest'),
         });
         setRemovalRequests(removalRequests.filter(r => r.id !== requestId));
         
@@ -359,14 +464,14 @@ export default function PartnerPairing() {
         const error = await res.json();
         toast({
           variant: "destructive",
-          title: "Gagal",
+          title: t('common.error'),
           description: error.message,
         });
       }
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error",
+        title: t('common.error'),
         description: error.message,
       });
     } finally {
@@ -384,8 +489,8 @@ export default function PartnerPairing() {
     if (!rejectionReason.trim()) {
       toast({
         variant: "destructive",
-        title: "❌ Alasan Wajib Diisi",
-        description: "Jelaskan alasan Anda menolak penghapusan partnership.",
+        title: "❌ " + t('common.error'),
+        description: t('auth.errors.completeRequired'),
       });
       return;
     }
@@ -411,8 +516,8 @@ export default function PartnerPairing() {
 
       if (res.ok) {
         toast({
-          title: "🚨 Partnership Dihapus",
-          description: "Partnership telah dihapus tanpa persetujuan partner.",
+          title: "🚨 " + t('partnership.removePartnership'),
+          description: t('partnership.removePartnership'),
         });
         setRemovalRequests(removalRequests.filter(r => r.id !== requestId));
         setExistingPartner(null);
@@ -424,14 +529,14 @@ export default function PartnerPairing() {
         const error = await res.json();
         toast({
           variant: "destructive",
-          title: "Gagal",
+          title: t('common.error'),
           description: error.message,
         });
       }
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error",
+        title: t('common.error'),
         description: error.message,
       });
     } finally {
@@ -450,7 +555,7 @@ export default function PartnerPairing() {
           >
             <Heart className="w-12 h-12 text-pink-500 fill-pink-500" />
           </motion.div>
-          <p className="mt-4 text-muted-foreground">Memeriksa partner...</p>
+          <p className="mt-4 text-muted-foreground">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -460,13 +565,19 @@ export default function PartnerPairing() {
   if (existingPartner) {
     return (
       <div className="pb-10">
-        <div className="mb-6 px-2">
-          <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <Heart size={28} className="text-pink-500 fill-pink-500" /> Partner Anda
-          </h2>
-          <p className="text-muted-foreground text-sm font-medium mt-1">
-            Informasi profil partner yang berpasangan dengan Anda 💕
-          </p>
+        {/* Page Header */}
+        <div className="bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-950/20 dark:to-purple-950/20 border-b border-pink-100 dark:border-pink-900/30 mb-6">
+          <div className="px-4 py-8">
+            <div className="flex items-center gap-3 mb-2">
+              <Heart size={32} className="text-pink-500 fill-pink-500" />
+              <h1 className="text-3xl font-bold text-foreground">
+                {t('partnership.yourPartner')}
+              </h1>
+            </div>
+            <p className="text-muted-foreground text-sm font-medium">
+              {t('partnership.subtitle')}
+            </p>
+          </div>
         </div>
 
         {/* Existing Removal Requests */}
@@ -477,7 +588,7 @@ export default function PartnerPairing() {
             className="space-y-3 bg-white dark:bg-gray-900 p-4 rounded-2xl border-2 border-red-200 dark:border-red-900/30 mx-2 mb-6"
           >
             <h4 className="font-semibold text-red-600 dark:text-red-400 flex items-center gap-2">
-              <AlertCircle size={18} /> Permintaan Penghapusan Partnership
+              <AlertCircle size={18} /> {t('partnership.removePartnership')}
             </h4>
 
             {removalRequests.map((request) => {
@@ -503,16 +614,16 @@ export default function PartnerPairing() {
                   return (
                     <div key={request.id} className="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl space-y-3">
                       <p className="text-sm text-red-700 dark:text-red-300 font-medium">
-                        ❌ Permintaan Ditolak
+                        ❌ {t('partnership.rejectRequest').toUpperCase()}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Partner Anda menolak permintaan penghapusan partnership.
+                        {t('partnership.removePartnership')}
                       </p>
                       
                       {request.rejectionReason && (
                         <div className="bg-red-100 dark:bg-red-900/40 p-3 rounded-lg border-l-4 border-red-500">
                           <p className="text-xs font-semibold text-red-900 dark:text-red-200 mb-1">
-                            💬 Alasan Penolakan:
+                            💬 {t('partnership.rejectionReason')}:
                           </p>
                           <p className="text-sm text-red-800 dark:text-red-300 italic whitespace-pre-wrap">
                             "{request.rejectionReason}"
@@ -521,8 +632,8 @@ export default function PartnerPairing() {
                       )}
                       
                       <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg text-sm text-amber-800 dark:text-amber-200">
-                        <p className="font-semibold mb-2">⚠️ Opsi Anda:</p>
-                        <p className="text-xs">Jika Anda tidak puas dengan alasan penolakan ini, Anda dapat menghapus partnership tanpa persetujuan.</p>
+                        <p className="font-semibold mb-2">⚠️ {t('auth.verified')}:</p>
+                        <p className="text-xs">{t('partnership.removePartnership')}</p>
                       </div>
                       
                       <div className="flex gap-2">
@@ -531,7 +642,7 @@ export default function PartnerPairing() {
                           variant="outline"
                           className="flex-1 rounded-lg"
                         >
-                          💭 Terima Penolakan
+                          Dismiss
                         </Button>
                         <Button
                           onClick={() => {
@@ -541,7 +652,7 @@ export default function PartnerPairing() {
                           disabled={isLoading}
                           className="flex-1 rounded-lg bg-red-500 hover:bg-red-600 text-white"
                         >
-                          🚨 Hapus Paksa
+                          Force Remove
                         </Button>
                       </div>
                     </div>
@@ -551,16 +662,16 @@ export default function PartnerPairing() {
                   return (
                     <div key={request.id} className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl space-y-3">
                       <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">
-                        ⏳ Menunggu Konfirmasi Partner
+                        ⏳ {t('common.pending')}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Permintaan penghapusan partnership sedang menunggu respons dari partner.
+                        {t('partnership.removePartnership')}
                       </p>
                       
                       {request.reason && (
                         <div className="bg-blue-100 dark:bg-blue-900/40 p-3 rounded-lg border-l-4 border-blue-500">
                           <p className="text-xs font-semibold text-blue-900 dark:text-blue-200 mb-1">
-                            💬 Alasan Anda:
+                            💬 {t('partnership.reason')}:
                           </p>
                           <p className="text-sm text-blue-800 dark:text-blue-300 italic whitespace-pre-wrap">
                             "{request.reason}"
@@ -575,16 +686,16 @@ export default function PartnerPairing() {
                 return (
                   <div key={request.id} className="bg-red-50 dark:bg-red-900/20 p-4 rounded-xl space-y-3">
                     <p className="text-sm text-red-700 dark:text-red-300 font-medium">
-                      ⚠️ Partner Anda meminta untuk menghapus partnership
+                      ⚠️ {t('partnership.partner')}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {existingPartner?.username} ingin mengakhiri partnership. Apakah Anda setuju?
+                      {existingPartner?.username} {t('partnership.removePartnership')}
                     </p>
                     
                     {request.reason && (
                       <div className="bg-red-100 dark:bg-red-900/40 p-3 rounded-lg border-l-4 border-red-500">
                         <p className="text-xs font-semibold text-red-900 dark:text-red-200 mb-1">
-                          💬 Alasan yang diberikan:
+                          💬 {t('partnership.reason')}:
                         </p>
                         <p className="text-sm text-red-800 dark:text-red-300 italic whitespace-pre-wrap">
                           "{request.reason}"
@@ -599,14 +710,14 @@ export default function PartnerPairing() {
                         variant="outline"
                         className="flex-1 rounded-lg"
                       >
-                        ❌ Tolak Penghapusan
+                        ❌ {t('common.reject')}
                       </Button>
                       <Button
                         onClick={() => handleRespondRemovalRequest(request.id, true)}
                         disabled={isLoading}
                         className="flex-1 rounded-lg bg-red-500 hover:bg-red-600 text-white"
                       >
-                        ✅ Setuju Hapus
+                        ✅ {t('common.accept')}
                       </Button>
                     </div>
                   </div>
@@ -631,16 +742,16 @@ export default function PartnerPairing() {
               className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4"
             >
               <h3 className="text-xl font-bold text-foreground">
-                💬 Alasan Penolakan
+                💬 {t('partnership.rejectionReason')}
               </h3>
               <p className="text-sm text-muted-foreground">
-                Jelaskan mengapa Anda menolak penghapusan partnership ini. Alasan ini akan dilihat oleh partner Anda.
+                {t('partnership.removePartnership')}
               </p>
               
               <textarea
                 value={rejectionReason}
                 onChange={(e) => setRejectionReason(e.target.value)}
-                placeholder="Contoh: Saya masih ingin melanjutkan partnership karena..."
+                placeholder={t('partnership.reason')}
                 className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 rows={4}
               />
@@ -651,14 +762,14 @@ export default function PartnerPairing() {
                   variant="outline"
                   className="flex-1 rounded-lg"
                 >
-                  Batal
+                  {t('common.cancel')}
                 </Button>
                 <Button
                   onClick={handleConfirmRejection}
                   disabled={isLoading || !rejectionReason.trim()}
                   className="flex-1 rounded-lg bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? "Mengirim..." : "Tolak"}
+                  {isLoading ? t('common.sending') : t('common.reject')}
                 </Button>
               </div>
             </motion.div>
@@ -679,21 +790,21 @@ export default function PartnerPairing() {
               className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 border-2 border-red-200 dark:border-red-900/50"
             >
               <h3 className="text-xl font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
-                🚨 Hapus Partnership Paksa
+                🚨 {t('partnership.removePartnership')}
               </h3>
               <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 space-y-3">
                 <p className="text-sm text-red-900 dark:text-red-100">
-                  <strong>⚠️ Perhatian:</strong> Anda akan menghapus partnership tanpa persetujuan partner!
+                  <strong>⚠️ {t('auth.verified')}:</strong> {t('partnership.removePartnership')}
                 </p>
                 <ul className="text-xs text-red-800 dark:text-red-200 space-y-2 ml-4 list-disc">
-                  <li>Partnership akan dihapus secara permanen</li>
-                  <li>Partner tidak dapat membatalkan keputusan ini</li>
-                  <li>Semua data partnership akan hilang</li>
+                  <li>{t('partnership.removePartnership')}</li>
+                  <li>{t('partnership.partner')} {t('common.error')}</li>
+                  <li>{t('partnership.partnership')}</li>
                 </ul>
               </div>
               
               <p className="text-sm text-muted-foreground">
-                Apakah Anda yakin ingin melanjutkan?
+                {t('common.confirmed')}?
               </p>
               
               <div className="flex gap-3">
@@ -702,7 +813,7 @@ export default function PartnerPairing() {
                   variant="outline"
                   className="flex-1 rounded-lg"
                 >
-                  Batal
+                  {t('common.cancel')}
                 </Button>
                 <Button
                   onClick={() => {
@@ -713,7 +824,7 @@ export default function PartnerPairing() {
                   disabled={isLoading || pendingForceDeleteRequestId === null}
                   className="flex-1 rounded-lg bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? "Menghapus..." : "Hapus Paksa"}
+                  {isLoading ? t('common.processing') : t('partnership.removePartnership')}
                 </Button>
               </div>
             </motion.div>
@@ -728,7 +839,7 @@ export default function PartnerPairing() {
         >
           <div className="flex flex-col items-center gap-4">
             <Avatar className="w-32 h-32 border-4 border-pink-200 dark:border-pink-600/30 shadow-xl">
-              <AvatarImage src={existingPartner.avatarUrl || undefined} />
+              <AvatarImage src={existingPartner.avatarUrl ? `/api/avatars/${existingPartner.id}?t=${avatarCacheBuster}` : undefined} />
               <AvatarFallback className="bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 text-4xl font-bold">
                 {existingPartner.username.charAt(0).toUpperCase()}
               </AvatarFallback>
@@ -739,16 +850,16 @@ export default function PartnerPairing() {
                 {existingPartner.username}
               </h3>
               <p className="text-muted-foreground text-sm mt-1">
-                {existingPartner.gender === 'male' ? '👦🏻 Laki-laki' : 
-                 existingPartner.gender === 'female' ? '👧🏻 Perempuan' : 
-                 '🤷 Lainnya'}
+                {existingPartner.gender === 'male' ? t('common.genderMale') : 
+                 existingPartner.gender === 'female' ? t('common.genderFemale') : 
+                 t('common.genderOther')}
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3 w-full">
               <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl p-4">
                 <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                  📊 Jumlah Kartu
+                  {t('partnership.cardCount')}
                 </p>
                 <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">
                   {existingPartner.cardCount}
@@ -759,14 +870,14 @@ export default function PartnerPairing() {
                   ✨ Status
                 </p>
                 <p className="text-sm font-bold text-pink-600 dark:text-pink-400">
-                  Berpasangan
+                  {t('partnership.status.paired')}
                 </p>
               </div>
             </div>
 
             <div className="bg-pink-50 dark:bg-pink-900/20 p-4 rounded-xl w-full">
               <p className="text-xs text-pink-800 dark:text-pink-200 text-center">
-                ❤️ Kalian sudah berpasangan. Nikmati pengalaman bermain bersama!
+                ❤️ {t('partnership.partnership')}
               </p>
             </div>
 
@@ -777,7 +888,7 @@ export default function PartnerPairing() {
                 className="w-full px-4 py-3 flex items-center justify-between bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors"
               >
                 <span className="font-semibold text-red-700 dark:text-red-400 flex items-center gap-2">
-                  ⚠️ Zona Berbahaya
+                  ⚠️ {t('partnership.dangerZone')}
                 </span>
                 <ChevronDown
                   size={20}
@@ -795,13 +906,13 @@ export default function PartnerPairing() {
                   className="px-4 py-4 bg-red-50/50 dark:bg-red-900/5 space-y-3 border-t border-red-200 dark:border-red-900/30"
                 >
                   <p className="text-xs text-red-700 dark:text-red-300">
-                    Tindakan di sini tidak dapat dibatalkan. Gunakan dengan hati-hati!
+                    {t('partnership.removePartnership')}
                   </p>
                   <Button
                     onClick={() => setShowRemoveDialog(true)}
                     className="w-full h-10 rounded-lg bg-red-500 hover:bg-red-600 text-white font-semibold"
                   >
-                    <Trash2 size={16} className="mr-2" /> Hapus Partnership
+                    <Trash2 size={16} className="mr-2" /> {t('partnership.removePartnership')}
                   </Button>
                 </motion.div>
               )}
@@ -828,30 +939,30 @@ export default function PartnerPairing() {
                   <AlertCircle className="w-8 h-8 text-red-500" />
                 </div>
                 <h3 className="text-xl font-bold text-foreground mb-2">
-                  Hapus Partnership?
+                  {t('partnership.removePartnership')}?
                 </h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Anda akan mengirim permintaan penghapusan partnership ke <strong>{existingPartner.username}</strong>. Partner harus menyetujui terlebih dahulu sebelum partnership dihapus.
+                  {t('partnership.removePartnershipMessage', { username: existingPartner?.username })}
                 </p>
                 <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg text-sm text-yellow-800 dark:text-yellow-200 mb-4">
-                  ⚠️ Proses ini memerlukan persetujuan dari kedua pihak agar adil.
+                  ⚠️ {t('partnership.partnership')}
                 </div>
               </div>
               
               <div className="mb-4">
                 <Label htmlFor="removal-reason" className="text-sm font-semibold block mb-2">
-                  💬 Alasan Penghapusan <span className="text-red-500">*</span>
+                  💬 {t('partnership.reason')} <span className="text-red-500">*</span>
                 </Label>
                 <textarea
                   id="removal-reason"
                   value={removalReason}
                   onChange={(e) => setRemovalReason(e.target.value)}
-                  placeholder="Jelaskan alasan Anda ingin menghapus partnership ini..."
+                  placeholder={t('partnership.reason')}
                   className="w-full px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/50 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-500/50"
                   rows={3}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  Partner akan melihat alasan ini saat menerima permintaan
+                  {t('partnership.partner')} {t('partnership.reason')}
                 </p>
               </div>
               
@@ -861,14 +972,14 @@ export default function PartnerPairing() {
                   variant="outline"
                   className="flex-1 rounded-lg"
                 >
-                  Batal
+                  {t('common.cancel')}
                 </Button>
                 <Button
                   onClick={handleInitiateRemoval}
                   disabled={isLoading || !removalReason.trim()}
                   className="flex-1 rounded-lg bg-red-500 hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? "Mengirim..." : "Ya, Hapus"}
+                  {isLoading ? t('common.sending') : t('partnership.removePartnership')}
                 </Button>
               </div>
             </motion.div>
@@ -880,13 +991,19 @@ export default function PartnerPairing() {
 
   return (
     <div className="pb-10">
-      <div className="mb-6 px-2">
-        <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <Heart size={28} className="text-pink-500 fill-pink-500" /> Pasang Partner
-        </h2>
-        <p className="text-muted-foreground text-sm font-medium mt-1">
-          Pasangkan dengan partner Anda untuk berbagi notifikasi 💕
-        </p>
+      {/* Page Header */}
+      <div className="bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-950/20 dark:to-purple-950/20 border-b border-pink-100 dark:border-pink-900/30 mb-6">
+        <div className="px-4 py-8">
+          <div className="flex items-center gap-3 mb-2">
+            <Heart size={32} className="text-pink-500 fill-pink-500" />
+            <h1 className="text-3xl font-bold text-foreground">
+              {t('partnership.title')}
+            </h1>
+          </div>
+          <p className="text-muted-foreground text-sm font-medium">
+            {t('partnership.subtitle')}
+          </p>
+        </div>
       </div>
 
       <motion.div
@@ -905,7 +1022,7 @@ export default function PartnerPairing() {
           <div className="flex items-center gap-2 mb-3">
             <UserIcon size={18} className="text-pink-500" />
             <Label className="text-xs font-semibold text-foreground">
-              ID Pengguna Anda
+              Your ID
             </Label>
           </div>
           <div className="flex gap-2">
@@ -927,7 +1044,7 @@ export default function PartnerPairing() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
-            <span>📋</span> <span>Bagikan ID ini ke partner untuk diterima</span>
+            <span>📋</span> <span>{t('partnership.sendPartnerRequest')}</span>
           </p>
         </motion.div>
 
@@ -938,19 +1055,13 @@ export default function PartnerPairing() {
           transition={{ delay: 0.2 }}
           className="space-y-3 bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-200 dark:border-gray-800 shadow-sm"
         >
-          <div className="flex items-center gap-2">
-            <Search size={18} className="text-pink-500" />
-            <Label htmlFor="partner-id" className="text-xs font-semibold text-foreground">
-              Cari Partner
-            </Label>
-          </div>
           <div className="flex gap-2">
             <Input
               id="partner-id"
               type="number"
               value={partnerUserId}
               onChange={(e) => setPartnerUserId(e.target.value)}
-              placeholder="Masukkan ID partner"
+              placeholder={t('partnership.searchPlaceholder')}
               className="h-12 rounded-xl border-gray-200 dark:border-gray-700 focus:border-pink-500 focus:ring-pink-500/20 bg-gray-50 dark:bg-gray-800"
             />
             <Button
@@ -962,7 +1073,7 @@ export default function PartnerPairing() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground flex items-center gap-1">
-            <span>💡</span> <span>Masukkan ID untuk preview profil partner sebelum mengirim permintaan</span>
+            <span>💡</span> <span>{t('partnership.pairingRequest')}</span>
           </p>
         </motion.div>
 
@@ -975,7 +1086,7 @@ export default function PartnerPairing() {
           >
             <div className="flex gap-4 mb-4">
               <Avatar className="w-20 h-20 shrink-0 border-2 border-pink-200 dark:border-pink-400/30 shadow-md">
-                <AvatarImage src={previewUser.avatarUrl || undefined} />
+                <AvatarImage src={previewUser.avatarUrl ? `/api/avatars/${previewUser.id}?t=${Date.now()}` : undefined} />
                 <AvatarFallback className="bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 font-bold text-lg">
                   {previewUser.username.charAt(0).toUpperCase()}
                 </AvatarFallback>
@@ -984,12 +1095,12 @@ export default function PartnerPairing() {
               <div className="flex-1 flex flex-col justify-center">
                 <h4 className="font-bold text-lg text-foreground">{previewUser.username}</h4>
                 <p className="text-sm text-muted-foreground">
-                  {previewUser.gender === 'male' ? '👦🏻 Laki-laki' : 
-                   previewUser.gender === 'female' ? '👧🏻 Perempuan' : 
-                   '🤷 Lainnya'} • ID: {previewUser.id}
+                  {previewUser.gender === 'male' ? t('common.genderMale') : 
+                   previewUser.gender === 'female' ? t('common.genderFemale') : 
+                   t('common.genderOther')} • ID: {previewUser.id}
                 </p>
                 <div className="mt-2 inline-flex items-center gap-1 bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-lg w-fit">
-                  <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">📊 {previewUser.cardCount} kartu</span>
+                  <span className="text-sm font-semibold text-gray-600 dark:text-gray-400">📊 {previewUser.cardCount} {t('common.cards')}</span>
                 </div>
               </div>
             </div>
@@ -999,7 +1110,7 @@ export default function PartnerPairing() {
               disabled={isLoading}
               className="w-full h-12 rounded-xl bg-pink-500 hover:bg-pink-600 text-white font-semibold shadow-md shadow-pink-500/30"
             >
-              {isLoading ? "⏳ Mengirim..." : "✨ Kirim Permintaan Partnership"}
+              {isLoading ? t('common.sending') : '✨ ' + t('partnership.sendPartnerRequest')}
             </Button>
           </motion.div>
         )}
@@ -1012,7 +1123,7 @@ export default function PartnerPairing() {
             className="space-y-3 bg-white dark:bg-gray-900 p-5 rounded-2xl border-2 border-pink-200 dark:border-pink-900/30 shadow-sm"
           >
             <h4 className="font-semibold text-pink-600 dark:text-pink-400 flex items-center gap-2">
-              <Inbox size={20} /> Permintaan Masuk ({pendingRequests.length})
+              <Inbox size={20} /> {t('partnership.partnerRequests')} ({pendingRequests.length})
             </h4>
 
             {pendingRequests.map((request) => (
@@ -1035,7 +1146,7 @@ export default function PartnerPairing() {
           <p className="text-sm text-pink-900 dark:text-pink-300 flex items-start gap-2">
             <span className="text-base flex-shrink-0">💡</span>
             <span>
-              <strong>Petunjuk:</strong> Bagikan ID Anda ke partner untuk diterima. Partner harus menerima permintaan Anda sebelum partnership resmi.
+              <strong>Instructions:</strong> {t('partnership.instructions')}
             </span>
           </p>
         </motion.div>
@@ -1053,6 +1164,7 @@ function PendingRequestItem({
   onRespond: (requestId: number, accept: boolean) => void;
   isLoading: boolean;
 }) {
+  const { t } = useTranslation();
   const [userInfo, setUserInfo] = React.useState<UserInfo | null>(null);
 
   React.useEffect(() => {
@@ -1081,14 +1193,14 @@ function PendingRequestItem({
     >
       <div className="flex items-center gap-3 flex-1">
         <Avatar className="w-12 h-12 shrink-0 border-2 border-pink-200 dark:border-pink-600/30">
-          <AvatarImage src={userInfo.avatarUrl || undefined} />
+          <AvatarImage src={userInfo.avatarUrl ? `/api/avatars/${userInfo.id}?t=${Date.now()}` : undefined} />
           <AvatarFallback className="bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 font-bold">
             {userInfo.username.charAt(0).toUpperCase()}
           </AvatarFallback>
         </Avatar>
         <div>
           <p className="text-sm font-semibold text-foreground">{userInfo.username}</p>
-          <p className="text-xs text-muted-foreground">📨 Ingin menjadi partner Anda</p>
+          <p className="text-xs text-muted-foreground">📨 {t('partnership.requestPending')}</p>
         </div>
       </div>
       <div className="flex gap-2 shrink-0">
@@ -1099,7 +1211,7 @@ function PendingRequestItem({
           size="sm"
           className="rounded-lg hover:bg-red-100 dark:hover:bg-red-900/20"
         >
-          Tolak
+          {t('common.reject')}
         </Button>
         <Button
           onClick={() => onRespond(request.id, true)}
@@ -1107,7 +1219,7 @@ function PendingRequestItem({
           size="sm"
           className="rounded-lg bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold shadow-md shadow-green-500/30"
         >
-          ✅ Terima
+          ✅ {t('common.accept')}
         </Button>
       </div>
     </motion.div>

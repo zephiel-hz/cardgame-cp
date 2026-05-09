@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { Button } from "@/components/ui/button";
@@ -131,6 +132,7 @@ export function ChatWindow({
   partnerData,
   onBack,
 }: ChatWindowProps) {
+  const { t } = useTranslation();
   const [messageText, setMessageText] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeEmojiCategory, setActiveEmojiCategory] = useState<keyof typeof EMOJI_CATEGORIES>("smileys");
@@ -1012,13 +1014,13 @@ export function ChatWindow({
         onSuccess: () => {
           setLongPressedMessageId(null);
           toast({
-            description: `Reacted with ${emoji}`,
+            description: t('chat.reaction.added', { emoji }),
           });
         },
         onError: () => {
           toast({
-            title: "Error",
-            description: "Failed to add reaction",
+            title: t('chat.error.title'),
+            description: t('chat.reaction.addFailed'),
             variant: "destructive",
           });
         },
@@ -1033,13 +1035,13 @@ export function ChatWindow({
       {
         onSuccess: () => {
           toast({
-            description: `Removed ${emoji} reaction`,
+            description: t('chat.reaction.removed', { emoji }),
           });
         },
         onError: () => {
           toast({
-            title: "Error",
-            description: "Failed to remove reaction",
+            title: t('chat.error.title'),
+            description: t('chat.reaction.removeFailed'),
             variant: "destructive",
           });
         },
@@ -1051,15 +1053,15 @@ export function ChatWindow({
     navigator.clipboard.writeText(content);
     setContextMenuId(null);
     toast({
-      description: "Copied to clipboard",
+      description: t('chat.message.copiedToClipboard'),
     });
   };
 
   const handleDeleteMessage = async (messageId: number, senderId: number) => {
     if (senderId !== userId) {
       toast({
-        title: "Error",
-        description: "You can only delete your own messages",
+        title: t('chat.error.title'),
+        description: t('chat.message.canOnlyDeleteOwn'),
         variant: "destructive",
       });
       return;
@@ -1081,12 +1083,12 @@ export function ChatWindow({
 
       setContextMenuId(null);
       toast({
-        description: "Message deleted",
+        description: t('chat.message.deleteSuccess'),
       });
     } catch (error) {
       toast({
-        title: "Error",
-        description: "Failed to delete message",
+        title: t('chat.error.title'),
+        description: t('chat.message.deleteFailed'),
         variant: "destructive",
       });
     }
@@ -1114,7 +1116,7 @@ export function ChatWindow({
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
           <p className="text-muted-foreground">
-            {isLoading ? "Loading messages..." : "Decrypting messages..."}
+            {isLoading ? t('chat.loading.messages') : t('chat.loading.decrypting')}
           </p>
         </div>
       </div>
@@ -1130,15 +1132,15 @@ export function ChatWindow({
             <button
               onClick={onBack}
               className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-              title="Back"
+              title={t('chat.header.backButton')}
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
           <div className="flex items-center gap-3">
-            {partnerData?.avatarUrl && (
+            {partnerData?.avatarUrl && partnerData?.id && (
               <img 
-                src={partnerData.avatarUrl} 
+                src={`/api/avatars/${partnerData.id}?t=${Date.now()}`} 
                 alt={partnerName}
                 className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-slate-700"
               />
@@ -1146,7 +1148,7 @@ export function ChatWindow({
             <div className="flex flex-col">
               <h2 className="font-semibold text-foreground">{partnerName}</h2>
               <p className="text-xs text-muted-foreground">
-                {partnerStatus?.lastSeenText || "Loading..."}
+                {partnerStatus?.lastSeenText || t('common.loading')}
               </p>
             </div>
           </div>
@@ -1285,7 +1287,7 @@ export function ChatWindow({
                                 ? "bg-blue-400 border-white text-blue-50"
                                 : "bg-gray-200 dark:bg-slate-700 border-gray-400 dark:border-slate-600 text-foreground"
                             }`}>
-                            <p className="text-xs font-medium opacity-80 mb-1 text-left">{referencedMsg.senderId === userId ? "You" : partnerName}</p>
+                            <p className="text-xs font-medium opacity-80 mb-1 text-left">{referencedMsg.senderId === userId ? t('chat.common.you') : partnerName}</p>
                             <p className="opacity-80 text-xs break-all overflow-hidden line-clamp-3 text-left">{replyContent}</p>
                           </button>
                         );
@@ -1308,7 +1310,7 @@ export function ChatWindow({
                         msg.senderId === userId ? "justify-end" : "justify-start"
                       } text-muted-foreground`}>
                         {msg.senderId === userId && (
-                          <span>{msg.isRead ? "read" : "sent"}</span>
+                          <span>{msg.isRead ? t('chat.message.status.read') : t('chat.message.status.sent')}</span>
                         )}
                         <span>
                           {new Date(msg.createdAt).toLocaleTimeString("id-ID", {
@@ -1431,29 +1433,29 @@ export function ChatWindow({
                           <button
                             onClick={() => handleReply(msg)}
                             className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-3 text-foreground"
-                            title="Reply to message"
+                            title={t('chat.contextMenu.reply')}
                           >
                             <CornerUpLeft className="w-4 h-4" />
-                            Reply
+                            {t('chat.contextMenu.reply')}
                           </button>
                           
                           <button
                             onClick={() => handleCopyMessage(msg.content)}
                             className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-3 text-foreground"
-                            title="Copy message text"
+                            title={t('chat.contextMenu.copy')}
                           >
                             <Copy className="w-4 h-4" />
-                            Copy
+                            {t('chat.contextMenu.copyButton')}
                           </button>
                           
                           {msg.senderId === userId && (
                             <button
                               onClick={() => handleDeleteMessage(msg.id, msg.senderId)}
                               className="w-full text-left px-4 py-2 text-sm hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors flex items-center gap-3 text-red-500 hover:text-red-600 dark:hover:text-red-400 border-t border-gray-200 dark:border-slate-700"
-                              title="Delete message (only visible for your own messages)"
+                              title={t('chat.contextMenu.deleteTooltip')}
                             >
                               <Trash2 className="w-4 h-4" />
-                              Delete
+                              {t('chat.contextMenu.deleteButton')}
                             </button>
                           )}
                         </div>
@@ -1474,7 +1476,7 @@ export function ChatWindow({
       {replyTo && (
         <div className="w-full max-w-full overflow-hidden border-t border-l-4 border-blue-400 bg-blue-50 dark:bg-slate-800/50 px-3 py-2 flex gap-2 user-select-none">
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1 text-left truncate">{replyTo.senderId === userId ? "You" : partnerName}</p>
+            <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1 text-left truncate">{replyTo.senderId === userId ? t('chat.common.you') : partnerName}</p>
             <p className="text-sm text-gray-700 dark:text-gray-300 break-all overflow-hidden line-clamp-2 text-left w-full">
               {decryptMessageContentSafely(
                 replyTo.content,
@@ -1504,7 +1506,7 @@ export function ChatWindow({
         <Input
           value={messageText}
           onChange={(e) => setMessageText(e.target.value)}
-          placeholder="Type Message"
+          placeholder={t('chat.input.placeholder')}
           disabled={sendMessageMutation.isPending}
           className="flex-1 rounded-full px-4 py-2 border border-gray-200 dark:border-slate-700 bg-gray-100 dark:bg-slate-800 focus:border-blue-500 focus:bg-white dark:focus:bg-slate-900 transition-all focus:outline-none"
         />
@@ -1514,7 +1516,7 @@ export function ChatWindow({
             type="button"
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
             className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-            title="Add emoji"
+            title={t('chat.emoji.addButton')}
           >
             <Smile className="w-5 h-5 text-yellow-500" />
           </button>
@@ -1529,7 +1531,7 @@ export function ChatWindow({
                   type="button"
                   onClick={(e) => { e.stopPropagation(); scrollCategories('left'); }}
                   className="flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-                  title="Scroll left"
+                  title={t('chat.emoji.scrollLeft')}
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </button>
@@ -1558,7 +1560,7 @@ export function ChatWindow({
                   type="button"
                   onClick={(e) => { e.stopPropagation(); scrollCategories('right'); }}
                   className="flex-shrink-0 p-2 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-                  title="Scroll right"
+                  title={t('chat.emoji.scrollRight')}
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>

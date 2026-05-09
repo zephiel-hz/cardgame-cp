@@ -558,6 +558,12 @@ export const WS_EVENTS = {
   TRADE_REJECTED: 'trade_rejected',
   TRADE_CANCELLED: 'trade_cancelled',
   TRADE_COMPLETED: 'trade_completed',
+  PARTNERSHIP_REQUEST_RECEIVED: 'partnership_request_received',
+  PARTNERSHIP_REQUEST_SENT: 'partnership_request_sent',
+  PARTNERSHIP_REQUEST_ACCEPTED: 'partnership_request_accepted',
+  PARTNERSHIP_REQUEST_REJECTED: 'partnership_request_rejected',
+  PARTNERSHIP_REMOVAL_REQUEST_RECEIVED: 'partnership_removal_request_received',
+  PARTNERSHIP_REMOVAL_REQUEST_RESPONDED: 'partnership_removal_request_responded',
 } as const;
 
 export interface WsMessage<T = unknown> {

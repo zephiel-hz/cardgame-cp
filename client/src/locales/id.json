@@ -1,0 +1,786 @@
+{
+  "common": {
+    "accept": "Terima",
+    "reject": "Tolak",
+    "cancel": "Batal",
+    "save": "Simpan",
+    "delete": "Hapus",
+    "edit": "Edit",
+    "close": "Tutup",
+    "loading": "Memuat...",
+    "error": "Kesalahan",
+    "success": "Berhasil",
+    "back": "Kembali",
+    "next": "Lanjut",
+    "previous": "Sebelumnya",
+    "send": "Kirim",
+    "submit": "Kirim",
+    "logout": "Keluar",
+    "settings": "Pengaturan",
+    "profile": "Profil",
+    "noData": "Tidak ada data",
+    "empty": "Kosong",
+    "search": "Cari",
+    "filter": "Filter",
+    "sort": "Urutkan",
+    "pending": "Menunggu",
+    "completed": "Selesai",
+    "active": "Aktif",
+    "inactive": "Tidak Aktif",
+    "processing": "Memproses",
+    "confirmed": "Dikonfirmasi",
+    "noPartner": "Belum Ada Mitra",
+    "partner": "Mitra",
+    "switchLanguage": "Ganti ke Bahasa Inggris",
+    "verifying": "Memverifikasi...",
+    "sending": "Mengirim...",
+    "genderMale": "👦🏻 Laki-laki",
+    "genderFemale": "👧🏻 Perempuan",
+    "genderOther": "🤷 Lainnya",
+    "cards": "kartu",
+    "greeting": "✨ Hai Sayang!",
+    "navGacha": "Gacha",
+    "navInventory": "Koleksi",
+    "navActive": "Aktif",
+    "navPartner": "Partner",
+    "navTrade": "Trade"
+  },
+  "time": {
+    "hour": "jam",
+    "hours": "jam",
+    "day": "hari",
+    "days": "hari",
+    "minute": "menit",
+    "minutes": "menit",
+    "second": "detik",
+    "seconds": "detik",
+    "week": "minggu",
+    "weeks": "minggu",
+    "month": "bulan",
+    "months": "bulan",
+    "today": "Hari ini",
+    "yesterday": "Kemarin",
+    "tomorrow": "Besok",
+    "ago": "lalu",
+    "in": "dalam",
+    "justNow": "Baru saja",
+    "expired": "Kadaluarsa",
+    "expires": "Berakhir",
+    "ongoing": "Sedang Berlangsung",
+    "completed": "Selesai",
+    "remaining": "Tersisa",
+    "duration": "Durasi",
+    "progress": "Progres"
+  },
+  "game": {
+    "cardTitle": "Kartu",
+    "cards": "Kartu",
+    "collection": "Koleksi",
+    "inventory": "Koleksi Kartu",
+    "emptyCollection": "Koleksi Kosong",
+    "tier": "Tier",
+    "rarity": "Kelangkaan",
+    "description": "Deskripsi",
+    "duration": "Durasi",
+    "active": "Aktif",
+    "activeCards": "Kartu Aktif",
+    "inactive": "Tidak Aktif",
+    "used": "Digunakan",
+    "trade": "Tukar",
+    "trading": "Pertukaran Kartu",
+    "offer": "Tawaran",
+    "offers": "Tawaran",
+    "acceptOffer": "Terima Tawaran",
+    "rejectOffer": "Tolak Tawaran",
+    "makeOffer": "Buat Tawaran",
+    "yourCards": "Kartu Kamu",
+    "theirCards": "Kartu Mereka",
+    "selectCard": "Pilih Kartu",
+    "confirming": "Mengonfirmasi...",
+    "dailyGacha": "Gacha Harian",
+    "gacha": "Gacha",
+    "draw": "Tarik",
+    "drawCard": "Tarik Kartu",
+    "remaining": "Tersisa",
+    "drawToday": "Tarikan Hari Ini",
+    "nextDrawIn": "Tarikan Berikutnya Dalam",
+    "totalDraws": "Total Tarikan"
+  },
+  "inventory": {
+    "title": "Koleksi Kartumu",
+    "subtitle": "Gunakan kartu ini untuk meminta sesuatu dari pasanganmu!",
+    "cards": "Kartu",
+    "all": "Semua",
+    "sortLabel": "Sortir:",
+    "found": "Ditemukan {{count}} kartu",
+    "noResults": "Tidak ada kartu yang cocok dengan filter",
+    "new": "Baru",
+    "description": "Deskripsi",
+    "partnerRequired": "⚠️ Kamu harus memiliki partner terlebih dahulu untuk menggunakan kartu ini.",
+    "infoTip": "💡 Kartu ini dapat digunakan untuk meminta sesuatu dari pasanganmu. Durasi aktif adalah {{duration}}.",
+    "use": "Gunakan",
+    "close": "Tutup",
+    "processing": "Diproses...",
+    "empty": "Koleksi Kosong",
+    "emptyMessage": "Ayo pergi ke tab Gacha untuk menarik kartu baru!",
+    "searchPlaceholder": "Cari nama atau deskripsi kartu...",
+    "filterLabel": "Filter",
+    "cardDetails": "Detail Kartu",
+    "durationLabel": "Durasi",
+    "confirmation": "Konfirmasi Penggunaan Kartu",
+    "confirmUseCard": "Yakin ingin menggunakan kartu ini?",
+    "confirming": "Mengonfirmasi...",
+    "cardWarning": "⚠️ Kartu akan aktif selama {{duration}} dan tidak dapat dibatalkan.",
+    "confirmButton": "Ya, Gunakan",
+    "success": "Berhasil!",
+    "error": "Gagal",
+    "failedToUse": "Gagal menggunakan kartu",
+    "noCards": "Kamu belum punya kartu",
+    "sort": {
+      "nameAZ": "Nama (A-Z)",
+      "tierHighest": "Tier (Tertinggi)",
+      "tierLowest": "Tier (Terendah)",
+      "duration": "Durasi"
+    },
+    "selectQuantity": "Pilih Jumlah Kartu",
+    "available": "Tersedia",
+    "cardTitle": "Kartu Aktif!",
+    "cardUsed": "Kamu telah menggunakan kartu: {{cardName}}",
+    "cardError": "Gagal",
+    "searchEmpty": "Tidak ada kartu yang cocok dengan filter",
+    "cardCount": "kartu",
+    "offersCards": "{{partner}} tawar {{count}} kartu",
+    "offeredCards": "Kartu yang ditawar:",
+    "selectYourOffer": "Pilih penawaran Anda ({{count}} dipilih):",
+    "howManyCards": "Berapa kartu?",
+    "selectCards": "Pilih",
+    "confirmTrade": "Konfirmasi Pertukaran Kartu",
+    "checkAndMessage": "Cek kartu dan tulis pesan (opsional)",
+    "cardOffering": "Kartu yang Ditawarkan ({{count}}):",
+    "optionalMessage": "Pesan (opsional)",
+    "messagePlaceholder": "Tulis pesan... (misal: 'Ini kartu favoritku!' atau biarkan kosong)"
+  },
+  "trading": {
+    "title": "Tukar Kartu",
+    "noPartner": "Belum Ada Mitra",
+    "noPartnerMessage": "Buat mitra dulu sebelum bisa tukar kartu. Cari mitra di halaman Mitra!",
+    "tabs": {
+      "initiate": "Tukar",
+      "received": "Permintaan",
+      "history": "Riwayat"
+    },
+    "partner": "Terhubung dengan",
+    "selectCards": "Pilih Kartu untuk Ditukar",
+    "selectDescription": "Pilih kartu dari koleksimu",
+    "selected": "kartu dipilih",
+    "types": "tipe",
+    "search": "Cari nama kartu...",
+    "noCards": "Belum ada kartu. Tarik di Gacha dulu!",
+    "cardsNotFound": "Kartu tidak ditemukan",
+    "loading": "Memuat koleksi...",
+    "ready": "Siap",
+    "confirmOffer": "Pastikan Penawaranmu",
+    "confirmDescription": "Cek dulu sebelum kirim ke {{partner}}",
+    "offering": "Kartu yang Kamu Tawarkan:",
+    "message": "Pesan:",
+    "info": "{{partner}} akan memilih kartu apa yang mau ditukar balik. Nanti terserah kamu terima atau tolak!",
+    "success": "✅ Pertukaran Selesai!",
+    "successDesc": "Pertukaran kartu dengan {{partner}} berhasil diselesaikan!",
+    "cancelled": "❌ Pertukaran Dibatalkan",
+    "cancelledDesc": "Pertukaran kartu dengan {{partner}} telah dibatalkan.",
+    "confirmTradeTitle": "Konfirmasi Pertukaran Kartu",
+    "confirmTradeMessage": "Kirim penawaran ini ke {{partner}}?",
+    "trading": "Pertukaran Kartu",
+    "makeOffer": "Buat Tawaran",
+    "viewOffers": "Lihat Tawaran",
+    "offer": "Tawaran",
+    "offers": "Tawaran",
+    "sent": "Terkirim",
+    "received": "Diterima",
+    "accepted": "Diterima",
+    "rejected": "Ditolak",
+    "expired": "Kadaluarsa",
+    "pending": "Menunggu",
+    "selectPlaymate": "Pilih Teman Bermain",
+    "selectCard": "Pilih Kartu",
+    "yourCard": "Kartu Kamu",
+    "theirCard": "Kartu Mereka",
+    "requestTrade": "Ajukan Pertukaran",
+    "acceptTrade": "Terima Pertukaran",
+    "rejectTrade": "Tolak Pertukaran",
+    "cancelOffer": "Batalkan Tawaran",
+    "tradeHistory": "Riwayat Pertukaran",
+    "noOffers": "Tidak Ada Tawaran",
+    "noHistory": "Tidak ada riwayat pertukaran. Pertukaran pertama Anda akan muncul di sini!",
+    "noIncomingOffers": "Tidak ada tawaran masuk. {{partner}} belum menawarkan kartu!",
+    "continue": "Lanjutkan dengan {{count}} kartu",
+    "offerTo": "Tawaran ke {{partner}}",
+    "loadingCards": "Memuat kartu...",
+    "viewAndSelectCards": "Lihat & Pilih Kardumu →",
+    "status": {
+      "success": "Berhasil",
+      "cancelled": "Batal"
+    },
+    "sentTo": "📤 Dikirim ke",
+    "receivedFrom": "📥 Diterima dari",
+    "cardCounts": "{{offered}} ditawarkan • {{received}} diterima",
+    "tier": {
+      "common": "Common",
+      "rare": "Rare",
+      "epic": "Epic",
+      "ssr": "SSR"
+    },
+    "error": {
+      "noCardSelected": "Pilih setidaknya satu kartu untuk ditukar",
+      "noCardSelectedOffer": "Pilih setidaknya satu kartu untuk ditawarkan sebagai pertukaran"
+    },
+    "waiting": "Menunggu",
+    "hoursLeft": "{{count}}jam lagi"
+  },
+  "chat": {
+    "messages": "Pesan",
+    "chat": "Obrolan",
+    "typeMessage": "Ketik pesan...",
+    "send": "Kirim",
+    "sendMessage": "Kirim Pesan",
+    "loading": "Memuat pesan...",
+    "loadingDecrypt": "Mendekripsi pesan...",
+    "noMessages": "Belum ada pesan",
+    "noPartner": "Belum Ada Mitra",
+    "selectPartnerToChat": "Pilih mitra untuk berobrolan",
+    "findPartner": "Cari Mitra",
+    "message": "Pesan",
+    "latestMessage": "Pesan Terakhir",
+    "reaction": "Reaksi",
+    "reactWithEmoji": "Reaksi dengan emoji",
+    "reply": "Balas",
+    "replyTo": "Balas ke",
+    "quoted": "Dikutip",
+    "edited": "Diedit",
+    "deleted": "Dihapus",
+    "typing": "sedang mengetik...",
+    "online": "Online",
+    "offline": "Offline",
+    "lastSeen": "Terakhir online",
+    "input": {
+      "placeholder": "Ketik Pesan",
+      "sendButton": "Kirim",
+      "addEmoji": "Tambah emoji"
+    },
+    "header": {
+      "backButton": "Kembali"
+    },
+    "loading": {
+      "messages": "Memuat pesan...",
+      "decrypting": "Mendekripsi pesan..."
+    },
+    "reaction": {
+      "added": "Bereaksi dengan {{emoji}}",
+      "addFailed": "Gagal menambah reaksi",
+      "removed": "Hapus {{emoji}} reaksi",
+      "removeFailed": "Gagal menghapus reaksi"
+    },
+    "message": {
+      "copiedToClipboard": "Disalin ke clipboard",
+      "canOnlyDeleteOwn": "Anda hanya bisa menghapus pesan Anda sendiri",
+      "deleteFailed": "Gagal menghapus pesan",
+      "deleteSuccess": "Pesan dihapus",
+      "contentUnavailable": "[Konten pesan tidak tersedia]",
+      "status": {
+        "read": "dibaca",
+        "sent": "terkirim"
+      }
+    },
+    "contextMenu": {
+      "reply": "Balas pesan",
+      "copy": "Salin teks pesan",
+      "copyButton": "Salin",
+      "deleteTooltip": "Hapus pesan (hanya terlihat untuk pesan Anda sendiri)",
+      "deleteButton": "Hapus",
+      "moreOptions": "Opsi lainnya"
+    },
+    "emoji": {
+      "addButton": "Tambah emoji",
+      "scrollLeft": "Gulir ke kiri",
+      "scrollRight": "Gulir ke kanan"
+    },
+    "common": {
+      "you": "Kamu"
+    },
+    "error": {
+      "title": "Kesalahan"
+    }
+  },
+  "partnership": {
+    "partnership": "Partnership",
+    "partners": "Mitra",
+    "findPartner": "Cari Mitra",
+    "partner": "Mitra",
+    "pairingRequest": "Permintaan Pasangan",
+    "sendPartnerRequest": "Kirim Permintaan Mitra",
+    "partnerRequests": "Permintaan Mitra",
+    "acceptRequest": "Terima Permintaan",
+    "rejectRequest": "Tolak Permintaan",
+    "removePartnership": "Hapus Partnership",
+    "removePartnershipMessage": "Hapus partnership dengan {{username}}. Tindakan ini tidak dapat dibatalkan.",
+    "reason": "Alasan",
+    "requestRejected": "Permintaan Ditolak",
+    "rejectionReason": "Alasan Penolakan",
+    "partnershipRemoved": "Partnership Dihapus",
+    "removalReason": "Alasan Penghapusan",
+    "noPartner": "Belum Ada Mitra",
+    "requestPending": "Permintaan Menunggu",
+    "requestSent": "Permintaan Terkirim",
+    "cardCount": "📊 Jumlah Kartu",
+    "status": {
+      "paired": "Berpasangan"
+    },
+    "searchPlaceholder": "Masukkan ID partner",
+    "instructions": "Bagikan ID Anda ke partner untuk diterima. Partner harus menerima permintaan Anda sebelum partnership resmi.",
+    "wantPartner": "📨 Ingin menjadi partner Anda",
+    "title": "Temukan Pasangan Anda",
+    "subtitle": "Terhubung dengan orang spesial Anda untuk membuka fitur partnership eksklusif",
+    "yourPartner": "Partnermu",
+    "dangerZone": "Zona Bahaya",
+    "dangerZoneDescription": "Ini adalah area yang berbahaya. Menghapus partnership Anda tidak dapat dibatalkan."
+  },
+  "profile": {
+    "profile": "Profil",
+    "settings": "Pengaturan",
+    "editProfile": "Edit Profil",
+    "username": "Nama Pengguna",
+    "email": "Email",
+    "gender": "Jenis Kelamin",
+    "changePIN": "🔐 Ubah PIN",
+    "currentPIN": "PIN Saat Ini",
+    "newPIN": "PIN Baru",
+    "confirmPIN": "Konfirmasi PIN",
+    "save": "Simpan",
+    "cancel": "Batal",
+    "updated": "Berhasil diperbarui",
+    "language": "Bahasa",
+    "selectLanguage": "Pilih Bahasa",
+    "english": "English",
+    "avatarTooltip": "Klik untuk mengubah foto profil",
+    "switchToLightMode": "Ganti ke Mode Terang",
+    "switchToDarkMode": "Ganti ke Mode Gelap",
+    "indonesian": "Bahasa Indonesia",
+    "preference": "Preferensi",
+    "privateMode": "Mode Pribadi",
+    "notifications": "Notifikasi",
+    "manageSecurityPin": "Kelola PIN keamanan akun Anda",
+    "avatar": "Avatar",
+    "uploadPhoto": "Unggah Foto",
+    "deletePhoto": "Hapus Foto",
+    "changeEmail": "Ubah Email",
+    "darkMode": "Mode Gelap",
+    "lightMode": "Mode Terang",
+    "switchToDarkMode": "Ganti ke Mode Gelap",
+    "switchToLightMode": "Ganti ke Mode Terang",
+    "logout": "Keluar",
+    "errors": {
+      "oldPinMust": "PIN Lama harus 4 digit",
+      "newPinMust": "PIN Baru harus 4 digit",
+      "pinMustMatch": "PIN Baru tidak cocok",
+      "pinMustDifferent": "PIN Baru harus berbeda dari PIN Lama",
+      "failedToChange": "Gagal mengubah PIN",
+      "failedToUpdateProfile": "Gagal memperbarui profil"
+    },
+    "success": {
+      "pinChanged": "PIN berhasil diubah!",
+      "photoUploaded": "Foto berhasil diunggah!",
+      "photoDeleted": "Foto profil berhasil dihapus!",
+      "profileUpdated": "Profil berhasil diperbarui!"
+    },
+    "changePinModal": {
+      "title": "Ubah PIN",
+      "oldPin": "PIN Lama",
+      "newPin": "PIN Baru",
+      "confirmNewPin": "Konfirmasi PIN Baru",
+      "save": "Simpan PIN Baru",
+      "saving": "Menyimpan..."
+    },
+    "changeEmailModal": {
+      "title": "Ubah Email",
+      "newEmail": "Email Baru",
+      "verification": "Verifikasi Email Baru",
+      "sendVerificationCode": "Kirim Kode Verifikasi",
+      "enterCode": "Masukkan Kode Verifikasi",
+      "verifyCode": "Verifikasi Code",
+      "checkYourEmail": "Cek email Anda untuk kode verifikasi"
+    }
+  },
+  "auth": {
+    "login": "Masuk",
+    "logout": "Keluar",
+    "register": "Daftar",
+    "username": "Nama Pengguna",
+    "pin": "PIN",
+    "gender": "Jenis Kelamin",
+    "male": "Laki-laki",
+    "female": "Perempuan",
+    "other": "Lainnya",
+    "enterUsername": "Masukkan nama pengguna Anda",
+    "enterPIN": "Masukkan PIN Anda",
+    "selectGender": "Pilih jenis kelamin Anda",
+    "loginFailed": "Gagal masuk",
+    "registrationFailed": "Pendaftaran gagal",
+    "invalidCredentials": "Kredensial tidak valid",
+    "required": "Diperlukan",
+    "orContinueWith": "Atau lanjutkan dengan",
+    "email": "Email",
+    "pinLoginTitle": "Masuk {{username}}",
+    "pinLoginSubtitle": "Masukkan PIN kamu untuk login",
+    "pinDigits": "PIN (4 Digit)",
+    "loginNow": "Masuk Sekarang",
+    "verifying": "Memverifikasi...",
+    "backToLogin": "← Kembali ke Login",
+    "registerForm": {
+      "title": "Daftar Akun Baru",
+      "subtitle": "Buat akun untuk memulai",
+      "createAccount": "Buat Akun",
+      "usernameLabel": "Nama Pengguna",
+      "emailLabel": "Email",
+      "pinLabel": "PIN (4 Digit)",
+      "genderLabel": "Jenis Kelamin",
+      "verifyEmail": "Verifikasi Email",
+      "verifyEmailDescription": "Kami telah mengirim kode ke email Anda",
+      "verifyEmailTitle": "Verifikasi Email",
+      "enterVerificationCode": "Masukkan kode verifikasi",
+      "sendCode": "Kirim Kode",
+      "verifyCode": "Verifikasi Kode",
+      "resendCode": "Kirim Ulang Kode",
+      "sendingCode": "Mengirim kode...",
+      "verifyingCode": "Memverifikasi kode..."
+    },
+    "loginForm": {
+      "title": "Login",
+      "subtitle": "Masukkan username dan PIN kamu",
+      "usernameLabel": "Nama Pengguna",
+      "usernamePassword": "Nama Pengguna/PIN",
+      "pinDigitsLabel": "PIN (4 Digit)",
+      "loginButton": "Masuk Sekarang"
+    },
+    "savedAccounts": "Akun Tersimpan",
+    "errors": {
+      "registerFailed": "Register Gagal",
+      "usernameTaken": "Username mungkin sudah digunakan",
+      "registerError": "Gagal register. Coba lagi.",
+      "error": "Error"
+    },
+    "orContinueToRegister": "Atau lanjutkan ke Register",
+    "orBackToLogin": "Atau kembali ke Login",
+    "title": "Gacha Kartu Bareng Pasangan",
+    "subtitle": "Masuk untuk kumpulkan kartu kejutan! 💕",
+    "emailRequired": "Email (Wajib Verifikasi)",
+    "emailPlaceholder": "nama@email.com",
+    "verified": "Terverifikasi",
+    "sendVerificationCode": "Kirim Kode Verifikasi",
+    "tokenPlaceholder": "Token dari email",
+    "selectAccount": "Pilih akun untuk melanjutkan",
+    "loginAs": "Masuk {{username}}",
+    "loginUsername": "Masuk {{username}}",
+    "loginOtherAccount": "Masuk ke Akun Lain",
+    "enterPinToLogin": "Masukkan PIN kamu untuk login",
+    "enterUsernamePin": "Masukkan username dan PIN kamu",
+    "backToSavedAccounts": "← Kembali ke Akun Tersimpan",
+    "backToSavedAccounts2": "← Kembali ke Akun Tersimpan",
+    "registerNew": "Daftar Akun Baru",
+    "registerSubtitle": "Buat akun untuk bermain Gacha Kartu",
+    "createAccount": "Buat Akun",
+    "creatingAccount": "Membuat Akun...",
+    "usernameMinimum": "Minimal 3 karakter",
+    "genderMale": "👦🏻 Laki-laki",
+    "genderFemale": "👧🏻 Perempuan",
+    "genderOther": "🤷 Lainnya",
+    "noAccountRegister": "Belum punya akun? Daftar di sini",
+    "errors": {
+      "registerFailed": "Register Gagal",
+      "usernameTaken": "Username mungkin sudah digunakan",
+      "registerError": "Gagal register. Coba lagi.",
+      "error": "Kesalahan",
+      "enterPin": "Silakan masukkan PIN Anda",
+      "enterEmail": "Silakan masukkan email terlebih dahulu",
+      "enterToken": "Silakan masukkan kode verifikasi dari email Anda",
+      "fillCredentials": "Silakan masukkan username dan PIN",
+      "completeRequired": "Silakan isi semua field yang diperlukan",
+      "invalidCredentials": "Username atau PIN tidak valid",
+      "pinIncorrect": "PIN tidak benar",
+      "pinMinimum": "PIN minimal 4 digit",
+      "emailVerificationRequired": "Email harus diverifikasi terlebih dahulu",
+      "loginFailed": "Login Gagal",
+      "loginError": "Gagal login. Silakan coba lagi."
+    }
+  },
+  "gacha": {
+    "title": "Gacha Harian",
+    "subtitle": "Dapatkan kartu kejutan untuk pasanganmu!",
+    "remainingPulls": "Sisa Tarikan",
+    "timeToReset": "Waktu Hingga Reset",
+    "pullNow": "Tarik Kartu Sekarang",
+    "noPullsRemaining": "Tidak ada tarikan tersisa",
+    "pullRecords": "Riwayat Tarikan",
+    "noRecords": "Tidak ada riwayat tarikan",
+    "pullRate": "Tingkat Penarikan",
+    "commonRate": "Common: 60%",
+    "rareRate": "Rare: 25%",
+    "epicRate": "Epic: 10%",
+    "ssrRate": "SSR: 5%",
+    "failedToPull": "Gagal menarik kartu",
+    "information": "Informasi Gacha",
+    "resetLabel": "Reset Gacha",
+    "resetTimes": "Pukul 06:00 & 18:00 WIB",
+    "pullsPerLabel": "Tarikan/Periode",
+    "pullsPerPeriod": "Maksimal 2 tarikan per periode",
+    "rateComposition": "Komposisi Rate",
+    "ssr": "SSR: 10%",
+    "epic": "Epic: 15%",
+    "rare": "Rare: 25%",
+    "common": "Common: 50%",
+    "ssrNotificationLabel": "Notifikasi SSR",
+    "ssrNotification": "Pasanganmu akan mendapat notifikasi jika kamu mendapatkan kartu SSR"
+  },
+  "activeCards": {
+    "title": "Status Saat Ini",
+    "subtitle": "Kartu yang sedang aktif dan pantang dilanggar! 😤",
+    "myCards": "Kartu Saya",
+    "partnerCards": "Kartu {{partner}}",
+    "currentStatus": "Status Saat Ini",
+    "noActiveCards": "Belum Ada Kartu Aktif",
+    "noPartner": "Belum Ada Mitra",
+    "noPartnerMessage": "Kamu harus memiliki partner terlebih dahulu untuk melihat kartu aktif mereka.",
+    "empty": "Aman Sentosa",
+    "emptyMessage": "Tidak ada kartu yang sedang aktif saat ini. Saatnya menggunakan kartu mu! 🎯",
+    "progress": "Progres",
+    "total": "Total",
+    "remainingTime": "Sisa Waktu",
+    "baseLabel": "Base",
+    "totalLabel": "Total",
+    "stacked": "bertumpuk",
+    "stacked2": "bertumpuk",
+    "durationLabel": "Durasi",
+    "findPartner": "Cari Mitra"
+  },
+  "partnerPairing": {
+    "title": "Pasangan Anda",
+    "findPartnerTitle": "Cari Mitra",
+    "sendRequest": "Kirim Permintaan",
+    "partnerRequests": "Permintaan dari Mitra",
+    "pendingRequests": "Permintaan Menunggu",
+    "accept": "Terima",
+    "reject": "Tolak",
+    "remove": "Hapus Partnership",
+    "reason": "Alasan",
+    "removePartnershipTitle": "Hapus Partnership",
+    "confirm": "Konfirmasi",
+    "rejectionReason": "Alasan Penolakan",
+    "removalReason": "Alasan Penghapusan",
+    "errors": {
+      "failedToSend": "Gagal mengirim permintaan",
+      "failedToAccept": "Gagal menerima permintaan",
+      "failedToReject": "Gagal menolak permintaan",
+      "failedToRemove": "Gagal menghapus partnership"
+    },
+    "success": {
+      "requestSent": "Permintaan terkirim!",
+      "requestAccepted": "Permintaan diterima!",
+      "requestRejected": "Permintaan ditolak ",
+      "partnershipRemoved": "Partnership dihapus"
+    }
+  },
+  "notFound": {
+    "title": "404 - Halaman Tidak Ditemukan",
+    "message": "Halaman yang Anda cari tidak ditemukan",
+    "goHome": "Kembali ke Beranda",
+    "didYouForget": "Apakah Anda lupa sesuatu?"
+  },
+  "errors": {
+    "somethingWentWrong": "Ada yang tidak beres",
+    "networkError": "Kesalahan jaringan",
+    "tryAgain": "Coba Lagi",
+    "pageNotFound": "Halaman Tidak Ditemukan",
+    "notFound404": "404 - Halaman Tidak Ditemukan",
+    "goHome": "Kembali ke Beranda",
+    "error": "Kesalahan",
+    "failedPull": "Gagal",
+    "failedToPull": "Tidak bisa menarik kartu"
+  },
+  "cards": {
+    "card_1": {
+      "name": "Kartu PAP Random",
+      "description": "Target wajib kirim foto selfie random saat itu juga!"
+    },
+    "card_2": {
+      "name": "Kartu Mode Alien",
+      "description": "Selama 15 menit, target balas chat wajib pakai tambahan kata aneh/typo."
+    },
+    "card_3": {
+      "name": "Kartu Kirim Meme",
+      "description": "Target wajib kirim 1 meme random/stiker paling jelek."
+    },
+    "card_4": {
+      "name": "Kartu VN Konser Fals",
+      "description": "Target wajib kirim VN nyanyi lagu anak-anak."
+    },
+    "card_5": {
+      "name": "Kartu Boleh Marah 20 Menit",
+      "description": "Pengguna ngomel bebas, target cuma boleh bilang 'Iya, kamu bener'."
+    },
+    "card_6": {
+      "name": "Kartu Aku Bosnya",
+      "description": "Selama 30 menit, target wajib panggil dengan sebutan 'Paduka/Bos'."
+    },
+    "card_7": {
+      "name": "Kartu Ketik Pakai Hidung",
+      "description": "Target wajib ngetik 'Aku sayang banget sama kamu' pakai hidung tanpa hapus typo."
+    },
+    "card_8": {
+      "name": "Kartu Pantun Maksa",
+      "description": "Untuk 5 chat ke depan (selama aktif), balas pesan pakai pantun."
+    },
+    "card_9": {
+      "name": "Kartu Pause Ngambek",
+      "description": "Target wajib langsung kirim foto senyum dan batal ngambek detik itu juga."
+    },
+    "card_10": {
+      "name": "Kartu Ganti Nama Kontak",
+      "description": "Tentukan nama kontak memalukan di HP target selama 24 jam. Wajib SS."
+    },
+    "card_11": {
+      "name": "Kartu Jin Aladdin Virtual",
+      "description": "Minta tolong satu hal remeh dan target tidak boleh menolak."
+    },
+    "card_12": {
+      "name": "Kartu Suara Robot",
+      "description": "Target wajib membalas pakai Voice Note dengan gaya bicara patah-patah seperti robot."
+    },
+    "card_13": {
+      "name": "Kartu Emoji Only",
+      "description": "Untuk 5 chat ke depan, target hanya boleh membalas menggunakan kombinasi emoji, dilarang pakai huruf."
+    },
+    "card_14": {
+      "name": "Kartu Gombalan Makanan",
+      "description": "Target wajib ngasih satu gombalan receh yang berhubungan dengan makanan."
+    },
+    "card_15": {
+      "name": "Kartu PAP Atap",
+      "description": "Target wajib memfoto langit-langit kamar/langit luar saat ini juga dan diberi caption puitis maksa."
+    },
+    "card_16": {
+      "name": "Kartu Spam Kangen",
+      "description": "Target wajib nge-spam chat 'Aku kangen' sebanyak 10 kali berturut-turut detik ini juga."
+    },
+    "card_17": {
+      "name": "Kartu Filter Kocak",
+      "description": "Target wajib kirim foto/video pendek pakai filter IG atau TikTok yang paling aneh mukanya."
+    },
+    "card_18": {
+      "name": "Kartu Reporter Berita",
+      "description": "Target wajib kirim VN bergaya reporter berita, melaporkan apa saja benda yang ada di depannya."
+    },
+    "card_19": {
+      "name": "Kartu Dilarang Ketawa",
+      "description": "Pengguna bebas ngelawak, tapi target dilarang membalas dengan kata ketawa (wkwk/haha) atau emoji tertawa. Harus sok serius!"
+    },
+    "card_20": {
+      "name": "Kartu Telepati",
+      "description": "Target harus menebak apa yang sedang dilakukan pengguna sekarang. Kalau salah, pengguna bebas ngeledek."
+    },
+    "card_21": {
+      "name": "Kartu Puji Aku",
+      "description": "Target wajib mengirimkan satu paragraf pendek berisi pujian super lebay pakai huruf kapital semua."
+    },
+    "card_22": {
+      "name": "Kartu Laporan Cuaca",
+      "description": "Target wajib mengirimkan PAP kondisi langit atau cuaca di luar jendelanya saat ini, lengkap dengan caption bergaya presenter cuaca."
+    },
+    "card_23": {
+      "name": "Kartu PAP Mata",
+      "description": "Target wajib zoom in dan memfoto sebelah matanya saja sedekat mungkin, lalu dikirimkan dan bukan one seen!"
+    },
+    "card_24": {
+      "name": "Kartu Bahasa Jaksel",
+      "description": "Target wajib pakai bahasa gaul campur bahasa Inggris (literally, which is, basically) di setiap chat."
+    },
+    "card_25": {
+      "name": "Kartu Konser Lipsync",
+      "description": "Target wajib kirim video pendek lagi lipsync lagu dangdut atau pop dengan ekspresi menjiwai."
+    },
+    "card_26": {
+      "name": "Kartu Review Absurd",
+      "description": "Target wajib bikin VN me-review satu barang acak di dekatnya seolah itu barang mewah seharga jutaan."
+    },
+    "card_27": {
+      "name": "Kartu Anti \"Terserah\"",
+      "description": "Kalau pengguna nanya apapun, target dilarang keras menjawab 'terserah'. Harus kasih jawaban pasti!"
+    },
+    "card_28": {
+      "name": "Kartu Gombalan Profesi",
+      "description": "Target wajib ngasih gombalan maut pakai istilah jurusannya (misal: istilah arsitektur/bangunan, atau istilah coding/IT)."
+    },
+    "card_29": {
+      "name": "Kartu Ganti Pronoun",
+      "description": "Target wajib mengganti panggilan 'Aku-Kamu' menjadi 'Gue-Lu' atau 'Kanda-Dinda' yang super dramatis."
+    },
+    "card_30": {
+      "name": "Kartu Tutorial Gaje",
+      "description": "Target wajib kirim video tutorial melakukan hal super sepele (misal: cara minum air putih yang benar)."
+    },
+    "card_31": {
+      "name": "Kartu Pembangun Mood",
+      "description": "Target bertugas jadi asisten pribadi yang wajib mengirim 3 meme/quotes penyemangat secara berkala dalam 1 jam ke depan."
+    },
+    "card_32": {
+      "name": "Kartu Tebak Gambar",
+      "description": "Pengguna menggambar sesuatu dengan jelek di HP, target wajib menebaknya dan memuji gambar tersebut sebagus lukisan asli."
+    },
+    "card_33": {
+      "name": "Kartu Aib Masa Kecil",
+      "description": "Target wajib menceritakan satu kejadian memalukan atau lucu zaman SD via VN."
+    },
+    "card_34": {
+      "name": "Kartu Panggilan Absurd",
+      "description": "Pengguna berhak menetapkan satu nama panggilan aneh (misal: 'Moci', 'Kulkas', 'Batu Bata') yang WAJIB digunakan target untuk memanggil pengguna selama 1 jam ke depan."
+    },
+    "card_35": {
+      "name": "Kartu Motivator Ngawur",
+      "description": "Target wajib bertingkah seperti Mario Teguh, mengirimkan Voice Note minimal sepanjang 1 menit berisi petuah, motivasi, atau quotes kehidupan yang sebenarnya sama sekali tidak masuk akal."
+    },
+    "card_36": {
+      "name": "Kartu \"Hari Ini Aku Bayi\"",
+      "description": "Pengguna berhak manja tingkat dewa selama sejam, target wajib meladeni, menenangkan, dan menyetujui permintaan lucunya."
+    },
+    "card_37": {
+      "name": "Kartu Spam Misscall",
+      "description": "Dalam 12 jam ke depan, pengguna punya hak istimewa untuk menelpon target kapan saja, mengucapkan 1 kata random, lalu mematikannya sepihak. Target dilarang protes!"
+    },
+    "card_38": {
+      "name": "Kartu Surat Perjanjian Konyol",
+      "description": "Target wajib mengambil kertas dan pulpen detik itu juga, lalu menulis tangan sebuah sumpah receh yang didikte oleh pengguna (misal: 'Saya berjanji hari ini akan memuji ayang saya tanpa henti'), ditandatangani, difoto, dan dikirim. Valid secara hukum LDR!"
+    },
+    "card_39": {
+      "name": "Kartu \"Satu Kata Doang\"",
+      "description": "Selama 60 menit ke depan, target hanya boleh membalas chat dengan maksimal SATU KATA per pesan. Nggak boleh lebih! Bakal kocak banget ngeliat target frustrasi setengah mati pas mau ngejelasin sesuatu yang panjang."
+    },
+    "card_40": {
+      "name": "Kartu Customer Service Bucin",
+      "description": "Selama 60 menit ke depan, target dilarang membalas chat dengan gaya pacaran. Target WAJIB merespons layaknya Customer Service yang super sopan dan kaku."
+    },
+    "card_42": {
+      "name": "Kartu Photo Challenge Ekstrem",
+      "description": "Target wajib kirim 10 foto pose kocak dalam 2 jam dengan caption lucu."
+    },
+    "card_43": {
+      "name": "Kartu Panggilan Romantis Paksa",
+      "description": "Target harus dengarkan panggilan suara 1 jam penuh, boleh obrolan biasa."
+    },
+    "card_44": {
+      "name": "Kartu Curhat Wajib Dengar",
+      "description": "Curhat sesuka hati selama 90 menit, target harus dengarkan dan membalas serius."
+    },
+    "card_45": {
+      "name": "Kartu Surprise Date Plan",
+      "description": "Rancang surprise date untuk 1 minggu, target gak perlu belanja tapi harus datang."
+    }
+  }
+}

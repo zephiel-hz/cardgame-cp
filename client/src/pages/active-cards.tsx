@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ZapOff, Info, Zap, Clock, Users } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useActiveCards } from "@/hooks/use-cards";
 import { CountdownTimer } from "@/components/countdown-timer";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -26,6 +27,7 @@ interface GroupedCard {
 }
 
 export default function ActiveCards() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { data: activeCards, isLoading, error } = useActiveCards(user?.id);
   const queryClient = useQueryClient();
@@ -116,8 +118,8 @@ export default function ActiveCards() {
           <div className="w-20 h-20 bg-yellow-200 dark:bg-yellow-700/50 rounded-full flex items-center justify-center mb-4">
             <ZapOff className="w-10 h-10 text-yellow-600 dark:text-yellow-300" />
           </div>
-          <h3 className="font-bold text-xl mb-2 text-yellow-900 dark:text-yellow-200">Belum Ada Partner</h3>
-          <p className="text-center text-yellow-700 dark:text-yellow-200/70">Kamu harus memiliki partner terlebih dahulu untuk melihat kartu aktif mereka.</p>
+          <h3 className="font-bold text-xl mb-2 text-yellow-900 dark:text-yellow-200">{t('activeCards.noPartner')}</h3>
+          <p className="text-center text-yellow-700 dark:text-yellow-200/70">{t('activeCards.noPartnerMessage')}</p>
         </div>
       </div>
     );
@@ -129,10 +131,10 @@ export default function ActiveCards() {
       <div className="mb-6">
         <h2 className="text-3xl font-bold text-foreground flex items-center gap-2">
           <Zap className="text-yellow-500 fill-yellow-500 w-8 h-8" />
-          Status Saat Ini
+          {t('activeCards.title')}
         </h2>
         <p className="text-muted-foreground text-sm font-medium mt-1">
-          Kartu yang sedang aktif dan pantang dilanggar! 😤
+          {t('activeCards.subtitle')}
         </p>
       </div>
 
@@ -141,8 +143,8 @@ export default function ActiveCards() {
           <div className="w-20 h-20 bg-pink-200 dark:bg-pink-700/50 rounded-full flex items-center justify-center mb-4 animate-pulse">
             <ZapOff className="w-10 h-10 text-pink-600 dark:text-pink-300" />
           </div>
-          <h3 className="font-bold text-2xl mb-2 text-pink-900 dark:text-pink-200">Aman Sentosa</h3>
-          <p className="text-center text-pink-700 dark:text-pink-200/70 max-w-xs">Tidak ada kartu yang sedang aktif saat ini. Saatnya menggunakan kartu mu! 🎯</p>
+          <h3 className="font-bold text-2xl mb-2 text-pink-900 dark:text-pink-200">{t('activeCards.empty')}</h3>
+          <p className="text-center text-pink-700 dark:text-pink-200/70 max-w-xs">{t('activeCards.emptyMessage')}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -246,7 +248,7 @@ export default function ActiveCards() {
                           {isStacked && (
                             <span className="text-xs font-semibold px-3 py-1 rounded-full bg-gradient-to-r from-amber-100 to-amber-50 dark:from-amber-900/50 dark:to-amber-800/30 text-amber-800 dark:text-amber-200 border border-amber-200 dark:border-amber-700/50 flex items-center gap-1">
                               <span className="text-lg">✨</span>
-                              <span className="font-bold">+{bonusMinutes}m</span> stacked
+                              <span className="font-bold">+{bonusMinutes}m</span> {t('activeCards.stacked2')}
                             </span>
                           )}
                         </div>
@@ -260,10 +262,10 @@ export default function ActiveCards() {
                         <p className="text-xs text-muted-foreground font-semibold">
                           {isStacked ? (
                             <span className="text-amber-700 dark:text-amber-400">
-                              Base: {baseCardDuration}m → Total: {actualDurationMinutes}m (×{stackCountEstimate} stacked) ✨
+                              {t('activeCards.baseLabel')}: {baseCardDuration}m → {t('activeCards.totalLabel')}: {actualDurationMinutes}m (×{stackCountEstimate} {t('activeCards.stacked')}) ✨
                             </span>
                           ) : (
-                            <>Duration: {actualDurationMinutes}m</>
+                            <>{t('activeCards.durationLabel')}: {actualDurationMinutes}m</>
                           )}
                         </p>
                       </div>
@@ -273,9 +275,9 @@ export default function ActiveCards() {
                     {groupedCard.expiresAt && remainingSeconds > 0 && (
                       <div className="mb-4">
                         <div className="flex justify-between items-center mb-2">
-                          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Progres</span>
+                          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">{t('activeCards.progress')}</span>
                           <span className="text-xs font-semibold text-muted-foreground">
-                            Total: {actualDurationMinutes}m
+                            {t('activeCards.total')}: {actualDurationMinutes}m
                           </span>
                         </div>
                         <div className="w-full h-2.5 bg-muted/50 dark:bg-slate-700/50 rounded-full overflow-hidden border border-border/30">
@@ -297,7 +299,7 @@ export default function ActiveCards() {
                     <div className="flex justify-between items-center border-t border-border/30 pt-4">
                       <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                         <Clock className="w-3.5 h-3.5" />
-                        Sisa Waktu
+                        {t('activeCards.remainingTime')}
                       </span>
                       {groupedCard.expiresAt && (
                         <CountdownTimer 

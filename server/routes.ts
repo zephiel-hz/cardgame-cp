@@ -348,19 +348,28 @@ export async function registerRoutes(
           })
         );
 
-        // Construct public URL
-        const avatarUrl = `${PUBLIC_URL_BASE}/${consistentFilename}`;
-        console.log(`[Avatar] ✅ Avatar uploaded: ${avatarUrl}`);
+        // Construct server proxy URL (not direct R2 URL) for cross-device compatibility
+        // This allows avatars to work from any browser/device via server redirect
+        const serverProxyUrl = `/api/avatars/${userId}`;
+        
+        // Store R2 URL for actual R2 redirect
+        const r2Url = `${PUBLIC_URL_BASE}/${consistentFilename}`;
+        console.log(`[Avatar] ✅ Avatar uploaded to R2: ${r2Url}`);
+        console.log(`[Avatar] ✅ Serving via proxy: ${serverProxyUrl}`);
 
-        // Store R2 URL in database (not base64)
+        // Store server proxy URL in database (not R2 URL)
+        // This ensures avatars work across devices/browsers
         await storage.updateUser(Number(userId), { 
-          avatarUrl: avatarUrl,
+          avatarUrl: r2Url,  // Store R2 URL for redirect endpoint
           avatarData: null // Clear old base64 data
         });
 
         console.log(`[Avatar] ✅ URL saved to database`);
         console.log(`[Avatar] === UPLOAD END ===`);
-        res.status(200).json({ avatarUrl });
+        
+        // Return server proxy URL to client (not direct R2 URL)
+        // This ensures the client can load avatar from any device/browser
+        res.status(200).json({ avatarUrl: serverProxyUrl });
       } catch (uploadErr: any) {
         console.error("[Avatar] Upload error:", uploadErr);
         return res.status(500).json({ message: "Failed to upload avatar: " + uploadErr.message });
@@ -403,7 +412,7 @@ export async function registerRoutes(
     }
   });
 
-  // Redirect to R2 URL for avatar
+  // Redirect to R2 URL for avatar - with proper CORS headers
   app.get('/api/avatars/:userId', async (req, res) => {
     try {
       const userId = Number(req.params.userId);
@@ -419,9 +428,15 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Avatar not found" });
       }
 
+      // Set CORS headers for cross-origin requests
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+
       // If avatarUrl starts with http, it's an R2 URL - redirect to it
       if (user.avatarUrl.startsWith("http")) {
-        console.log(`[Avatar] Redirecting to R2 for user ${userId}`);
+        console.log(`[Avatar] Redirecting to R2 for user ${userId}: ${user.avatarUrl}`);
         return res.redirect(user.avatarUrl);
       }
 
@@ -672,6 +687,15 @@ export async function registerRoutes(
     try {
       const { userId, partnerId } = api.auth.sendPartnershipRequest.input.parse(req.body);
       const request = await storage.sendPartnershipRequest(userId, partnerId);
+      
+      // Send WebSocket notification to partner
+      sendToUser(partnerId, WS_EVENTS.PARTNERSHIP_REQUEST_RECEIVED, {
+        requestId: request.id,
+        fromUserId: userId,
+        status: request.status,
+        createdAt: request.createdAt,
+      });
+      
       res.status(200).json({ success: true, message: "Permintaan partnership terkirim" });
     } catch (err: any) {
       if (err.message.includes("sudah")) {
@@ -695,6 +719,27 @@ export async function registerRoutes(
     try {
       const { requestId, accept } = api.auth.respondToPartnershipRequest.input.parse(req.body);
       const result = await storage.respondToPartnershipRequest(requestId, accept);
+      
+      // Get the partnership request details to notify initiator
+      const requests = await storage.getPendingPartnershipRequests(result.id);
+      const request = requests.find(r => r.id === requestId);
+      
+      if (request) {
+        // Send WebSocket notification to initiator
+        if (accept) {
+          sendToUser(request.fromUserId, WS_EVENTS.PARTNERSHIP_REQUEST_ACCEPTED, {
+            requestId: request.id,
+            partnerId: result.id,
+            partnerUsername: result.username,
+          });
+        } else {
+          sendToUser(request.fromUserId, WS_EVENTS.PARTNERSHIP_REQUEST_REJECTED, {
+            requestId: request.id,
+            rejectedBy: result.id,
+          });
+        }
+      }
+      
       res.status(200).json({ 
         success: true, 
         message: accept ? "Partnership diterima" : "Partnership ditolak"
@@ -713,7 +758,19 @@ export async function registerRoutes(
       console.log("✅ Parsed input - userId:", userId, "reason:", reason, "reason type:", typeof reason);
       console.log("✅ Reason is empty?", !reason, "Trimmed empty?", !reason?.trim());
       
-      await storage.initiatePartnershipRemoval(userId, reason);
+      const removalRequest = await storage.initiatePartnershipRemoval(userId, reason);
+      
+      // Send WebSocket notification to partner about removal request
+      if (removalRequest) {
+        sendToUser(removalRequest.partnerId, WS_EVENTS.PARTNERSHIP_REMOVAL_REQUEST_RECEIVED, {
+          requestId: removalRequest.id,
+          initiatorId: userId,
+          partnerId: removalRequest.partnerId,
+          reason: reason,
+          createdAt: removalRequest.createdAt,
+        });
+      }
+      
       res.status(200).json({ 
         success: true, 
         message: "Permintaan penghapusan partnership telah dikirim ke partner Anda"
@@ -761,7 +818,20 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Alasan penolakan wajib diisi" });
       }
       
-      await storage.respondToRemovalRequest(requestId, accept, userId, rejectionReason);
+      const removalRequest = await storage.respondToRemovalRequest(requestId, accept, userId, rejectionReason);
+      
+      // Send WebSocket notification to initiator about the response
+      if (removalRequest) {
+        sendToUser(removalRequest.initiatorId, WS_EVENTS.PARTNERSHIP_REMOVAL_REQUEST_RESPONDED, {
+          requestId: removalRequest.id,
+          initiatorId: removalRequest.initiatorId,
+          partnerId: removalRequest.partnerId,
+          accepted: accept,
+          rejectionReason: rejectionReason,
+          status: removalRequest.status,
+        });
+      }
+      
       res.status(200).json({ 
         success: true, 
         message: accept ? "Partnership telah dihapus" : "Permintaan penghapusan partnership ditolak dengan alasan"
@@ -774,7 +844,19 @@ export async function registerRoutes(
   app.post(api.auth.forceDeletePartnership.path, async (req, res) => {
     try {
       const { requestId, userId } = api.auth.forceDeletePartnership.input.parse(req.body);
-      await storage.forceDeletePartnership(requestId, userId);
+      const removalRequest = await storage.forceDeletePartnership(requestId, userId);
+      
+      // Send WebSocket notification to partner about force deletion
+      if (removalRequest) {
+        sendToUser(removalRequest.initiatorId, WS_EVENTS.PARTNERSHIP_REMOVAL_REQUEST_RESPONDED, {
+          requestId: removalRequest.id,
+          initiatorId: removalRequest.initiatorId,
+          partnerId: removalRequest.partnerId,
+          forceDeleted: true,
+          status: 'force_deleted',
+        });
+      }
+      
       res.status(200).json({ 
         success: true, 
         message: "Partnership telah dihapus tanpa persetujuan partner"

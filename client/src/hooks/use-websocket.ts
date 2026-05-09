@@ -11,6 +11,11 @@ const WS_REACTION_REMOVED_EVENT = 'ws-reaction-removed';
 const WS_MESSAGE_READ_EVENT = 'ws-message-read';
 const WS_TRADE_COMPLETED_EVENT = 'ws-trade-completed';
 const WS_TRADE_CANCELLED_EVENT = 'ws-trade-cancelled';
+const WS_PARTNERSHIP_REQUEST_EVENT = 'ws-partnership-request-received';
+const WS_PARTNERSHIP_REQUEST_ACCEPTED_EVENT = 'ws-partnership-request-accepted';
+const WS_PARTNERSHIP_REQUEST_REJECTED_EVENT = 'ws-partnership-request-rejected';
+const WS_PARTNERSHIP_REMOVAL_EVENT = 'ws-partnership-removal-request-received';
+const WS_PARTNERSHIP_REMOVAL_RESPONDED_EVENT = 'ws-partnership-removal-request-responded';
 
 export function useAppWebSocket(userId?: number) {
   const queryClient = useQueryClient();
@@ -112,6 +117,36 @@ export function useAppWebSocket(userId?: number) {
             // Invalidate all relevant queries to refresh UI
             queryClient.invalidateQueries({ queryKey: ['trades', 'history'] });
             queryClient.invalidateQueries({ queryKey: ['trades', 'pending'], exact: false }); // Refresh pending trades list
+          } else if (data.type === WS_EVENTS.PARTNERSHIP_REQUEST_RECEIVED) {
+            console.log('[WebSocket] PARTNERSHIP_REQUEST_RECEIVED:', data.payload);
+            const event = new CustomEvent(WS_PARTNERSHIP_REQUEST_EVENT, {
+              detail: data.payload,
+            });
+            window.dispatchEvent(event);
+          } else if (data.type === WS_EVENTS.PARTNERSHIP_REMOVAL_REQUEST_RECEIVED) {
+            console.log('[WebSocket] PARTNERSHIP_REMOVAL_REQUEST_RECEIVED:', data.payload);
+            const event = new CustomEvent(WS_PARTNERSHIP_REMOVAL_EVENT, {
+              detail: data.payload,
+            });
+            window.dispatchEvent(event);
+          } else if (data.type === WS_EVENTS.PARTNERSHIP_REMOVAL_REQUEST_RESPONDED) {
+            console.log('[WebSocket] PARTNERSHIP_REMOVAL_REQUEST_RESPONDED:', data.payload);
+            const event = new CustomEvent(WS_PARTNERSHIP_REMOVAL_RESPONDED_EVENT, {
+              detail: data.payload,
+            });
+            window.dispatchEvent(event);
+          } else if (data.type === WS_EVENTS.PARTNERSHIP_REQUEST_ACCEPTED) {
+            console.log('[WebSocket] PARTNERSHIP_REQUEST_ACCEPTED:', data.payload);
+            const event = new CustomEvent(WS_PARTNERSHIP_REQUEST_ACCEPTED_EVENT, {
+              detail: data.payload,
+            });
+            window.dispatchEvent(event);
+          } else if (data.type === WS_EVENTS.PARTNERSHIP_REQUEST_REJECTED) {
+            console.log('[WebSocket] PARTNERSHIP_REQUEST_REJECTED:', data.payload);
+            const event = new CustomEvent(WS_PARTNERSHIP_REQUEST_REJECTED_EVENT, {
+              detail: data.payload,
+            });
+            window.dispatchEvent(event);
           }
         } catch (e) {
           console.error("Failed to parse WS message", e);
@@ -252,4 +287,74 @@ export function useWebSocketTrades(
       window.removeEventListener(WS_TRADE_CANCELLED_EVENT, handleTradeCancelled);
     };
   }, [onTradeCompleted, onTradeCancelled]);
+}
+
+// Hook untuk subscribe ke partnership events
+export function useWebSocketPartnership(
+  onPartnershipRequest?: (payload: any) => void,
+  onPartnershipRemovalRequest?: (payload: any) => void,
+  onPartnershipRemovalResponded?: (payload: any) => void
+) {
+  useEffect(() => {
+    const handlePartnershipRequest = (event: Event) => {
+      if (event instanceof CustomEvent && onPartnershipRequest) {
+        console.log('[useWebSocketPartnership] PARTNERSHIP_REQUEST:', event.detail);
+        onPartnershipRequest(event.detail);
+      }
+    };
+
+    const handleRemovalRequest = (event: Event) => {
+      if (event instanceof CustomEvent && onPartnershipRemovalRequest) {
+        console.log('[useWebSocketPartnership] PARTNERSHIP_REMOVAL_REQUEST:', event.detail);
+        onPartnershipRemovalRequest(event.detail);
+      }
+    };
+
+    const handleRemovalResponded = (event: Event) => {
+      if (event instanceof CustomEvent && onPartnershipRemovalResponded) {
+        console.log('[useWebSocketPartnership] PARTNERSHIP_REMOVAL_RESPONDED:', event.detail);
+        onPartnershipRemovalResponded(event.detail);
+      }
+    };
+
+    window.addEventListener(WS_PARTNERSHIP_REQUEST_EVENT, handlePartnershipRequest);
+    window.addEventListener(WS_PARTNERSHIP_REMOVAL_EVENT, handleRemovalRequest);
+    window.addEventListener(WS_PARTNERSHIP_REMOVAL_RESPONDED_EVENT, handleRemovalResponded);
+    
+    return () => {
+      window.removeEventListener(WS_PARTNERSHIP_REQUEST_EVENT, handlePartnershipRequest);
+      window.removeEventListener(WS_PARTNERSHIP_REMOVAL_EVENT, handleRemovalRequest);
+      window.removeEventListener(WS_PARTNERSHIP_REMOVAL_RESPONDED_EVENT, handleRemovalResponded);
+    };
+  }, [onPartnershipRequest, onPartnershipRemovalRequest, onPartnershipRemovalResponded]);
+}
+
+// Hook untuk subscribe ke partnership request response events (accepted/rejected)
+export function useWebSocketPartnershipResponses(
+  onPartnershipAccepted?: (payload: any) => void,
+  onPartnershipRejected?: (payload: any) => void
+) {
+  useEffect(() => {
+    const handlePartnershipAccepted = (event: Event) => {
+      if (event instanceof CustomEvent && onPartnershipAccepted) {
+        console.log('[useWebSocketPartnershipResponses] PARTNERSHIP_REQUEST_ACCEPTED:', event.detail);
+        onPartnershipAccepted(event.detail);
+      }
+    };
+
+    const handlePartnershipRejected = (event: Event) => {
+      if (event instanceof CustomEvent && onPartnershipRejected) {
+        console.log('[useWebSocketPartnershipResponses] PARTNERSHIP_REQUEST_REJECTED:', event.detail);
+        onPartnershipRejected(event.detail);
+      }
+    };
+
+    window.addEventListener(WS_PARTNERSHIP_REQUEST_ACCEPTED_EVENT, handlePartnershipAccepted);
+    window.addEventListener(WS_PARTNERSHIP_REQUEST_REJECTED_EVENT, handlePartnershipRejected);
+    
+    return () => {
+      window.removeEventListener(WS_PARTNERSHIP_REQUEST_ACCEPTED_EVENT, handlePartnershipAccepted);
+      window.removeEventListener(WS_PARTNERSHIP_REQUEST_REJECTED_EVENT, handlePartnershipRejected);
+    };
+  }, [onPartnershipAccepted, onPartnershipRejected]);
 }

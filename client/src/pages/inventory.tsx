@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { Inbox, Search, X, Filter, Sparkles, Clock, AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
@@ -25,6 +26,7 @@ interface GroupedCard {
 }
 
 export default function Inventory() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { toast } = useToast();
   const { data: cards, isLoading } = useInventory(user?.id);
@@ -58,14 +60,14 @@ export default function Inventory() {
     try {
       await useCard.mutateAsync(userCardId);
       toast({
-        title: "Kartu Aktif!",
-        description: `Kamu telah menggunakan kartu: ${cardName}`,
+        title: t('inventory.cardTitle'),
+        description: t('inventory.cardUsed', { cardName }),
         className: "bg-green-500 text-white border-none",
       });
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Gagal",
+        title: t('inventory.cardError'),
         description: error.message,
       });
     }
@@ -179,14 +181,14 @@ export default function Inventory() {
       <div className="mb-8 px-2">
         <div className="flex justify-between items-start">
           <div>
-            <h2 className="text-2xl font-bold text-foreground mb-1">Koleksi Kartumu</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-1">{t('inventory.title')}</h2>
             <p className="text-muted-foreground text-sm font-medium">
-              Gunakan kartu ini untuk meminta sesuatu dari pasanganmu!
+              {t('inventory.subtitle')}
             </p>
           </div>
           <div className="text-center bg-gradient-to-br from-pink-500/10 to-pink-400/5 rounded-xl px-4 py-3 border border-pink-500/20">
             <p className="text-2xl font-bold text-pink-500">{cards?.length || 0}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Kartu</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{t('inventory.cards')}</p>
           </div>
         </div>
       </div>
@@ -196,8 +198,8 @@ export default function Inventory() {
           <div className="w-20 h-20 bg-pink-200 dark:bg-purple-700/50 rounded-full flex items-center justify-center mb-4">
             <Inbox className="w-10 h-10 text-pink-600 dark:text-pink-300" />
           </div>
-          <h3 className="font-bold text-xl mb-2 text-pink-900 dark:text-pink-200">Koleksi Kosong</h3>
-          <p className="text-center text-pink-700 dark:text-pink-200/70">Ayo pergi ke tab Gacha untuk menarik kartu baru!</p>
+          <h3 className="font-bold text-xl mb-2 text-pink-900 dark:text-pink-200">{t('inventory.empty')}</h3>
+          <p className="text-center text-pink-700 dark:text-pink-200/70">{t('inventory.emptyMessage')}</p>
         </div>
       ) : (
         <>
@@ -208,7 +210,7 @@ export default function Inventory() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
               <input
                 type="text"
-                placeholder="Cari nama atau deskripsi kartu..."
+                placeholder={t('inventory.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 bg-secondary/50 border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-pink-500 placeholder-muted-foreground text-foreground"
@@ -234,7 +236,7 @@ export default function Inventory() {
                     : "bg-secondary text-muted-foreground hover:bg-secondary/80"
                 }`}
               >
-                Semua
+                {t('inventory.all')}
               </button>
               {uniqueTiers.map((tier) => (
                 <button
@@ -253,23 +255,23 @@ export default function Inventory() {
 
             {/* Sort Dropdown Row */}
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">Sortir:</label>
+              <label className="text-sm font-medium text-muted-foreground whitespace-nowrap">{t('inventory.sortLabel')}</label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as "name" | "tier-desc" | "tier-asc" | "duration")}
                 className="flex-1 px-4 py-2 rounded-full text-sm font-medium bg-pink-500/10 border-2 border-pink-500/30 text-foreground focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
               >
-                <option value="name">Nama (A-Z)</option>
-                <option value="tier-desc">Tier (Tertinggi)</option>
-                <option value="tier-asc">Tier (Terendah)</option>
-                <option value="duration">Durasi</option>
+                <option value="name">{t('inventory.sort.nameAZ')}</option>
+                <option value="tier-desc">{t('inventory.sort.tierHighest')}</option>
+                <option value="tier-asc">{t('inventory.sort.tierLowest')}</option>
+                <option value="duration">{t('inventory.sort.duration')}</option>
               </select>
             </div>
 
             {/* Results count */}
             {searchQuery || selectedTier ? (
               <p className="text-sm text-muted-foreground px-1">
-                Ditemukan <span className="font-semibold text-pink-500">{filteredAndSortedCards.length}</span> kartu
+                {t('inventory.found', { count: filteredAndSortedCards.length })}
               </p>
             ) : null}
           </div>
@@ -278,7 +280,7 @@ export default function Inventory() {
           {filteredAndSortedCards.length === 0 ? (
             <div className="flex flex-col items-center justify-center bg-secondary/50 rounded-2xl p-12 mt-8 px-2">
               <Search className="w-12 h-12 text-muted-foreground mb-4 opacity-50" />
-              <p className="text-muted-foreground text-center">Tidak ada kartu yang cocok dengan filter</p>
+              <p className="text-muted-foreground text-center">{t('inventory.noResults')}</p>
             </div>
           ) : (
             <motion.div 
@@ -304,7 +306,7 @@ export default function Inventory() {
                       {grouped.isNew && (
                         <div className="absolute -top-0.5 -left-0.5 bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-2.5 py-1 rounded-br-lg text-xs font-bold flex items-center gap-1 shadow-lg z-20">
                           <Sparkles className="w-3 h-3" />
-                          Baru
+                          {t('inventory.new')}
                         </div>
                       )}
                       
@@ -334,9 +336,9 @@ export default function Inventory() {
       <Dialog open={!!selectedCardForDetail} onOpenChange={(open) => !open && setSelectedCardForDetail(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-2xl">{selectedCardForDetail?.name}</DialogTitle>
+            <DialogTitle className="text-2xl">{selectedCardForDetail && t(`cards.card_${selectedCardForDetail.id}.name`, { defaultValue: selectedCardForDetail.name })}</DialogTitle>
             <DialogDescription>
-              Tier: {selectedCardForDetail?.tier} • Durasi: {selectedCardForDetail && formatDuration(selectedCardForDetail.durationMinutes)}
+              {t('game.tier')}: {selectedCardForDetail?.tier} • {t('inventory.durationLabel')}: {selectedCardForDetail && formatDuration(selectedCardForDetail.durationMinutes)}
             </DialogDescription>
           </DialogHeader>
           
@@ -352,9 +354,9 @@ export default function Inventory() {
           
           <div className="space-y-4 py-4">
             <div>
-              <h4 className="text-sm font-semibold text-muted-foreground mb-2">Deskripsi</h4>
+              <h4 className="text-sm font-semibold text-muted-foreground mb-2">{t('inventory.description')}</h4>
               <p className="text-base text-foreground leading-relaxed">
-                {selectedCardForDetail?.description}
+                {selectedCardForDetail && t(`cards.card_${selectedCardForDetail.id}.description`, { defaultValue: selectedCardForDetail.description })}
               </p>
             </div>
 
@@ -362,14 +364,14 @@ export default function Inventory() {
               <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 flex items-start gap-2">
                 <AlertCircle className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-red-700 dark:text-red-300">
-                  ⚠️ Kamu harus memiliki partner terlebih dahulu untuk menggunakan kartu ini.
+                  {t('inventory.partnerRequired')}
                 </p>
               </div>
             )}
 
             <div className="bg-secondary/50 rounded-lg p-3">
               <p className="text-xs text-muted-foreground">
-                💡 Kartu ini dapat digunakan untuk meminta sesuatu dari pasanganmu. Durasi aktif adalah {selectedCardForDetail && formatDuration(selectedCardForDetail.durationMinutes)}.
+                {t('inventory.infoTip', { duration: selectedCardForDetail ? formatDuration(selectedCardForDetail.durationMinutes) : 'N/A' })}
               </p>
             </div>
           </div>
@@ -382,7 +384,7 @@ export default function Inventory() {
             disabled={useCard.isPending || !partner}
             className="w-full bg-gradient-to-r from-pink-500 to-pink-400 hover:from-pink-400 hover:to-pink-300 text-white font-bold py-2 rounded-lg shadow-lg shadow-pink-500/30 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed mb-3"
           >
-            {useCard.isPending && useCard.variables === selectedUserCardId ? "Diproses..." : "Gunakan"}
+            {useCard.isPending && useCard.variables === selectedUserCardId ? t('common.processing') : t('inventory.use')}
           </button>
 
           <button
@@ -392,7 +394,7 @@ export default function Inventory() {
             }}
             className="w-full bg-gradient-to-r from-pink-500 to-pink-400 hover:from-pink-400 hover:to-pink-300 text-white font-bold py-2 rounded-lg shadow-lg shadow-pink-500/30 transition-transform active:scale-95"
           >
-            Tutup
+            {t('inventory.close')}
           </button>
         </DialogContent>
       </Dialog>
@@ -401,15 +403,15 @@ export default function Inventory() {
       <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-xl">Konfirmasi Penggunaan Kartu</DialogTitle>
+            <DialogTitle className="text-xl">{t('inventory.confirmation')}</DialogTitle>
             <DialogDescription>
-              Apakah kamu yakin ingin menggunakan kartu <span className="font-semibold text-foreground">"{selectedCardForDetail?.name}"</span>?
+              {t('inventory.confirmUseCard')}
             </DialogDescription>
           </DialogHeader>
           
           <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mb-4">
             <p className="text-sm text-yellow-700 dark:text-yellow-300">
-              ⚠️ Kartu akan aktif selama <span className="font-semibold">{selectedCardForDetail && formatDuration(selectedCardForDetail.durationMinutes)}</span> dan tidak dapat dibatalkan.
+              ⚠️ {t('inventory.cardWarning', { duration: selectedCardForDetail ? formatDuration(selectedCardForDetail.durationMinutes) : 'N/A' })}
             </p>
           </div>
           
@@ -421,7 +423,7 @@ export default function Inventory() {
               }}
               className="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-foreground font-bold py-2 rounded-lg transition-colors"
             >
-              Batal
+              {t('common.cancel')}
             </button>
             <button
               onClick={async () => {
@@ -436,7 +438,7 @@ export default function Inventory() {
               disabled={useCard.isPending}
               className="flex-1 bg-gradient-to-r from-pink-500 to-pink-400 hover:from-pink-400 hover:to-pink-300 text-white font-bold py-2 rounded-lg shadow-lg shadow-pink-500/30 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {useCard.isPending ? "Diproses..." : "Ya, Gunakan"}
+              {useCard.isPending ? t('common.processing') : t('inventory.confirmButton')}
             </button>
           </div>
         </DialogContent>

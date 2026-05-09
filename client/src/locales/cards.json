@@ -1,0 +1,92 @@
+{
+  "card_1": {
+    "name_en": "Random PAP Card",
+    "name_id": "Kartu PAP Random",
+    "description_en": "Target must send a random selfie photo right now!",
+    "description_id": "Target wajib kirim foto selfie random saat itu juga!"
+  },
+  "card_2": {
+    "name_en": "Alien Mode Card",
+    "name_id": "Kartu Mode Alien",
+    "description_en": "For 15 minutes, target must reply to chats with weird words/typos added.",
+    "description_id": "Selama 15 menit, target balas chat wajib pakai tambahan kata aneh/typo."
+  },
+  "card_3": {
+    "name_en": "Send Meme Card",
+    "name_id": "Kartu Kirim Meme",
+    "description_en": "Target must send 1 random or worst meme/sticker.",
+    "description_id": "Target wajib kirim 1 meme random/stiker paling jelek."
+  },
+  "card_4": {
+    "name_en": "Concert VN Card",
+    "name_id": "Kartu VN Konser Fals",
+    "description_en": "Target must send a voice note singing a kids song.",
+    "description_id": "Target wajib kirim VN nyanyi lagu anak-anak."
+  },
+  "card_5": {
+    "name_en": "You Can Vent Card",
+    "name_id": "Kartu Boleh Marah 20 Menit",
+    "description_en": "Vent freely for 20 minutes, target can only say 'Yes, you're right'.",
+    "description_id": "Pengguna ngomel bebas, target cuma boleh bilang 'Iya, kamu bener'."
+  },
+  "card_6": {
+    "name_en": "I'm The Boss Card",
+    "name_id": "Kartu Aku Bosnya",
+    "description_en": "For 30 minutes, target must call you 'Sir/Ma'am' or 'Boss'.",
+    "description_id": "Selama 30 menit, target wajib panggil dengan sebutan 'Paduka/Bos'."
+  },
+  "card_7": {
+    "name_en": "Type With Nose Card",
+    "name_id": "Kartu Ketik Pakai Hidung",
+    "description_en": "Target must type 'I really love you so much' using their nose without correcting typos.",
+    "description_id": "Target wajib ngetik 'Aku sayang banget sama kamu' pakai hidung tanpa hapus typo."
+  },
+  "card_8": {
+    "name_en": "Forced Poem Card",
+    "name_id": "Kartu Pantun Maksa",
+    "description_en": "For the next 5 messages (while active), reply to chat using poems/rhymes.",
+    "description_id": "Untuk 5 chat ke depan (selama aktif), balas pesan pakai pantun."
+  },
+  "card_9": {
+    "name_en": "Extreme Photo Challenge Card",
+    "name_id": "Kartu Photo Challenge Ekstrem",
+    "description_en": "Target must send 10 funny pose photos within 2 hours with funny captions.",
+    "description_id": "Target wajib kirim 10 foto pose kocak dalam 2 jam dengan caption lucu."
+  },
+  "card_10": {
+    "name_en": "Romantic Forced Call Card",
+    "name_id": "Kartu Panggilan Romantis Paksa",
+    "description_en": "Target must listen to a 1-hour voice call, casual conversation allowed.",
+    "description_id": "Target harus dengarkan panggilan suara 1 jam penuh, boleh obrolan biasa."
+  },
+  "card_11": {
+    "name_en": "Must Listen Vent Card",
+    "name_id": "Kartu Curhat Wajib Dengar",
+    "description_en": "Vent as much as you want for 90 minutes, target must listen and reply seriously.",
+    "description_id": "Curhat sesuka hati selama 90 menit, target harus dengarkan dan membalas serius."
+  },
+  "card_12": {
+    "name_en": "Surprise Date Plan Card",
+    "name_id": "Kartu Surprise Date Plan",
+    "description_en": "Plan a surprise date for 2 weeks, target doesn't pay but must show up.",
+    "description_id": "Rancang surprise date untuk 2 minggu, target gak perlu belanja tapi harus datang."
+  },
+  "card_13": {
+    "name_en": "Stop Sulking Card",
+    "name_id": "Kartu Pause Ngambek",
+    "description_en": "Target must immediately send a smiling photo and stop sulking right now.",
+    "description_id": "Target wajib langsung kirim foto senyum dan batal ngambek detik itu juga."
+  },
+  "card_14": {
+    "name_en": "Embarrassing Contact Name Card",
+    "name_id": "Kartu Ganti Nama Kontak",
+    "description_en": "Change target's contact name to something embarrassing for 24 hours. Must screenshot.",
+    "description_id": "Tentukan nama kontak memalukan di HP target selama 24 jam. Wajib SS."
+  },
+  "card_15": {
+    "name_en": "Virtual Genie Card",
+    "name_id": "Kartu Jin Aladdin Virtual",
+    "description_en": "Ask target for one small favor and they cannot refuse.",
+    "description_id": "Minta tolong satu hal remeh dan target tidak boleh menolak."
+  }
+}
